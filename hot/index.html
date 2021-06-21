@@ -22,18 +22,18 @@
     var CONFIG = {"hostname":"catbro666.github.io","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":"mac"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
   </script>
 
-  <meta name="description" content="AV.initialize(&quot;0Syy5qyXX1qTBOGiD0vUzpHb-MdYXbMMI&quot;, &quot;B3MuN4GIHf7ru1ojTSkjjI9a&quot;);AV.useAVCloudUS();    // 调整排行显示的条数   var num=2;   var time=0;   var title=&quot;&quot;;   var url=&quot;&quot;;   var query = new AV.Query(">
+  <meta name="description" content="AV.initialize(&quot;0Syy5qyXX1qTBOGiD0vUzpHb-MdYXbMMI&quot;, &quot;B3MuN4GIHf7ru1ojTSkjjI9a&quot;);AV.useAVCloudUS();    // 调整排行显示的条数   var time=0;   var title=&quot;&quot;;   var url=&quot;&quot;;   var query = new AV.Query(&apos;Counter&apos;);">
 <meta name="keywords" content="Linux C">
 <meta property="og:type" content="website">
 <meta property="og:title" content="文章热度排行">
 <meta property="og:url" content="https://catbro666.github.io/hot/index.html">
 <meta property="og:site_name" content="CatBro&#39;s Blog">
-<meta property="og:description" content="AV.initialize(&quot;0Syy5qyXX1qTBOGiD0vUzpHb-MdYXbMMI&quot;, &quot;B3MuN4GIHf7ru1ojTSkjjI9a&quot;);AV.useAVCloudUS();    // 调整排行显示的条数   var num=2;   var time=0;   var title=&quot;&quot;;   var url=&quot;&quot;;   var query = new AV.Query(">
+<meta property="og:description" content="AV.initialize(&quot;0Syy5qyXX1qTBOGiD0vUzpHb-MdYXbMMI&quot;, &quot;B3MuN4GIHf7ru1ojTSkjjI9a&quot;);AV.useAVCloudUS();    // 调整排行显示的条数   var time=0;   var title=&quot;&quot;;   var url=&quot;&quot;;   var query = new AV.Query(&apos;Counter&apos;);">
 <meta property="og:locale" content="zh-CN">
-<meta property="og:updated_time" content="2021-06-21T20:10:40.244Z">
+<meta property="og:updated_time" content="2021-06-21T20:15:46.117Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="文章热度排行">
-<meta name="twitter:description" content="AV.initialize(&quot;0Syy5qyXX1qTBOGiD0vUzpHb-MdYXbMMI&quot;, &quot;B3MuN4GIHf7ru1ojTSkjjI9a&quot;);AV.useAVCloudUS();    // 调整排行显示的条数   var num=2;   var time=0;   var title=&quot;&quot;;   var url=&quot;&quot;;   var query = new AV.Query(">
+<meta name="twitter:description" content="AV.initialize(&quot;0Syy5qyXX1qTBOGiD0vUzpHb-MdYXbMMI&quot;, &quot;B3MuN4GIHf7ru1ojTSkjjI9a&quot;);AV.useAVCloudUS();    // 调整排行显示的条数   var time=0;   var title=&quot;&quot;;   var url=&quot;&quot;;   var query = new AV.Query(&apos;Counter&apos;);">
 
 <link rel="canonical" href="https://catbro666.github.io/hot/">
 
@@ -256,16 +256,18 @@
 <script>AV.initialize("0Syy5qyXX1qTBOGiD0vUzpHb-MdYXbMMI", "B3MuN4GIHf7ru1ojTSkjjI9a");AV.useAVCloudUS();</script>
 <script type="text/javascript">
   // 调整排行显示的条数
-  var num=2;
   var time=0;
   var title="";
   var url="";
   var query = new AV.Query('Counter');
   query.notEqualTo('id',0);
   query.descending('time');
-  query.limit(num);
+  query.limit(50);
   query.find().then(function (todo) {
-    for (var i=0;i<num;i++){
+    for (var i=0;i<50;i++){
+      if(i>=10) {
+          break;
+      }
 
 <pre><code>  var result=todo[i].attributes;
   //下方的30可以根据网站访问量调整，以控制最大热度的数值
