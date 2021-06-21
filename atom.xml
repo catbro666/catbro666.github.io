@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>CatBro&#39;s Blog</title>
+  <icon>https://catbro666.github.io/icon.png</icon>
+  <subtitle>Volar con el viento</subtitle>
+  <link href="https://catbro666.github.io/atom.xml" rel="self"/>
+  
+  <link href="https://catbro666.github.io/"/>
+  <updated>2021-06-21T14:09:14.434Z</updated>
+  <id>https://catbro666.github.io/</id>
+  
+  <author>
+    <name>猫猫哥</name>
+    
+  </author>
+  
+  <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>UNIX环境高级编程APUE练习4.6-实现类似cp(1)的程序，保留文件中的空洞</title>
+    <link href="https://catbro666.github.io/posts/aa99fc97/"/>
+    <id>https://catbro666.github.io/posts/aa99fc97/</id>
+    <published>2020-01-06T08:49:42.000Z</published>
+    <updated>2021-06-21T14:09:14.434Z</updated>
+    
+    
+    <summary type="html">&lt;h2 id=&quot;1-题面&quot;&gt;&lt;a href=&quot;#1-题面&quot; class=&quot;headerlink&quot; title=&quot;1 题面&quot;&gt;&lt;/a&gt;1 题面&lt;/h2&gt;&lt;p&gt;编写类似cp(1)的程序，它复制包含空洞的文件，但是不将字节0写到输出文件中去。&lt;/p&gt;
+&lt;h2 id=&quot;2-基本思路&quot;&gt;&lt;a href=&quot;#2-基本思路&quot; class=&quot;headerlink&quot; title=&quot;2 基本思路&quot;&gt;&lt;/a&gt;2 基本思路&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;首先要搞清楚空洞的性质以判断一个文件是否有空洞，以及空洞的位置&lt;/li&gt;
+&lt;li&gt;知道了空洞的位置之后，读到源文件中的空洞部分时，在目标文件中lseek相应的长度&lt;/li&gt;
+&lt;/ul&gt;</summary>
+    
+    
+    
+    
+  </entry>
+  
+  <entry>
+    <title>UNIX环境高级编程APUE练习3.2-不用fcntl实现dup2的功能</title>
+    <link href="https://catbro666.github.io/posts/2485f370/"/>
+    <id>https://catbro666.github.io/posts/2485f370/</id>
+    <published>2019-12-17T09:52:09.000Z</published>
+    <updated>2021-06-21T14:23:30.265Z</updated>
+    
+    
+    <summary type="html">&lt;h2 id=&quot;题面&quot;&gt;&lt;a href=&quot;#题面&quot; class=&quot;headerlink&quot; title=&quot;题面&quot;&gt;&lt;/a&gt;题面&lt;/h2&gt;&lt;p&gt;编写与dup2功能相同的函数，要求不调用fcntl函数，并且要有正确的出错处理。&lt;/p&gt;
+&lt;h2 id=&quot;基本思路&quot;&gt;&lt;a href=&quot;#基本思路&quot; class=&quot;headerlink&quot; title=&quot;基本思路&quot;&gt;&lt;/a&gt;基本思路&lt;/h2&gt;&lt;p&gt;不能用fcntl，能够返回一个文件描述符的只有open和dup。而open会创建一个新的文件表项，返回的fd指向新的文件表项，与dup2的表现不符。dup基本能满足要求，但是返回的是最小的可用fd，需要进一步操作满足要求。另外需要自己添加错误处理，以及处理oldfd与newfd相等的情况等。具体地，&lt;/p&gt;</summary>
+    
+    
+    
+    <category term="UNIX" scheme="https://catbro666.github.io/categories/UNIX/"/>
+    
+    
+    <category term="UNIX" scheme="https://catbro666.github.io/tags/UNIX/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>Hello World</title>
+    <link href="https://catbro666.github.io/posts/4a17b156/"/>
+    <id>https://catbro666.github.io/posts/4a17b156/</id>
+    <published>2019-06-07T08:49:42.000Z</published>
+    <updated>2021-06-21T14:38:56.931Z</updated>
+    
+    
+    <summary type="html">&lt;p&gt;Welcome to &lt;a href=&quot;https://hexo.io/&quot; rel=&quot;noopener&quot; target=&quot;_blank&quot;&gt;Hexo&lt;/a&gt;! This is your very first post. Check &lt;a href=&quot;https://hexo.io/docs/&quot; rel=&quot;noopener&quot; target=&quot;_blank&quot;&gt;documentation&lt;/a&gt; for more info. If you get any problems when using Hexo, you can find the answer in &lt;a href=&quot;https://hexo.io/docs/troubleshooting.html&quot; rel=&quot;noopener&quot; target=&quot;_blank&quot;&gt;troubleshooting&lt;/a&gt; or you can ask me on &lt;a href=&quot;https://github.com/hexojs/hexo/issues&quot; rel=&quot;noopener&quot; target=&quot;_blank&quot;&gt;GitHub&lt;/a&gt;.&lt;/p&gt;</summary>
+    
+    
+    
+    
+  </entry>
+  
+</feed>

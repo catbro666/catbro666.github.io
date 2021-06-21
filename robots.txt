@@ -1,0 +1,19 @@
+User-agent: *
+Allow: /
+Allow: /home/
+Allow: /about/
+Allow: /archives/
+Allow: /posts/
+Allow: /categories/
+Allow: /tags/
+Allow: /hot/
+Disallow: /js/
+Disallow: /css/
+Disallow: /fonts/
+Disallow: /lib/
+Disallow: /images/
+Disallow: /vendors/
+Disallow: /fancybox/
+
+Sitemap: https://catbro666.github.io/sitemap.xml
+Sitemap: https://catbro666.github.io/baidusitemap.xml
