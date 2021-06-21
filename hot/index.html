@@ -22,18 +22,18 @@
     var CONFIG = {"hostname":"catbro666.github.io","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":"mac"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
   </script>
 
-  <meta name="description" content="AV.initialize(&quot;0Syy5qyXX1qTBOGiD0vUzpHb-MdYXbMMI&quot;, &quot;B3MuN4GIHf7ru1ojTSkjjI9a&quot;);AV.useAVCloudUS();    var time=0;   var title=&quot;&quot;;   var url=&quot;&quot;;   var query = new AV.Query(&apos;Counter&apos;);   query.notEqual">
+  <meta name="description" content="AV.initialize(&quot;0Syy5qyXX1qTBOGiD0vUzpHb-MdYXbMMI&quot;, &quot;B3MuN4GIHf7ru1ojTSkjjI9a&quot;);AV.useAVCloudUS();    // 调整排行显示的条数   var num=50;   var time=0;   var title=&quot;&quot;;   var url=&quot;&quot;;   var query = new AV.Query">
 <meta name="keywords" content="Linux C">
 <meta property="og:type" content="website">
 <meta property="og:title" content="文章热度排行">
 <meta property="og:url" content="https://catbro666.github.io/hot/index.html">
 <meta property="og:site_name" content="CatBro&#39;s Blog">
-<meta property="og:description" content="AV.initialize(&quot;0Syy5qyXX1qTBOGiD0vUzpHb-MdYXbMMI&quot;, &quot;B3MuN4GIHf7ru1ojTSkjjI9a&quot;);AV.useAVCloudUS();    var time=0;   var title=&quot;&quot;;   var url=&quot;&quot;;   var query = new AV.Query(&apos;Counter&apos;);   query.notEqual">
+<meta property="og:description" content="AV.initialize(&quot;0Syy5qyXX1qTBOGiD0vUzpHb-MdYXbMMI&quot;, &quot;B3MuN4GIHf7ru1ojTSkjjI9a&quot;);AV.useAVCloudUS();    // 调整排行显示的条数   var num=50;   var time=0;   var title=&quot;&quot;;   var url=&quot;&quot;;   var query = new AV.Query">
 <meta property="og:locale" content="zh-CN">
-<meta property="og:updated_time" content="2021-06-21T20:05:37.375Z">
+<meta property="og:updated_time" content="2021-06-21T20:08:11.806Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="文章热度排行">
-<meta name="twitter:description" content="AV.initialize(&quot;0Syy5qyXX1qTBOGiD0vUzpHb-MdYXbMMI&quot;, &quot;B3MuN4GIHf7ru1ojTSkjjI9a&quot;);AV.useAVCloudUS();    var time=0;   var title=&quot;&quot;;   var url=&quot;&quot;;   var query = new AV.Query(&apos;Counter&apos;);   query.notEqual">
+<meta name="twitter:description" content="AV.initialize(&quot;0Syy5qyXX1qTBOGiD0vUzpHb-MdYXbMMI&quot;, &quot;B3MuN4GIHf7ru1ojTSkjjI9a&quot;);AV.useAVCloudUS();    // 调整排行显示的条数   var num=50;   var time=0;   var title=&quot;&quot;;   var url=&quot;&quot;;   var query = new AV.Query">
 
 <link rel="canonical" href="https://catbro666.github.io/hot/">
 
@@ -255,32 +255,27 @@
 <script src="https://cdn1.lncld.net/static/js/av-core-mini-0.6.4.js"></script>
 <script>AV.initialize("0Syy5qyXX1qTBOGiD0vUzpHb-MdYXbMMI", "B3MuN4GIHf7ru1ojTSkjjI9a");AV.useAVCloudUS();</script>
 <script type="text/javascript">
+  // 调整排行显示的条数
+  var num=50;
   var time=0;
   var title="";
   var url="";
   var query = new AV.Query('Counter');
   query.notEqualTo('id',0);
   query.descending('time');
-  query.limit(1000);
+  query.limit(num);
   query.find().then(function (todo) {
-    for (var i=0;i<1000;i++){
-      //修改下方10，调整排行显示的条数
-      if(i >= 2){
-        break; 
-      }
-      var result=todo[i].attributes;
-      //下方的30可以根据网站访问量调整，以控制最大热度的数值
-      time=parseInt((result.time)/1);
-      title=result.title;
-      url=result.url;
-      //下方域名修改为自己的网站
-      var content="<p>"+"<font color='#1C1C1C'>"+"【文章热度:"+time+"℃】"+"</font>"+"<a href='"+"https://catbro666.github.io/"+url+"'>"+title+"</a>"+"</p>";
-      document.getElementById("hot").innerHTML+=content
-    }
-  }, function (error) {
-    console.log("error");
-  });
-</script>
+    for (var i=0;i<num;i++){
+
+<pre><code>  var result=todo[i].attributes;
+  //下方的30可以根据网站访问量调整，以控制最大热度的数值
+  time=parseInt((result.time)/1);
+  title=result.title;
+  url=result.url;
+  //下方域名修改为自己的网站
+  var content=&quot;&lt;p&gt;&quot;+&quot;&lt;font color=&apos;#1C1C1C&apos;&gt;&quot;+&quot;【文章热度:&quot;+time+&quot;℃】&quot;+&quot;&lt;/font&gt;&quot;+&quot;&lt;a href=&apos;&quot;+&quot;https://catbro666.github.io/&quot;+url+&quot;&apos;&gt;&quot;+title+&quot;&lt;/a&gt;&quot;+&quot;&lt;/p&gt;&quot;;
+  document.getElementById(&quot;hot&quot;).innerHTML+=content
+}</code></pre><p>  }, function (error) {<br>    console.log(“error”);<br>  });<br></script><p></p>
 
       </div>
       
