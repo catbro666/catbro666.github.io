@@ -1,116 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
-    <title>Hexo-NexT Tag 插件的使用</title>
-    <url>/posts/29bfe8c9/</url>
-    <content><![CDATA[<p>Tag Plugin 是一种使 Hexo 支持特殊样式内容的方法。例如，我们无法在标准 Markdown 中显示具有自定义尺寸的图像。然后我们可以使用标签插件来解决它。 Hexo 有很多可以帮助用户的标签。 Hexo 还具有主题接口，使主题能够创建自己的标签。</p>
-<a id="more"></a>
-
-<h2 id="文本居中引用-Centered-Quote"><a href="#文本居中引用-Centered-Quote" class="headerlink" title="文本居中引用 - Centered Quote"></a>文本居中引用 - Centered Quote</h2><p>使用方式：</p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">&#123;% cq %&#125;因为我渺小的心灵里，容不下一个谜，一点悬而未决的东西&#123;% endcq %&#125;</span><br></pre></td></tr></table></figure>
-
-<p>效果展示：</p>
-<blockquote class="blockquote-center">
-            <i class="fa fa-quote-left"></i>
-            <p>因为我渺小的心灵里，容不下一个谜，一点悬而未决的东西</p>
-
-            <i class="fa fa-quote-right"></i>
-          </blockquote>
-
-
-
-<h2 id="提示块-Note"><a href="#提示块-Note" class="headerlink" title="提示块 - Note"></a>提示块 - Note</h2><p>使用方式：</p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">&#123;% note default %&#125;</span><br><span class="line">default 提示块标签</span><br><span class="line">&#123;% endnote %&#125;</span><br><span class="line"></span><br><span class="line">&#123;% note primary %&#125;</span><br><span class="line">primary 提示块标签</span><br><span class="line">&#123;% endnote %&#125;</span><br><span class="line"></span><br><span class="line">&#123;% note success %&#125;</span><br><span class="line">success 提示块标签</span><br><span class="line">&#123;% endnote %&#125;</span><br><span class="line"></span><br><span class="line">&#123;% note info %&#125;</span><br><span class="line">info 提示块标签</span><br><span class="line">&#123;% endnote %&#125;</span><br><span class="line"></span><br><span class="line">&#123;% note warning %&#125;</span><br><span class="line">warning 提示块标签</span><br><span class="line">&#123;% endnote %&#125;</span><br><span class="line"></span><br><span class="line">&#123;% note danger %&#125;</span><br><span class="line">danger 提示块标签</span><br><span class="line">&#123;% endnote %&#125;</span><br></pre></td></tr></table></figure>
-
-<p>效果展示：</p>
-<div class="note default">
-            <p>default 提示块标签</p>
-          </div>
-
-<div class="note primary">
-            <p>primary 提示块标签</p>
-          </div>
-
-<div class="note success">
-            <p>success 提示块标签</p>
-          </div>
-
-<div class="note info">
-            <p>info 提示块标签</p>
-          </div>
-
-<div class="note warning">
-            <p>warning 提示块标签</p>
-          </div>
-
-<div class="note danger">
-            <p>danger 提示块标签</p>
-          </div>
-
-
-
-<p>可在主题配置文件中修改风格：</p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line"># Note tag (bs-callout)</span><br><span class="line">note:</span><br><span class="line">  # Note tag style values:</span><br><span class="line">  #  - simple    bs-callout old alert style. Default.</span><br><span class="line">  #  - modern    bs-callout new (v2-v3) alert style.</span><br><span class="line">  #  - flat      flat callout style with background, like on Mozilla or StackOverflow.</span><br><span class="line">  #  - disabled  disable all CSS styles import of note tag.</span><br><span class="line">  style: flat</span><br><span class="line">  icons: true</span><br><span class="line">  # 圆角</span><br><span class="line">  border_radius: 3</span><br><span class="line">  # Offset lighter of background in % for modern and flat styles (modern: -12 | 12; flat: -18 | 6).</span><br><span class="line">  # Offset also applied to label tag variables. This option can work with disabled note tag.</span><br><span class="line">  light_bg_offset: 0</span><br></pre></td></tr></table></figure>
-
-<h2 id="标签-Label"><a href="#标签-Label" class="headerlink" title="标签 - Label"></a>标签 - Label</h2><p>使用方式：</p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">&#123;% label default@默认 %&#125; &#123;% label primary@主要 %&#125; &#123;% label info@信息 %&#125; &#123;% label warning@警告 %&#125; &#123;% label danger@危险 %&#125; </span><br><span class="line">&#123;% label success@成功%&#125;</span><br></pre></td></tr></table></figure>
-
-<p>效果展示：</p>
-<span class="label default">默认</span> <span class="label primary">主要</span> <span class="label info">信息</span> <span class="label warning">警告</span> <span class="label danger">危险</span> 
-<span class="label success">成功</span>
-
-<h2 id="选项卡-Tabs"><a href="#选项卡-Tabs" class="headerlink" title="选项卡 - Tabs"></a>选项卡 - Tabs</h2><p>使用方式：</p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">&#123;% tabs tab, 2 %&#125; 名字为tab，默认显示第1个选项卡，如果是-1则隐藏</span><br><span class="line">&lt;!-- tab 魏国--&gt;</span><br><span class="line">**曹操**</span><br><span class="line"></span><br><span class="line">司马懿 郭嘉 荀彧 荀攸 程昱 杨修 </span><br><span class="line"></span><br><span class="line">典韦 许褚 夏侯渊 夏侯惇 曹仁 于禁 张辽 徐晃</span><br><span class="line"></span><br><span class="line">&lt;!-- endtab --&gt;</span><br><span class="line">&lt;!-- tab 蜀国--&gt;</span><br><span class="line">**刘备**</span><br><span class="line"></span><br><span class="line">诸葛亮 庞统 徐庶 姜维 法正 马良</span><br><span class="line"></span><br><span class="line">关羽 张飞 赵云 马超 黄忠 魏延 关兴 张苞</span><br><span class="line"></span><br><span class="line">&lt;!-- endtab --&gt;</span><br><span class="line">&lt;!-- tab 吴国 --&gt;</span><br><span class="line">**孙权**</span><br><span class="line"></span><br><span class="line">周瑜 张昭 鲁肃 诸葛瑾 陆逊</span><br><span class="line"></span><br><span class="line">甘宁 太史慈 吕蒙 韩当 黄盖 程普  </span><br><span class="line"></span><br><span class="line">&lt;!-- endtab --&gt;</span><br><span class="line">&#123;% endtabs %&#125;</span><br></pre></td></tr></table></figure>
-
-<p>效果展示：</p>
-<div class="tabs" id="tab"><ul class="nav-tabs"><li class="tab"><a href="#tab-1">魏国</a></li><li class="tab active"><a href="#tab-2">蜀国</a></li><li class="tab"><a href="#tab-3">吴国</a></li></ul><div class="tab-content"><div class="tab-pane" id="tab-1"><p><strong>曹操</strong></p>
-<p>司马懿 郭嘉 荀彧 荀攸 程昱 杨修 </p>
-<p>典韦 许褚 夏侯渊 夏侯惇 曹仁 于禁 张辽 徐晃</p></div><div class="tab-pane active" id="tab-2"><p><strong>刘备</strong></p>
-<p>诸葛亮 庞统 徐庶 姜维 法正 马良</p>
-<p>关羽 张飞 赵云 马超 黄忠 魏延 关兴 张苞</p></div><div class="tab-pane" id="tab-3"><p><strong>孙权</strong></p>
-<p>周瑜 张昭 鲁肃 诸葛瑾 陆逊</p>
-<p>甘宁 太史慈 吕蒙 韩当 黄盖 程普  </p></div></div></div>
-
-
-
-<p>可在主题配置文件中修改</p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line"># Tabs tag</span><br><span class="line">tabs:</span><br><span class="line">  transition:</span><br><span class="line">    tabs: true</span><br><span class="line">    labels: true</span><br><span class="line">  border_radius: 3</span><br></pre></td></tr></table></figure>
-
-<h2 id="按钮-Button"><a href="#按钮-Button" class="headerlink" title="按钮 - Button"></a>按钮 - Button</h2><p>使用方式：</p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">&#123;% button url, text, icon [class], [title] %&#125;</span><br></pre></td></tr></table></figure>
-
-<ul>
-<li><code>url</code>: 本地或外部url</li>
-<li><code>text</code>: 显示的文本，文本和图标至少指定一个</li>
-<li><code>icon</code>: 显示的图标， FontAwesome 图标名称（开头没有’fa-‘）</li>
-<li><code>[class]</code>: FontAwesome 类，可以取如下值<code>fa-fw | fa-lg | fa-2x | fa-3x | fa-4x | fa-5X</code></li>
-<li><code>title</code>: 鼠标悬停时的提示信息</li>
-</ul>
-<p>注意：最好添加 <code>&lt;div&gt;</code> 标签，测试时没加 div，下面显示不完全，加上非常美观。</p>
-<p>一个示例：</p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">&lt;div&gt;&#123;% button https://catbro666.github.io/ ,首页,home fa-fw,这是我的博客首页%&#125;&lt;/div&gt;</span><br></pre></td></tr></table></figure>
-
-<p>效果展示：</p>
-<div><a class="btn" href="https://catbro666.github.io/ " title="这是我的博客首页">
-            <i class="fa fa-home fa-fw"></i>首页
-          </a></div>
-
-<p>多个按钮的时候可以套两层div。</p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">&lt;div class=&quot;text-center&quot;&gt;&lt;div&gt;&#123;% button https://catbro666.github.io/ ,首页,home fa-fw,这是我的博客首页%&#125;&#123;% button https://catbro666.github.io/archives ,归档, archive fa-lg&#125;&lt;/div&gt;&lt;/div&gt;</span><br></pre></td></tr></table></figure>
-
-<div class="text-center"><div><a class="btn" href="https://catbro666.github.io/ " title="这是我的博客首页">
-            <i class="fa fa-home fa-fw"></i>首页
-          </a><a class="btn" href="https://catbro666.github.io/archives ">
-            <i class="fa fa-archive fa-lg}</div></div>"></i>归档
-          </a></div></div>]]></content>
-      <categories>
-        <category>Hexo</category>
-      </categories>
-      <tags>
-        <tag>Hexo</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>UNIX环境高级编程APUE练习3.2-不用fcntl实现dup2的功能</title>
     <url>/posts/2485f370/</url>
     <content><![CDATA[<h2 id="题面"><a href="#题面" class="headerlink" title="题面"></a>题面</h2><p>编写与dup2功能相同的函数，要求不调用fcntl函数，并且要有正确的出错处理。</p>
@@ -300,5 +190,115 @@
 
 <p>More info: <a href="https://hexo.io/docs/deployment.html" rel="noopener" target="_blank">Deployment</a></p>
 ]]></content>
+  </entry>
+  <entry>
+    <title>Hexo-NexT Tag 插件的使用</title>
+    <url>/posts/29bfe8c9/</url>
+    <content><![CDATA[<p>Tag Plugin 是一种使 Hexo 支持特殊样式内容的方法。例如，我们无法在标准 Markdown 中显示具有自定义尺寸的图像。然后我们可以使用标签插件来解决它。 Hexo 有很多可以帮助用户的标签。 Hexo 还具有主题接口，使主题能够创建自己的标签。</p>
+<a id="more"></a>
+
+<h2 id="文本居中引用-Centered-Quote"><a href="#文本居中引用-Centered-Quote" class="headerlink" title="文本居中引用 - Centered Quote"></a>文本居中引用 - Centered Quote</h2><p>使用方式：</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">&#123;% cq %&#125;因为我渺小的心灵里，容不下一个谜，一点悬而未决的东西&#123;% endcq %&#125;</span><br></pre></td></tr></table></figure>
+
+<p>效果展示：</p>
+<blockquote class="blockquote-center">
+            <i class="fa fa-quote-left"></i>
+            <p>因为我渺小的心灵里，容不下一个谜，一点悬而未决的东西</p>
+
+            <i class="fa fa-quote-right"></i>
+          </blockquote>
+
+
+
+<h2 id="提示块-Note"><a href="#提示块-Note" class="headerlink" title="提示块 - Note"></a>提示块 - Note</h2><p>使用方式：</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">&#123;% note default %&#125;</span><br><span class="line">default 提示块标签</span><br><span class="line">&#123;% endnote %&#125;</span><br><span class="line"></span><br><span class="line">&#123;% note primary %&#125;</span><br><span class="line">primary 提示块标签</span><br><span class="line">&#123;% endnote %&#125;</span><br><span class="line"></span><br><span class="line">&#123;% note success %&#125;</span><br><span class="line">success 提示块标签</span><br><span class="line">&#123;% endnote %&#125;</span><br><span class="line"></span><br><span class="line">&#123;% note info %&#125;</span><br><span class="line">info 提示块标签</span><br><span class="line">&#123;% endnote %&#125;</span><br><span class="line"></span><br><span class="line">&#123;% note warning %&#125;</span><br><span class="line">warning 提示块标签</span><br><span class="line">&#123;% endnote %&#125;</span><br><span class="line"></span><br><span class="line">&#123;% note danger %&#125;</span><br><span class="line">danger 提示块标签</span><br><span class="line">&#123;% endnote %&#125;</span><br></pre></td></tr></table></figure>
+
+<p>效果展示：</p>
+<div class="note default">
+            <p>default 提示块标签</p>
+          </div>
+
+<div class="note primary">
+            <p>primary 提示块标签</p>
+          </div>
+
+<div class="note success">
+            <p>success 提示块标签</p>
+          </div>
+
+<div class="note info">
+            <p>info 提示块标签</p>
+          </div>
+
+<div class="note warning">
+            <p>warning 提示块标签</p>
+          </div>
+
+<div class="note danger">
+            <p>danger 提示块标签</p>
+          </div>
+
+
+
+<p>可在主题配置文件中修改风格：</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line"># Note tag (bs-callout)</span><br><span class="line">note:</span><br><span class="line">  # Note tag style values:</span><br><span class="line">  #  - simple    bs-callout old alert style. Default.</span><br><span class="line">  #  - modern    bs-callout new (v2-v3) alert style.</span><br><span class="line">  #  - flat      flat callout style with background, like on Mozilla or StackOverflow.</span><br><span class="line">  #  - disabled  disable all CSS styles import of note tag.</span><br><span class="line">  style: flat</span><br><span class="line">  icons: true</span><br><span class="line">  # 圆角</span><br><span class="line">  border_radius: 3</span><br><span class="line">  # Offset lighter of background in % for modern and flat styles (modern: -12 | 12; flat: -18 | 6).</span><br><span class="line">  # Offset also applied to label tag variables. This option can work with disabled note tag.</span><br><span class="line">  light_bg_offset: 0</span><br></pre></td></tr></table></figure>
+
+<h2 id="标签-Label"><a href="#标签-Label" class="headerlink" title="标签 - Label"></a>标签 - Label</h2><p>使用方式：</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">&#123;% label default@默认 %&#125; &#123;% label primary@主要 %&#125; &#123;% label info@信息 %&#125; &#123;% label warning@警告 %&#125; &#123;% label danger@危险 %&#125; </span><br><span class="line">&#123;% label success@成功%&#125;</span><br></pre></td></tr></table></figure>
+
+<p>效果展示：</p>
+<span class="label default">默认</span> <span class="label primary">主要</span> <span class="label info">信息</span> <span class="label warning">警告</span> <span class="label danger">危险</span> 
+<span class="label success">成功</span>
+
+<h2 id="选项卡-Tabs"><a href="#选项卡-Tabs" class="headerlink" title="选项卡 - Tabs"></a>选项卡 - Tabs</h2><p>使用方式：</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">&#123;% tabs tab, 2 %&#125; 名字为tab，默认显示第1个选项卡，如果是-1则隐藏</span><br><span class="line">&lt;!-- tab 魏国--&gt;</span><br><span class="line">**曹操**</span><br><span class="line"></span><br><span class="line">司马懿 郭嘉 荀彧 荀攸 程昱 杨修 </span><br><span class="line"></span><br><span class="line">典韦 许褚 夏侯渊 夏侯惇 曹仁 于禁 张辽 徐晃</span><br><span class="line"></span><br><span class="line">&lt;!-- endtab --&gt;</span><br><span class="line">&lt;!-- tab 蜀国--&gt;</span><br><span class="line">**刘备**</span><br><span class="line"></span><br><span class="line">诸葛亮 庞统 徐庶 姜维 法正 马良</span><br><span class="line"></span><br><span class="line">关羽 张飞 赵云 马超 黄忠 魏延 关兴 张苞</span><br><span class="line"></span><br><span class="line">&lt;!-- endtab --&gt;</span><br><span class="line">&lt;!-- tab 吴国 --&gt;</span><br><span class="line">**孙权**</span><br><span class="line"></span><br><span class="line">周瑜 张昭 鲁肃 诸葛瑾 陆逊</span><br><span class="line"></span><br><span class="line">甘宁 太史慈 吕蒙 韩当 黄盖 程普  </span><br><span class="line"></span><br><span class="line">&lt;!-- endtab --&gt;</span><br><span class="line">&#123;% endtabs %&#125;</span><br></pre></td></tr></table></figure>
+
+<p>效果展示：</p>
+<div class="tabs" id="tab"><ul class="nav-tabs"><li class="tab"><a href="#tab-1">魏国</a></li><li class="tab active"><a href="#tab-2">蜀国</a></li><li class="tab"><a href="#tab-3">吴国</a></li></ul><div class="tab-content"><div class="tab-pane" id="tab-1"><p><strong>曹操</strong></p>
+<p>司马懿 郭嘉 荀彧 荀攸 程昱 杨修 </p>
+<p>典韦 许褚 夏侯渊 夏侯惇 曹仁 于禁 张辽 徐晃</p></div><div class="tab-pane active" id="tab-2"><p><strong>刘备</strong></p>
+<p>诸葛亮 庞统 徐庶 姜维 法正 马良</p>
+<p>关羽 张飞 赵云 马超 黄忠 魏延 关兴 张苞</p></div><div class="tab-pane" id="tab-3"><p><strong>孙权</strong></p>
+<p>周瑜 张昭 鲁肃 诸葛瑾 陆逊</p>
+<p>甘宁 太史慈 吕蒙 韩当 黄盖 程普  </p></div></div></div>
+
+
+
+<p>可在主题配置文件中修改</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line"># Tabs tag</span><br><span class="line">tabs:</span><br><span class="line">  transition:</span><br><span class="line">    tabs: true</span><br><span class="line">    labels: true</span><br><span class="line">  border_radius: 3</span><br></pre></td></tr></table></figure>
+
+<h2 id="按钮-Button"><a href="#按钮-Button" class="headerlink" title="按钮 - Button"></a>按钮 - Button</h2><p>使用方式：</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">&#123;% button url, text, icon [class], [title] %&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><code>url</code>: 本地或外部url</li>
+<li><code>text</code>: 显示的文本，文本和图标至少指定一个</li>
+<li><code>icon</code>: 显示的图标， FontAwesome 图标名称（开头没有’fa-‘）</li>
+<li><code>[class]</code>: FontAwesome 类，可以取如下值<code>fa-fw | fa-lg | fa-2x | fa-3x | fa-4x | fa-5X</code></li>
+<li><code>title</code>: 鼠标悬停时的提示信息</li>
+</ul>
+<p>注意：最好添加 <code>&lt;div&gt;</code> 标签，测试时没加 div，下面显示不完全，加上非常美观。</p>
+<p>一个示例：</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">&lt;div&gt;&#123;% button https://catbro666.github.io/ ,首页,home fa-fw,这是我的博客首页%&#125;&lt;/div&gt;</span><br></pre></td></tr></table></figure>
+
+<p>效果展示：</p>
+<div><a class="btn" href="https://catbro666.github.io/ " title="这是我的博客首页">
+            <i class="fa fa-home fa-fw"></i>首页
+          </a></div>
+
+<p>多个按钮的时候可以套两层div。</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">&lt;div class=&quot;text-center&quot;&gt;&lt;div&gt;&#123;% button https://catbro666.github.io/ ,首页,home fa-fw,这是我的博客首页%&#125;&#123;% button https://catbro666.github.io/archives ,归档, archive fa-lg&#125;&lt;/div&gt;&lt;/div&gt;</span><br></pre></td></tr></table></figure>
+
+<div class="text-center"><div><a class="btn" href="https://catbro666.github.io/ " title="这是我的博客首页">
+            <i class="fa fa-home fa-fw"></i>首页
+          </a><a class="btn" href="https://catbro666.github.io/archives ">
+            <i class="fa fa-archive fa-lg}</div></div>"></i>归档
+          </a></div></div>]]></content>
+      <categories>
+        <category>Hexo</category>
+      </categories>
+      <tags>
+        <tag>Hexo</tag>
+      </tags>
   </entry>
 </search>
