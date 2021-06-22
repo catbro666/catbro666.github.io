@@ -40,7 +40,7 @@
     <link href="https://catbro666.github.io/posts/aa99fc97/"/>
     <id>https://catbro666.github.io/posts/aa99fc97/</id>
     <published>2020-01-06T08:49:42.000Z</published>
-    <updated>2021-06-21T14:09:14.434Z</updated>
+    <updated>2021-06-22T19:03:09.146Z</updated>
     
     
     <summary type="html">&lt;h2 id=&quot;1-题面&quot;&gt;&lt;a href=&quot;#1-题面&quot; class=&quot;headerlink&quot; title=&quot;1 题面&quot;&gt;&lt;/a&gt;1 题面&lt;/h2&gt;&lt;p&gt;编写类似cp(1)的程序，它复制包含空洞的文件，但是不将字节0写到输出文件中去。&lt;/p&gt;
@@ -51,6 +51,10 @@
     
     
     
+    <category term="UNIX" scheme="https://catbro666.github.io/categories/UNIX/"/>
+    
+    
+    <category term="UNIX" scheme="https://catbro666.github.io/tags/UNIX/"/>
     
   </entry>
   
@@ -59,7 +63,7 @@
     <link href="https://catbro666.github.io/posts/2485f370/"/>
     <id>https://catbro666.github.io/posts/2485f370/</id>
     <published>2019-12-17T09:52:09.000Z</published>
-    <updated>2021-06-21T17:35:48.692Z</updated>
+    <updated>2021-06-22T19:03:21.931Z</updated>
     
     
     <summary type="html">&lt;h2 id=&quot;题面&quot;&gt;&lt;a href=&quot;#题面&quot; class=&quot;headerlink&quot; title=&quot;题面&quot;&gt;&lt;/a&gt;题面&lt;/h2&gt;&lt;p&gt;编写与dup2功能相同的函数，要求不调用fcntl函数，并且要有正确的出错处理。&lt;/p&gt;
