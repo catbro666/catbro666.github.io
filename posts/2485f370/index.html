@@ -6,15 +6,15 @@
 <meta name="theme-color" content="#222">
 <meta name="generator" content="Hexo 3.8.0">
   <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
-  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
-  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/hiking-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/hiking-16.png">
   <link rel="mask-icon" href="/images/logo.svg" color="#222">
   <meta name="google-site-verification" content="JT1HKSsLR6ZiapLatX1c6-7k-OcEM8cAMdR5pgCSptk">
   <meta name="baidu-site-verification" content="code-9Qi2zUhBf4">
 
 <link rel="stylesheet" href="/css/main.css">
 
-<link rel="stylesheet" href="https://fonts.loli.net/css?family=Noto Serif SC:300,300italic,400,400italic,700,700italic|Lobster Two:300,300italic,400,400italic,700,700italic|EB Garamond:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="https://fonts.loli.net/css?family=Noto Serif SC:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
 <link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
 
 <script id="hexo-configurations">
@@ -30,7 +30,7 @@
 <meta property="og:site_name" content="CatBro&#39;s Blog">
 <meta property="og:description" content="题面编写与dup2功能相同的函数，要求不调用fcntl函数，并且要有正确的出错处理。 基本思路不能用fcntl，能够返回一个文件描述符的只有open和dup。而open会创建一个新的文件表项，返回的fd指向新的文件表项，与dup2的表现不符。dup基本能满足要求，但是返回的是最小的可用fd，需要进一步操作满足要求。另外需要自己添加错误处理，以及处理oldfd与newfd相等的情况等。具体地，">
 <meta property="og:locale" content="zh-CN">
-<meta property="og:updated_time" content="2021-06-22T19:03:21.931Z">
+<meta property="og:updated_time" content="2021-06-23T16:19:31.175Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="UNIX环境高级编程APUE练习3.2-不用fcntl实现dup2的功能">
 <meta name="twitter:description" content="题面编写与dup2功能相同的函数，要求不调用fcntl函数，并且要有正确的出错处理。 基本思路不能用fcntl，能够返回一个文件描述符的只有open和dup。而open会创建一个新的文件表项，返回的fd指向新的文件表项，与dup2的表现不符。dup基本能满足要求，但是返回的是最小的可用fd，需要进一步操作满足要求。另外需要自己添加错误处理，以及处理oldfd与newfd相等的情况等。具体地，">
@@ -258,7 +258,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-23 03:03:21" itemprop="dateModified" datetime="2021-06-23T03:03:21+08:00">2021-06-23</time>
+                <time title="修改时间：2021-06-24 00:19:31" itemprop="dateModified" datetime="2021-06-24T00:19:31+08:00">2021-06-24</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -284,7 +284,7 @@
       <span class="post-meta-item-icon">
         <i class="far fa-comment"></i>
       </span>
-      <span class="post-meta-item-text">Valine：</span>
+      <span class="post-meta-item-text">评论数：</span>
     
     <a title="valine" href="/posts/2485f370/#valine-comments" itemprop="discussionUrl">
       <span class="post-comments-count valine-comment-count" data-xid="/posts/2485f370/" itemprop="commentCount"></span>
@@ -316,8 +316,8 @@
     <div class="post-body" itemprop="articleBody">
 
       
-        <h2 id="题面"><a href="#题面" class="headerlink" title="题面"></a>题面</h2><p>编写与dup2功能相同的函数，要求不调用fcntl函数，并且要有正确的出错处理。</p>
-<h2 id="基本思路"><a href="#基本思路" class="headerlink" title="基本思路"></a>基本思路</h2><p>不能用fcntl，能够返回一个文件描述符的只有open和dup。而open会创建一个新的文件表项，返回的fd指向新的文件表项，与dup2的表现不符。dup基本能满足要求，但是返回的是最小的可用fd，需要进一步操作满足要求。另外需要自己添加错误处理，以及处理oldfd与newfd相等的情况等。具体地，</p>
+        <h2 id="题面"><a href="#题面" class="headerlink" title="题面"></a>题面</h2><p>编写与<code>dup2</code>功能相同的函数，要求不调用<code>fcntl</code>函数，并且要有正确的出错处理。</p>
+<h2 id="基本思路"><a href="#基本思路" class="headerlink" title="基本思路"></a>基本思路</h2><p>不能用<code>fcntl</code>，能够返回一个文件描述符的只有<code>open</code>和<code>dup</code>。而<code>open</code>会创建一个新的文件表项，返回的fd指向新的文件表项，与<code>dup2</code>的表现不符。<code>dup</code>基本能满足要求，但是返回的是最小的可用fd，需要进一步操作满足要求。另外需要自己添加错误处理，以及处理oldfd与newfd相等的情况等。具体地，</p>
 <a id="more"></a>
 
 <ol>
@@ -445,8 +445,9 @@
 
 
       <footer class="post-footer">
+          
           <div class="post-tags">
-              <a href="/tags/UNIX/" rel="tag"># UNIX</a>
+              <a href="/tags/UNIX/" rel="tag"><i class="fa fa-tag"></i> UNIX</a>
           </div>
 
         
