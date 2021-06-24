@@ -40,7 +40,7 @@
     <link href="https://catbro666.github.io/posts/aa99fc97/"/>
     <id>https://catbro666.github.io/posts/aa99fc97/</id>
     <published>2020-01-06T08:49:42.000Z</published>
-    <updated>2021-06-23T16:18:48.291Z</updated>
+    <updated>2021-06-24T16:14:26.674Z</updated>
     
     
     <summary type="html">&lt;h2 id=&quot;1-题面&quot;&gt;&lt;a href=&quot;#1-题面&quot; class=&quot;headerlink&quot; title=&quot;1 题面&quot;&gt;&lt;/a&gt;1 题面&lt;/h2&gt;&lt;p&gt;编写类似&lt;code&gt;cp(1)&lt;/code&gt;的程序，它复制包含空洞的文件，但是不将字节0写到输出文件中去。&lt;/p&gt;
@@ -63,7 +63,7 @@
     <link href="https://catbro666.github.io/posts/2485f370/"/>
     <id>https://catbro666.github.io/posts/2485f370/</id>
     <published>2019-12-17T09:52:09.000Z</published>
-    <updated>2021-06-23T16:19:31.175Z</updated>
+    <updated>2021-06-24T16:14:31.967Z</updated>
     
     
     <summary type="html">&lt;h2 id=&quot;题面&quot;&gt;&lt;a href=&quot;#题面&quot; class=&quot;headerlink&quot; title=&quot;题面&quot;&gt;&lt;/a&gt;题面&lt;/h2&gt;&lt;p&gt;编写与&lt;code&gt;dup2&lt;/code&gt;功能相同的函数，要求不调用&lt;code&gt;fcntl&lt;/code&gt;函数，并且要有正确的出错处理。&lt;/p&gt;
@@ -86,7 +86,7 @@
     <updated>2021-06-21T14:38:56.931Z</updated>
     
     
-    <summary type="html">&lt;p&gt;Welcome to &lt;a href=&quot;https://hexo.io/&quot; rel=&quot;noopener&quot; target=&quot;_blank&quot;&gt;Hexo&lt;/a&gt;! This is your very first post. Check &lt;a href=&quot;https://hexo.io/docs/&quot; rel=&quot;noopener&quot; target=&quot;_blank&quot;&gt;documentation&lt;/a&gt; for more info. If you get any problems when using Hexo, you can find the answer in &lt;a href=&quot;https://hexo.io/docs/troubleshooting.html&quot; rel=&quot;noopener&quot; target=&quot;_blank&quot;&gt;troubleshooting&lt;/a&gt; or you can ask me on &lt;a href=&quot;https://github.com/hexojs/hexo/issues&quot; rel=&quot;noopener&quot; target=&quot;_blank&quot;&gt;GitHub&lt;/a&gt;.&lt;/p&gt;</summary>
+    <summary type="html">&lt;p&gt;Welcome to &lt;a href=&quot;https://hexo.io/&quot;&gt;Hexo&lt;/a&gt;! This is your very first post. Check &lt;a href=&quot;https://hexo.io/docs/&quot;&gt;documentation&lt;/a&gt; for more info. If you get any problems when using Hexo, you can find the answer in &lt;a href=&quot;https://hexo.io/docs/troubleshooting.html&quot;&gt;troubleshooting&lt;/a&gt; or you can ask me on &lt;a href=&quot;https://github.com/hexojs/hexo/issues&quot;&gt;GitHub&lt;/a&gt;.&lt;/p&gt;</summary>
     
     
     

@@ -1,4 +1,4 @@
-<h1 align="center"><a href="https://github.com/hustcc/ribbon.js" rel="external nofollow noreferrer">canvas-ribbon.js</a> for <a href="https://github.com/theme-next" rel="external nofollow noreferrer">NexT</a></h1>
+<h1 align="center"><a href="https://github.com/hustcc/ribbon.js">canvas-ribbon.js</a> for <a href="https://github.com/theme-next">NexT</a></h1>
 
 <h1 align="center">Installation</h1>
 
@@ -7,23 +7,28 @@
 <h2 align="center">Step 1 &rarr; Go to NexT dir</h2>
 
 <p>Change dir to <strong>NexT</strong> directory. There must be <code>layout</code>, <code>source</code>, <code>languages</code> and other directories:</p>
-<pre><code class="sh">$ <span class="built_in">cd</span> themes/next
+<pre><code class="sh">$ cd themes/next
 $ ls
-_config.yml  crowdin.yml  docs  gulpfile.js  languages  layout  LICENSE.md  package.json  README.md  scripts  <span class="built_in">source</span></code></pre>
+_config.yml  crowdin.yml  docs  gulpfile.js  languages  layout  LICENSE.md  package.json  README.md  scripts  source
+</code></pre>
 <h2 align="center">Step 2 &rarr; Get module</h2>
 
 <p>Install module to <code>source/lib</code> directory:</p>
-<pre><code class="sh">$ git <span class="built_in">clone</span> https://github.com/theme-next/theme-next-canvas-ribbon <span class="built_in">source</span>/lib/canvas-ribbon</code></pre>
+<pre><code class="sh">$ git clone https://github.com/theme-next/theme-next-canvas-ribbon source/lib/canvas-ribbon
+</code></pre>
 <h2 align="center">Step 3 &rarr; Set it up</h2>
 
 <p>Enable module in <strong>NexT</strong> <code>_config.yml</code> file:</p>
-<pre><code class="yml"><span class="attr">canvas_ribbon:</span>
-<span class="attr">  enable:</span> <span class="literal">true</span></code></pre>
+<pre><code class="yml">canvas_ribbon:
+  enable: true
+</code></pre>
 <p><strong>And, if you wants to use the CDN, then need to set:</strong></p>
-<pre><code class="yml"><span class="attr">vendors:</span>
-  <span class="string">...</span>
-<span class="attr">  canvas_ribbon:</span> <span class="string">//cdn.jsdelivr.net/gh/theme-next/theme-next-canvas-ribbon@1/canvas-ribbon.js</span></code></pre>
+<pre><code class="yml">vendors:
+  ...
+  canvas_ribbon: //cdn.jsdelivr.net/gh/theme-next/theme-next-canvas-ribbon@1/canvas-ribbon.js
+</code></pre>
 <h1 align="center">Update</h1>
 
-<pre><code class="sh">$ <span class="built_in">cd</span> themes/next/<span class="built_in">source</span>/lib/canvas-ribbon
-$ git pull</code></pre>
+<pre><code class="sh">$ cd themes/next/source/lib/canvas-ribbon
+$ git pull
+</code></pre>
