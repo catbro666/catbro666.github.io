@@ -67,7 +67,7 @@
 
   <url>
     <loc>https://catbro666.github.io/</loc>
-    <lastmod>2021-06-23</lastmod>
+    <lastmod>2021-06-24</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
@@ -75,14 +75,14 @@
   
   <url>
     <loc>https://catbro666.github.io/tags/UNIX/</loc>
-    <lastmod>2021-06-23</lastmod>
+    <lastmod>2021-06-24</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
   </url>
   
   <url>
     <loc>https://catbro666.github.io/tags/Hexo/</loc>
-    <lastmod>2021-06-23</lastmod>
+    <lastmod>2021-06-24</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
   </url>
@@ -91,14 +91,14 @@
   
   <url>
     <loc>https://catbro666.github.io/categories/UNIX/</loc>
-    <lastmod>2021-06-23</lastmod>
+    <lastmod>2021-06-24</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
   </url>
   
   <url>
     <loc>https://catbro666.github.io/categories/Hexo/</loc>
-    <lastmod>2021-06-23</lastmod>
+    <lastmod>2021-06-24</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
   </url>
