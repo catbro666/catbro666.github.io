@@ -24,13 +24,13 @@
 
   <meta name="description" content="在工作中经常碰到需要写一些多进程&#x2F;多线程的测试程序，用来测试接口的性能。本文将会从零开始一点点增加代码，最终完成一个简易的多进程测试程序编写。该程序支持实时打印测试进结果和最终测试结果的统计。同时，本文还涵盖了以下知识点，可以作为学习参考：使用getopt_long()处理命令行选项和参数使用fork()和wait()处理多进程使用sigaction()配合alarm()">
 <meta property="og:type" content="article">
-<meta property="og:title" content="多进程性能测试程序demo">
+<meta property="og:title" content="如何编写一个多进程性能测试程序">
 <meta property="og:url" content="https://catbro666.github.io/posts/e416d910/index.html">
 <meta property="og:site_name" content="CatBro&#39;s Blog">
 <meta property="og:description" content="在工作中经常碰到需要写一些多进程&#x2F;多线程的测试程序，用来测试接口的性能。本文将会从零开始一点点增加代码，最终完成一个简易的多进程测试程序编写。该程序支持实时打印测试进结果和最终测试结果的统计。同时，本文还涵盖了以下知识点，可以作为学习参考：使用getopt_long()处理命令行选项和参数使用fork()和wait()处理多进程使用sigaction()配合alarm()">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2021-06-26T12:17:38.000Z">
-<meta property="article:modified_time" content="2021-06-26T12:28:30.589Z">
+<meta property="article:modified_time" content="2021-06-26T13:35:24.643Z">
 <meta property="article:author" content="猫猫哥">
 <meta property="article:tag" content="多进程">
 <meta property="article:tag" content="信号">
@@ -50,7 +50,7 @@
   };
 </script>
 
-  <title>多进程性能测试程序demo | CatBro's Blog</title>
+  <title>如何编写一个多进程性能测试程序 | CatBro's Blog</title>
   
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-6PKG8T836C"></script>
     <script>
@@ -245,7 +245,7 @@
     </span>
       <header class="post-header">
         <h1 class="post-title" itemprop="name headline">
-          多进程性能测试程序demo
+          如何编写一个多进程性能测试程序
         </h1>
 
         <div class="post-meta">
@@ -256,7 +256,7 @@
               <span class="post-meta-item-text">发表于</span>
               
 
-              <time title="创建时间：2021-06-26 20:17:38 / 修改时间：20:28:30" itemprop="dateCreated datePublished" datetime="2021-06-26T20:17:38+08:00">2021-06-26</time>
+              <time title="创建时间：2021-06-26 20:17:38 / 修改时间：21:35:24" itemprop="dateCreated datePublished" datetime="2021-06-26T20:17:38+08:00">2021-06-26</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -269,7 +269,7 @@
             </span>
 
           
-            <span id="/posts/e416d910/" class="post-meta-item leancloud_visitors" data-flag-title="多进程性能测试程序demo" title="阅读次数">
+            <span id="/posts/e416d910/" class="post-meta-item leancloud_visitors" data-flag-title="如何编写一个多进程性能测试程序" title="阅读次数">
               <span class="post-meta-item-icon">
                 <i class="fa fa-eye"></i>
               </span>
@@ -434,6 +434,9 @@
 
 </div></div>
 
+
+<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>至此，一个多进程的测试程序就算完成了。读者可以根据自身测试需要，增加命令行参数、测试参数和测试结果字段。<br>在<code>COMMON INIT</code>、<code>PARENT INIT</code>和<code>CHILD INIT</code>处分别进行公共的初始化工作和父子进程特定的初始化工作。<br>然后在<code>DO REAL-TIME STATISTICS</code>和<code>DO FINAL STATISTICS</code>处进行测试结果的统计。</p>
+
     </div>
 
     
@@ -457,7 +460,7 @@
   </li>
   <li class="post-copyright-link">
     <strong>本文链接：</strong>
-    <a href="https://catbro666.github.io/posts/e416d910/" title="多进程性能测试程序demo">https://catbro666.github.io/posts/e416d910/</a>
+    <a href="https://catbro666.github.io/posts/e416d910/" title="如何编写一个多进程性能测试程序">https://catbro666.github.io/posts/e416d910/</a>
   </li>
   <li class="post-copyright-license">
     <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/zh-CN" rel="noopener external nofollow noreferrer" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！
@@ -562,7 +565,7 @@
 
       <!--noindex-->
       <div class="post-toc-wrap sidebar-panel">
-          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E9%80%89%E9%A1%B9%E5%92%8C%E5%8F%82%E6%95%B0%E7%9A%84%E5%A4%84%E7%90%86"><span class="nav-number">1.</span> <span class="nav-text">选项和参数的处理</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%A2%9E%E5%8A%A0%E5%A4%9A%E8%BF%9B%E7%A8%8B%E7%9A%84%E6%94%AF%E6%8C%81"><span class="nav-number">2.</span> <span class="nav-text">增加多进程的支持</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%A2%9E%E5%8A%A0%E5%AE%9E%E6%97%B6%E7%9A%84%E7%BB%93%E6%9E%9C%E7%BB%9F%E8%AE%A1%E5%8F%8A%E6%9C%80%E7%BB%88%E7%9A%84%E7%BB%93%E6%9E%9C%E6%B1%87%E6%80%BB"><span class="nav-number">3.</span> <span class="nav-text">增加实时的结果统计及最终的结果汇总</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%A2%9E%E5%8A%A0SIGINT%E5%92%8CSIGQUIT%E4%BF%A1%E5%8F%B7%E6%8D%95%E8%8E%B7"><span class="nav-number">4.</span> <span class="nav-text">增加SIGINT和SIGQUIT信号捕获</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%B0%81%E8%A3%85%E9%94%99%E8%AF%AF%E5%88%A4%E6%96%AD%E5%87%BD%E6%95%B0"><span class="nav-number">5.</span> <span class="nav-text">封装错误判断函数</span></a></li></ol></div>
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E9%80%89%E9%A1%B9%E5%92%8C%E5%8F%82%E6%95%B0%E7%9A%84%E5%A4%84%E7%90%86"><span class="nav-number">1.</span> <span class="nav-text">选项和参数的处理</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%A2%9E%E5%8A%A0%E5%A4%9A%E8%BF%9B%E7%A8%8B%E7%9A%84%E6%94%AF%E6%8C%81"><span class="nav-number">2.</span> <span class="nav-text">增加多进程的支持</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%A2%9E%E5%8A%A0%E5%AE%9E%E6%97%B6%E7%9A%84%E7%BB%93%E6%9E%9C%E7%BB%9F%E8%AE%A1%E5%8F%8A%E6%9C%80%E7%BB%88%E7%9A%84%E7%BB%93%E6%9E%9C%E6%B1%87%E6%80%BB"><span class="nav-number">3.</span> <span class="nav-text">增加实时的结果统计及最终的结果汇总</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%A2%9E%E5%8A%A0SIGINT%E5%92%8CSIGQUIT%E4%BF%A1%E5%8F%B7%E6%8D%95%E8%8E%B7"><span class="nav-number">4.</span> <span class="nav-text">增加SIGINT和SIGQUIT信号捕获</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%B0%81%E8%A3%85%E9%94%99%E8%AF%AF%E5%88%A4%E6%96%AD%E5%87%BD%E6%95%B0"><span class="nav-number">5.</span> <span class="nav-text">封装错误判断函数</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E6%80%BB%E7%BB%93"><span class="nav-number">6.</span> <span class="nav-text">总结</span></a></li></ol></div>
       </div>
       <!--/noindex-->
 

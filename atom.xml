@@ -6,7 +6,7 @@
   <link href="https://catbro666.github.io/atom.xml" rel="self"/>
   
   <link href="https://catbro666.github.io/"/>
-  <updated>2021-06-26T12:28:30.589Z</updated>
+  <updated>2021-06-26T13:35:24.643Z</updated>
   <id>https://catbro666.github.io/</id>
   
   <author>
@@ -17,11 +17,11 @@
   <generator uri="https://hexo.io/">Hexo</generator>
   
   <entry>
-    <title>多进程性能测试程序demo</title>
+    <title>如何编写一个多进程性能测试程序</title>
     <link href="https://catbro666.github.io/posts/e416d910/"/>
     <id>https://catbro666.github.io/posts/e416d910/</id>
     <published>2021-06-26T12:17:38.000Z</published>
-    <updated>2021-06-26T12:28:30.589Z</updated>
+    <updated>2021-06-26T13:35:24.643Z</updated>
     
     
     <summary type="html">&lt;div class=&quot;note primary&quot;&gt;

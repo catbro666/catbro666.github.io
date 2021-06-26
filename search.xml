@@ -306,7 +306,7 @@
       </tags>
   </entry>
   <entry>
-    <title>多进程性能测试程序demo</title>
+    <title>如何编写一个多进程性能测试程序</title>
     <url>/posts/e416d910/</url>
     <content><![CDATA[<div class="note primary">
             <p>在工作中经常碰到需要写一些多进程/多线程的测试程序，用来测试接口的性能。本文将会从零开始一点点增加代码，最终完成一个简易的多进程测试程序编写。该程序支持实时打印测试进结果和最终测试结果的统计。</p><p>同时，本文还涵盖了以下知识点，可以作为学习参考：</p><ul><li>使用<code>getopt_long()</code>处理命令行选项和参数</li><li>使用<code>fork()</code>和<code>wait()</code>处理多进程</li><li>使用<code>sigaction()</code>配合<code>alarm()</code>处理定时信号<code>SIGALRM</code></li><li>使用<code>shmget()</code>、<code>shmat()</code>、<code>shmdt()</code>、<code>shmctl()</code>等通过共享内存进行进程间通信</li><li>使用<code>sigaction()</code>捕获<code>SIGINT</code>和<code>SIGQUIT</code>信号，在程序终止前做共享内存清理工作</li></ul>
@@ -427,6 +427,9 @@
 
 
 </div></div>
+
+
+<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>至此，一个多进程的测试程序就算完成了。读者可以根据自身测试需要，增加命令行参数、测试参数和测试结果字段。<br>在<code>COMMON INIT</code>、<code>PARENT INIT</code>和<code>CHILD INIT</code>处分别进行公共的初始化工作和父子进程特定的初始化工作。<br>然后在<code>DO REAL-TIME STATISTICS</code>和<code>DO FINAL STATISTICS</code>处进行测试结果的统计。</p>
 ]]></content>
       <categories>
         <category>技术向</category>
