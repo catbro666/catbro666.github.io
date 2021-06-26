@@ -1,5 +1,7 @@
 User-agent: *
 Allow: /
+Allow: /sitemap.xml
+Allow: /baidusitemap.xml
 Allow: /home/
 Allow: /about/
 Allow: /archives/
