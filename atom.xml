@@ -6,7 +6,7 @@
   <link href="https://catbro666.github.io/atom.xml" rel="self"/>
   
   <link href="https://catbro666.github.io/"/>
-  <updated>2021-06-29T06:13:51.859Z</updated>
+  <updated>2021-07-03T15:21:36.094Z</updated>
   <id>https://catbro666.github.io/</id>
   
   <author>
@@ -15,6 +15,33 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Openresty-Lua协程调度机制</title>
+    <link href="https://catbro666.github.io/posts/150430f0/"/>
+    <id>https://catbro666.github.io/posts/150430f0/</id>
+    <published>2021-07-03T10:52:24.000Z</published>
+    <updated>2021-07-03T15:21:36.094Z</updated>
+    
+    
+    <summary type="html">&lt;div class=&quot;note primary&quot;&gt;
+            &lt;h1 id=&quot;写在前面&quot;&gt;&lt;a href=&quot;#写在前面&quot; class=&quot;headerlink&quot; title=&quot;写在前面&quot;&gt;&lt;/a&gt;写在前面&lt;/h1&gt;&lt;p&gt;OpenResty（后面简称：OR）是一个基于Nginx和Lua的高性能Web平台，它内部集成大量的Lua API以及第三方模块，可以利用它快速搭建支持高并发、极具动态性和扩展性的Web应用、Web服务或动态网关。&lt;/p&gt;&lt;p&gt;OR最大的特点就是，将Lua协程与Nginx事件驱动模型及非阻塞I/O结合起来。使用户可以在handler中使用 &lt;strong&gt;同步但是依然是非阻塞&lt;/strong&gt; 的方式编写其应用代码，而无需关心底层的协程调度以及与Nginx事件驱动模型的交互。&lt;/p&gt;&lt;p&gt;本文将先从总体上介绍OR的协程调度机制，然后结合源码以及Lua栈的情况来详细了解各个部分是如何实现的，包括其异常保护、协程初始化、协程的恢复和执行、协程的挂起、协程的执行结束、协程出错的情况。&lt;/p&gt;
+          &lt;/div&gt;</summary>
+    
+    
+    
+    <category term="技术向" scheme="https://catbro666.github.io/categories/%E6%8A%80%E6%9C%AF%E5%90%91/"/>
+    
+    
+    <category term="OpenResty" scheme="https://catbro666.github.io/tags/OpenResty/"/>
+    
+    <category term="Nginx" scheme="https://catbro666.github.io/tags/Nginx/"/>
+    
+    <category term="Lua" scheme="https://catbro666.github.io/tags/Lua/"/>
+    
+    <category term="协程" scheme="https://catbro666.github.io/tags/%E5%8D%8F%E7%A8%8B/"/>
+    
+  </entry>
   
   <entry>
     <title>如何编写一个多进程性能测试程序</title>

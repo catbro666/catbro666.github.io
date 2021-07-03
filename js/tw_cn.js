@@ -1,6 +1,6 @@
 var defaultEncoding = 2; // 网站默认语言，1: 繁體中文, 2: 简体中文
 var translateDelay = 0; //延迟时间,若不在前, 要设定延迟翻译时间, 如100表示100ms,默认为0
-var cookieDomain = "https://tding.top/"; //更改为你的博客网址
+var cookieDomain = "https://catbro666.githubb.io/"; //更改为你的博客网址
 var msgToTraditionalChinese = "繁體"; //此处可以更改为你想要显示的文字
 var msgToSimplifiedChinese = "简体"; //同上，但两处均不建议更改
 var translateButtonId = "translateLink"; //默认互换id

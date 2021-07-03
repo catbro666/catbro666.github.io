@@ -1,0 +1,1241 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.4.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/hiking-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/hiking-16.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+  <meta name="google-site-verification" content="JT1HKSsLR6ZiapLatX1c6-7k-OcEM8cAMdR5pgCSptk">
+  <meta name="yandex-verification" content="5ab41d9d91227789">
+  <meta name="baidu-site-verification" content="code-9Qi2zUhBf4">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="https://fonts.loli.net/css?family=Noto Serif SC:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"catbro666.github.io","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","width":240,"display":"post","padding":18,"offset":32,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":"mac"},"back2top":{"enable":true,"sidebar":true,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="写在前面OpenResty（后面简称：OR）是一个基于Nginx和Lua的高性能Web平台，它内部集成大量的Lua API以及第三方模块，可以利用它快速搭建支持高并发、极具动态性和扩展性的Web应用、Web服务或动态网关。OR最大的特点就是，将Lua协程与Nginx事件驱动模型及非阻塞I&#x2F;O结合起来。使用户可以在handler中使用 同步但是依然是非阻塞 的方式编写其应用">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Openresty-Lua协程调度机制">
+<meta property="og:url" content="https://catbro666.github.io/posts/150430f0/index.html">
+<meta property="og:site_name" content="CatBro&#39;s Blog">
+<meta property="og:description" content="写在前面OpenResty（后面简称：OR）是一个基于Nginx和Lua的高性能Web平台，它内部集成大量的Lua API以及第三方模块，可以利用它快速搭建支持高并发、极具动态性和扩展性的Web应用、Web服务或动态网关。OR最大的特点就是，将Lua协程与Nginx事件驱动模型及非阻塞I&#x2F;O结合起来。使用户可以在handler中使用 同步但是依然是非阻塞 的方式编写其应用">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2021-07-03T10:52:24.000Z">
+<meta property="article:modified_time" content="2021-07-03T15:21:36.094Z">
+<meta property="article:author" content="猫猫哥">
+<meta property="article:tag" content="OpenResty">
+<meta property="article:tag" content="Nginx">
+<meta property="article:tag" content="Lua">
+<meta property="article:tag" content="协程">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="https://catbro666.github.io/posts/150430f0/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <meta name="360-site-verification" content="e7586a6caf7e44316b4a27dfaf53e858"/>
+
+
+
+  <title>Openresty-Lua协程调度机制 | CatBro's Blog</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-6PKG8T836C"></script>
+    <script>
+      if (CONFIG.hostname === location.hostname) {
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-6PKG8T836C');
+      }
+    </script>
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?43ceb843b17e732b0a5dd658f624cac5";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+<link rel="alternate" href="/atom.xml" title="CatBro's Blog" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">CatBro's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">Volar con el viento</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+        <li class="menu-item menu-item-hot">
+
+    <a href="/hot/" rel="section"><i class="fa fa-thermometer-half fa-fw"></i>热度排行</a>
+
+  </li>
+        <li class="menu-item menu-item-sitemap">
+
+    <a href="/sitemap.xml" rel="section"><i class="fa fa-sitemap fa-fw"></i>站点地图</a>
+
+  </li>
+        <li class="menu-item menu-item-commonweal">
+
+    <a href="/404.html" rel="section"><i class="fa fa-heartbeat fa-fw"></i>公益 404</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="reading-progress-bar"></div>
+
+  <a href="https://github.com/catbro666" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener external nofollow noreferrer" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://catbro666.github.io/posts/150430f0/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="猫猫哥">
+      <meta itemprop="description" content="如果说根号二是无理数，那么我就是个无理人">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="CatBro's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Openresty-Lua协程调度机制
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2021-07-03 18:52:24 / 修改时间：23:21:36" itemprop="dateCreated datePublished" datetime="2021-07-03T18:52:24+08:00">2021-07-03</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E6%8A%80%E6%9C%AF%E5%90%91/" itemprop="url" rel="index"><span itemprop="name">技术向</span></a>
+                </span>
+            </span>
+
+          
+            <span id="/posts/150430f0/" class="post-meta-item leancloud_visitors" data-flag-title="Openresty-Lua协程调度机制" title="阅读次数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span class="leancloud-visitors-count"></span>
+            </span>
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="far fa-comment"></i>
+      </span>
+      <span class="post-meta-item-text">评论数：</span>
+    
+    <a title="valine" href="/posts/150430f0/#valine-comments" itemprop="discussionUrl">
+      <span class="post-comments-count valine-comment-count" data-xid="/posts/150430f0/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  <br>
+  <span class="post-meta-item" title="繁/简：">
+    <span class="post-meta-item-icon">
+      <i class="fas fa-yin-yang"></i>
+    </span>
+      <span class="post-meta-item-text">繁/简：</span>
+    <a id="translateLink" href="javascript:translatePage();" rel="external nofollow noreferrer">繁體</a>
+  </span>
+
+<script type="text/javascript" src="/js/tw_cn.js"></script>
+<script type="text/javascript">
+var defaultEncoding = 2; //网站编写字体是否繁体，1-繁体，2-简体
+var translateDelay = 0; //延迟时间,若不在前, 要设定延迟翻译时间, 如100表示100ms,默认为0
+var cookieDomain = "https://catbro666.github.io/"; //Cookie地址, 一定要设定, 通常为你的网址
+var msgToTraditionalChinese = "繁體"; //此处可以更改为你想要显示的文字
+var msgToSimplifiedChinese = "简体"; //同上，但两处均不建议更改
+var translateButtonId = "translateLink"; //默认互换id
+translateInitilization();
+</script>
+<br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>20k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>18 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <div class="note primary">
+            <h1 id="写在前面"><a href="#写在前面" class="headerlink" title="写在前面"></a>写在前面</h1><p>OpenResty（后面简称：OR）是一个基于Nginx和Lua的高性能Web平台，它内部集成大量的Lua API以及第三方模块，可以利用它快速搭建支持高并发、极具动态性和扩展性的Web应用、Web服务或动态网关。</p><p>OR最大的特点就是，将Lua协程与Nginx事件驱动模型及非阻塞I/O结合起来。使用户可以在handler中使用 <strong>同步但是依然是非阻塞</strong> 的方式编写其应用代码，而无需关心底层的协程调度以及与Nginx事件驱动模型的交互。</p><p>本文将先从总体上介绍OR的协程调度机制，然后结合源码以及Lua栈的情况来详细了解各个部分是如何实现的，包括其异常保护、协程初始化、协程的恢复和执行、协程的挂起、协程的执行结束、协程出错的情况。</p>
+          </div>
+
+<span id="more"></span>
+
+<div class="note default">
+            <p>注：下面的讨论的代码将基于<code>stream-lua</code>模块。文中用到的一些术语明确一下：</p><ul><li><code>主线程</code>：表示外层调用<code>run_thread()</code>的线程</li><li><code>入口线程</code>：每个handler被调用时会创建一个入口线程，用于执行lua代码</li><li><code>用户线程</code>：用户在Lua代码中通过<code>ngx.thread.spawn()</code>创建的线程</li><li><code>用户协程</code>：用户在Lua代码中通过<code>coroutine.create()</code>创建的协程</li><li><code>协程</code>：泛指所有协程，包括入口线程、用户线程和用户协程</li><li><code>vm</code>：表示Lua虚拟机</li><li><code>L</code>：视出现的上下文，一般表示父协程，在创建入口线程的时候表示Lua VM</li><li><code>co</code>：一般表示新创建的协程</li><li><code>L栈： |顶|新协程|协程表|</code>：表示Lua栈结构，最左边是栈顶</li></ul>
+          </div>
+
+<h1 id="关键数据结构"><a href="#关键数据结构" class="headerlink" title="关键数据结构"></a>关键数据结构</h1><p>在深入了解协程调度机制之前，我们先来认识一下主要的数据结构：</p>
+<ul>
+<li>协程上下文：<code>ngx_stream_lua_co_ctx_t</code><ul>
+<li>协程内部栈的数据（<code>coctx-&gt;co</code>）</li>
+<li>维护协程状态的数据（<code>coctx-&gt;co_status</code>）</li>
+<li>维护协程之间关系的数据（父协程<code>coctx-&gt;parent_co_ctx</code>、僵尸子线程<code>coctx-&gt;zombie_child_threads</code>）</li>
+<li>用户相关数据（<code>coctx-&gt;data</code>）</li>
+<li>在Lua的registry表中对应的该协程指针的引用值（<code>co_ref</code>）</li>
+<li>一些状态标记（是否用户线程<code>is_uthread</code>、是否创建新线程<code>thread_spawn_yielded</code>）被yield</li>
+</ul>
+</li>
+<li>全局变量：<code>ngx_stream_lua_ctx_t</code><ul>
+<li><code>ctx-&gt;cur_co_ctx</code>（当前调度协程上下文）</li>
+<li><code>ctx-&gt;co_op</code>（协程是以何种方式YIELD）</li>
+</ul>
+</li>
+<li>核心调度函数：<code>ngx_stream_lua_run_thread()</code></li>
+</ul>
+<h1 id="协程调度"><a href="#协程调度" class="headerlink" title="协程调度"></a>协程调度</h1><p>首先你可能很好奇OR为什么要在C引擎层面自己实现协程的调度？或者说这么做的好处是什么？我觉得最主要的原因还是减轻开发者的负担。</p>
+<h2 id="如果用纯Lua实现"><a href="#如果用纯Lua实现" class="headerlink" title="如果用纯Lua实现"></a>如果用纯Lua实现</h2><p>我们知道Lua是个非常轻巧的语言，它不像Go有自己的调度器。Lua原生的对协程的操作无非就是<code>coroutine.resume()</code>和<code>coroutine.yield()</code>。试想如果你用纯Lua来处理handler内的所有操作，你的协程的拓扑将是一个复杂的树状结构，非常难以管理调度。万一在某个协程中出错了，你将如何进行清理工作？你如何实现同步但是非阻塞的操作？是不是需要在Lua层自己定义事件及相应的回调？</p>
+<h2 id="OpenResty实现"><a href="#OpenResty实现" class="headerlink" title="OpenResty实现"></a>OpenResty实现</h2><p>OR在C引擎层帮我们把这些事情都做了，你无须再关心所有这些，只需专心写你的业务逻辑。为了接管协程的调度，OR重写了<code>coroutine</code>的接口函数，并在<code>coroutine</code>基础上封装抽象出了<code>thread</code>的概念。OR中<code>coroutine</code>的接口行为与原生的类似，<code>yield()</code>和<code>resume()</code>成对出现。而<code>thread</code>则由调度器进行调度，提供了<code>spawn()</code>、<code>wait()</code>等接口。</p>
+<div class="note primary">
+            <p>OR在对协程调度上，最核心的改动是其创建新协程时的行为（<code>coroutine.resume()</code>, <code>ngx.thread.spawn()</code>）。它不会直接调用<code>lua_resume()</code>，而是先<code>lua_yield()</code>然后由调度器再<code>lua_resume()</code>。Lua代码域内从来不会直接调用<code>lua_resume()</code>，理解了这一点你就理解了OpenResty协程调度的精髓。</p>
+          </div>
+
+<p>所以OR中协程拓扑是一个单层的结构，它只有<strong>一个入口点</strong>。这样使得协程调度更加灵活，I/O事件的触发时回调函数也更容易实现。</p>
+<p>OR调度器根据<code>lua_resume()</code>的返回值，确定协程是挂起了、结束了还是出错了。因为OR改动了创建新协程时行为，同时又抽象了thread概念，所以如果是协程挂起的情况，还需要知道是什么原因挂起，以便做相应的不同处理。是继续调度？还是返回上层？我们后面会提到的<code>ctx-&gt;co_op</code>便是做这个用途。</p>
+<h2 id="协程调度逻辑"><a href="#协程调度逻辑" class="headerlink" title="协程调度逻辑"></a>协程调度逻辑</h2><p>协程的调度在核心调度函数<code>ngx_stream_lua_run_thread()</code>中进行，它是创建或恢复协程的唯一入口点。它里面实现了一个调度循环，循环里面先从<code>ctx-&gt;cur_co_ctx</code>获取下一个待resume的协程上下文，然后<code>lua_resume()</code>执行或恢复该协程，其返回值<code>LUA_YIELD</code>表示协程挂起，<code>0</code>表示协程执行结束，其余的表示协程出错了。其中协程挂起又分为几种不同的情况：即等待I/O、新建thread、<code>coroutine.resume</code>和<code>coroutine.yield</code>。根据不同的情况，决定是跳到循环前面继续调度，还是返回上层函数。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line">                                    C region            :   Lua Region</span><br><span class="line">                            &gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;:&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;<span class="function">v</span></span><br><span class="line"><span class="function"><span class="title">xx_handler</span><span class="params">()</span>                ^                           :      never        v</span></span><br><span class="line"><span class="function">+-- <span class="title">by_chunk</span><span class="params">()</span>              ^                           :    lua_resume     v</span></span><br><span class="line"><span class="function">    |-- <span class="title">new_thread</span><span class="params">()</span>        ^                           :  in Lua Region,   v</span></span><br><span class="line"><span class="function">    |-- <span class="title">run_thread</span><span class="params">()</span>        ^                           :    always be      v</span></span><br><span class="line"><span class="function">    |   |-- <span class="title">for</span><span class="params">(;;)</span> </span>&#123;       ^                           :   lua_yield()     v</span><br><span class="line">    |   |-- rv = lua_resume()&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt; lua_yield()&lt;&lt;&lt;&lt;&lt;&lt;:&lt;&lt;&lt;&lt;               v</span><br><span class="line">    |   |-- <span class="keyword">switch</span>(rv)                      ^           :   ^               v</span><br><span class="line">    |   |                                   ^           :   ^               v</span><br><span class="line">    |   |-- <span class="keyword">case</span> LUA_YIELD                  ^           :   ^               v</span><br><span class="line">    |   |   |                       (I/O interruption)&lt;&lt;:&lt;&lt;(ngx.tcp.send)   v</span><br><span class="line">    |   |   |-- <span class="keyword">switch</span> (ctx-&gt;co_op)         |           :   ^               v</span><br><span class="line">    |   |   |                               |           :   ^               v</span><br><span class="line">    |   |   |-- <span class="keyword">case</span> NGX_STREAM_LUA_USER_CORO_NOP       :   ^               v</span><br><span class="line">    |   |   |   +-- <span class="keyword">return</span> NGX_AGAIN                    :   ^               v</span><br><span class="line">    |   |   |                                           :   ^               v</span><br><span class="line">    |   |   |-- <span class="keyword">case</span> NGX_STREAM_LUA_USER_THREAD_RESUME--:--(ngx.thread.spwan)</span><br><span class="line">    |   |   |                                           :</span><br><span class="line">    |   |   |-- <span class="keyword">case</span> NGX_STREAM_LUA_USER_CORO_RESUME----:--(coroutine.resume)</span><br><span class="line">    |   |   |                                           :</span><br><span class="line">    |   |   +-- <span class="keyword">case</span> NGX_STREAM_LUA_USER_CORO_YIELD-----:--(coroutine.yield)</span><br><span class="line">    |   |                                               :</span><br><span class="line">    |   |-- <span class="keyword">case</span> <span class="number">0</span> (coroutine finish work)</span><br><span class="line">    |   |</span><br><span class="line">    |   |-- <span class="keyword">case</span> XXX_ERR (error)                </span><br><span class="line">    |   +-- &#125;   <span class="comment">/* for&#123;;;&#125; */</span>                   OpenResty Coroutine</span><br><span class="line">    |                                               Schedule</span><br><span class="line">    |-- run_posted_threads()                       by catbro666</span><br><span class="line">    |   |-- run_thread()                            <span class="number">2021.07</span><span class="number">.02</span></span><br><span class="line">    +-- <span class="keyword">return</span>                                      </span><br></pre></td></tr></table></figure>
+
+
+
+
+
+
+
+<h1 id="异常保护"><a href="#异常保护" class="headerlink" title="异常保护"></a>异常保护</h1><p>作为一个调度器，OpenResty扮演者类似操作系统内核的角色，不过它的调度对象是Lua协程。作为一个“内核”，无论其调度对象出了什么问题，都不应该使这个系统崩溃，而是应该将错错误信息打印出来。</p>
+<p>Openresty内部就做了一个这样的异常保护，其原理就是用<code>setjmp</code>、<code>longjmp</code>包住了<code>run_thread()</code>里面的整个协程调度逻辑。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 首先注册虚拟机的panic回调 */</span></span><br><span class="line">lua_atpanic(L, ngx_stream_lua_atpanic);</span><br><span class="line"><span class="comment">/* setjmp保存环境 */</span></span><br><span class="line">NGX_LUA_EXCEPTION_TRY &#123;</span><br><span class="line">    <span class="comment">/* 执行调度逻辑 */</span></span><br><span class="line">&#125; NGX_LUA_EXCEPTION_CATCH &#123;</span><br><span class="line">    <span class="comment">/* 出现异常时走到这里 */</span></span><br><span class="line">    dd(<span class="string">&quot;nginx execution restored&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>ngx_stream_lua_atpanic()</code>的实现也非常简单，只是简单地打印崩溃日志，然后调用<code>NGX_LUA_EXCEPTION_THROW(1);</code>恢复nginx的执行。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span></span></span><br><span class="line"><span class="function"><span class="title">ngx_stream_lua_atpanic</span><span class="params">(lua_State *L)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line"><span class="meta">#<span class="meta-keyword">ifdef</span> NGX_LUA_ABORT_AT_PANIC</span></span><br><span class="line">    <span class="built_in">abort</span>();</span><br><span class="line"><span class="meta">#<span class="meta-keyword">else</span></span></span><br><span class="line">    u_char                  *s = <span class="literal">NULL</span>;</span><br><span class="line">    <span class="keyword">size_t</span>                   len = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (lua_type(L, <span class="number">-1</span>) == LUA_TSTRING) &#123;</span><br><span class="line">        s = (u_char *) lua_tolstring(L, <span class="number">-1</span>, &amp;len);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (s == <span class="literal">NULL</span>) &#123;</span><br><span class="line">        s = (u_char *) <span class="string">&quot;unknown reason&quot;</span>;</span><br><span class="line">        len = <span class="keyword">sizeof</span>(<span class="string">&quot;unknown reason&quot;</span>) - <span class="number">1</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    ngx_log_stderr(<span class="number">0</span>, <span class="string">&quot;lua atpanic: Lua VM crashed, reason: %*s&quot;</span>, len, s);</span><br><span class="line">    ngx_quit = <span class="number">1</span>;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/*  restore nginx execution */</span></span><br><span class="line">    NGX_LUA_EXCEPTION_THROW(<span class="number">1</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* impossible to reach here */</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这几个宏定义分别如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">define</span> NGX_LUA_EXCEPTION_TRY                                                \</span></span><br><span class="line"><span class="meta">    <span class="meta-keyword">if</span> (setjmp(ngx_stream_lua_exception) == 0)</span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> NGX_LUA_EXCEPTION_CATCH                                              \</span></span><br><span class="line"><span class="meta">    <span class="meta-keyword">else</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> NGX_LUA_EXCEPTION_THROW(x)                                           \</span></span><br><span class="line"><span class="meta">    longjmp(ngx_stream_lua_exception, (x))</span></span><br></pre></td></tr></table></figure>
+
+
+
+<h1 id="协程初始化"><a href="#协程初始化" class="headerlink" title="协程初始化"></a>协程初始化</h1><h2 id="钩子的入口线程"><a href="#钩子的入口线程" class="headerlink" title="钩子的入口线程"></a>钩子的入口线程</h2><p><code>ngx_stream_lua_new_thread()</code>用于创建入口线程</p>
+<p>OR中需要在Registry表中存储每个创建出来的Lua线程的reference，这个存储协程的表在Registry表中对应的key是全局变量<code>ngx_stream_lua_coroutines_key</code>的地址，因此下面这段代码就是从Registry表中查询这个储存协程的表，返回到栈顶：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 返回栈顶元素的索引，等于栈中元素的个数 */</span></span><br><span class="line">base = lua_gettop(L);</span><br><span class="line"><span class="comment">/* 将存储协程的表对应的key压栈 */</span></span><br><span class="line">lua_pushlightuserdata(L, ngx_stream_lua_lightudata_mask(</span><br><span class="line">                      coroutines_key));</span><br><span class="line"><span class="comment">/* 将key出栈，获取Registry表中key对应的元素，然后将结果入栈 */</span></span><br><span class="line">lua_rawget(L, LUA_REGISTRYINDEX);</span><br></pre></td></tr></table></figure>
+
+<p>接下来创建一个新的协程，同时初始化其全局表：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 创建Lua协程，返回的新lua_State跟原有的lua_State共享所有的全局对象（如表），</span></span><br><span class="line"><span class="comment">   但是有一个独立的执行栈。 协程依赖垃圾回收销毁 */</span></span><br><span class="line"><span class="comment">/* L栈： |顶|新协程|协程表| */</span></span><br><span class="line">co = lua_newthread(L);  </span><br><span class="line"><span class="comment">/* 创建该协程的全局表，设置_G field为全局表自己 */</span></span><br><span class="line"><span class="comment">/* L栈： |顶|协程新的全局表|新协程|协程表| */</span></span><br><span class="line">ngx_stream_lua_create_new_globals_table(co, <span class="number">0</span>, <span class="number">0</span>); </span><br><span class="line"><span class="comment">/* 再创建一个新表 */</span></span><br><span class="line"><span class="comment">/* L栈： |顶|新表|协程新的全局表|新协程|协程表| */</span></span><br><span class="line">lua_createtable(co, <span class="number">0</span>, <span class="number">1</span>);  </span><br><span class="line"><span class="comment">/* 拿到全局表 */</span></span><br><span class="line"><span class="comment">/* L栈： |顶|全局表|新表|协程新的全局表|新协程|协程表| */</span></span><br><span class="line">ngx_stream_lua_get_globals_table(co);   </span><br><span class="line"><span class="comment">/* 全局表的__index指向新创建的表；新表的__index的值为栈顶的值，也即全局表 */</span></span><br><span class="line"><span class="comment">/* L栈： |顶|新表|协程新的全局表|新协程|协程表| */</span></span><br><span class="line">lua_setfield(co, <span class="number">-2</span>, <span class="string">&quot;__index&quot;</span>);    </span><br><span class="line"><span class="comment">/* 全局表的meta table指向新创建的表；</span></span><br><span class="line"><span class="comment">   新表出栈，将其设为-2即协程新的全局表的新元表 */</span></span><br><span class="line"><span class="comment">/* L栈： |顶|协程新的全局表|新协程|协程表| */</span></span><br><span class="line">lua_setmetatable(co, <span class="number">-2</span>);</span><br><span class="line"><span class="comment">/* 设置协程新的全局表到对应索引，其_G field是自己，</span></span><br><span class="line"><span class="comment">   其元表是新表，新表的__index是父协程的全局表 */</span></span><br><span class="line"><span class="comment">/* L栈： |顶|新协程|协程表| */</span></span><br><span class="line">ngx_stream_lua_set_globals_table(co);</span><br></pre></td></tr></table></figure>
+
+
+
+<p>此时的Lua虚拟机栈顶情况如下图所示：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">L-&gt;top      |   栈顶    |</span><br><span class="line">L-&gt;top - 1  |Lua_State*|    新创建的协程</span><br><span class="line">L-&gt;top -2   | Lua Table|    存储协程引用的表</span><br></pre></td></tr></table></figure>
+
+<p>下面一步就是在Lua虚拟机中创建一个reference保存这个新创建的协程：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 为栈顶对象（即新协程），创建并返回一个协程表中的引用 */</span></span><br><span class="line"><span class="comment">/* 当前栈： |顶|协程表| */</span></span><br><span class="line">*ref = luaL_ref(L, <span class="number">-2</span>);</span><br><span class="line"><span class="keyword">if</span> (*ref == LUA_NOREF) &#123;</span><br><span class="line">    lua_settop(L, base);  <span class="comment">/* restore main thread stack */</span></span><br><span class="line">    <span class="keyword">return</span> <span class="literal">NULL</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>最后恢复堆栈</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 设置栈顶索引 */</span></span><br><span class="line"><span class="comment">/* 当前栈： |顶| */</span></span><br><span class="line">lua_settop(L, base);    </span><br><span class="line"><span class="keyword">return</span> co;</span><br></pre></td></tr></table></figure>
+
+<p>以上步骤还只是创建了一个什么都不能做的Lua协程，回到<code>_by_chunk()</code>函数之后还需要把入口函数放入协程中。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 将lua虚拟机VM的入口函数closure move到新创建的协程上面，</span></span><br><span class="line"><span class="comment">   这样协程就有了虚拟机已经解析完毕的代码了。*/</span></span><br><span class="line">lua_xmove(L, co, <span class="number">1</span>);</span><br><span class="line"></span><br><span class="line"><span class="comment">/* 拿到co全局表，放到栈顶 */</span></span><br><span class="line"><span class="comment">/* 当前栈： |顶|全局表|入口closure| */</span></span><br><span class="line">ngx_stream_lua_get_globals_table(co);</span><br><span class="line"><span class="comment">/* 将全局表设为入口closure的环境表 */</span></span><br><span class="line"><span class="comment">/* 当前栈： |顶|入口closure| */</span></span><br><span class="line">lua_setfenv(co, <span class="number">-2</span>);</span><br></pre></td></tr></table></figure>
+
+<p>自此，协程入口函数以及环境表已经设置好。接下来就是让它能够运行起来，让调度器能够调度它运行：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 将nginx请求保存到协程全局表 */</span></span><br><span class="line">ngx_stream_lua_set_req(co, r);</span><br><span class="line"></span><br><span class="line">ctx-&gt;cur_co_ctx = &amp;ctx-&gt;entry_co_ctx;</span><br><span class="line">ctx-&gt;cur_co_ctx-&gt;co = co;</span><br><span class="line">ctx-&gt;cur_co_ctx-&gt;co_ref = co_ref;</span><br></pre></td></tr></table></figure>
+
+<p>接下来就是设置cleanup，然后<code>ngx_stream_lua_run_thread()</code>。</p>
+<h2 id="用户创建的uthread"><a href="#用户创建的uthread" class="headerlink" title="用户创建的uthread"></a>用户创建的uthread</h2><p><code>ngx.thread.spawn()</code>，对应的实现是<code>ngx_stream_lua_uthread_spawn</code>()。首先它会调<code>ngx_stream_lua_coroutine_create_helper()</code>创建一个新的协程。</p>
+<h3 id="创建协程"><a href="#创建协程" class="headerlink" title="创建协程"></a>创建协程</h3><p>注意协程都是在worker的虚拟机上创建的，在Lua层面协程只有两层父子关系。但是用户协程会继承父协程的全局表，其父子关系由OR进行维护。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 获取虚拟机 */</span></span><br><span class="line">vm = ngx_stream_lua_get_lua_vm(r, ctx);</span><br><span class="line"><span class="comment">/* 创建新协程 */</span></span><br><span class="line"></span><br><span class="line">co = lua_newthread(vm);</span><br><span class="line"><span class="comment">/* 然后创建coctx，设置其co、co_status值 */</span></span><br><span class="line">coctx = ngx_stream_lua_create_co_ctx;</span><br><span class="line">coctx-&gt;co = co;</span><br><span class="line">coctx-&gt;co_status = NGX_STREAM_LUA_CO_SUSPENDED;</span><br></pre></td></tr></table></figure>
+
+<p>此时父协程的栈如下:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">/* 当前栈: |顶|args|entry_func| */</span><br></pre></td></tr></table></figure>
+
+<p>接下来将父协程的全局表给新创建的协程：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* make new coroutine share globals of the parent coroutine.</span></span><br><span class="line"><span class="comment"> * <span class="doctag">NOTE:</span> globals don&#x27;t have to be separated! */</span></span><br><span class="line"><span class="comment">/* 拷贝父协程的全局表到栈上 */</span></span><br><span class="line"><span class="comment">/* L栈: |顶|全局表|args|entry_func| */</span></span><br><span class="line">ngx_stream_lua_get_globals_table(L);</span><br><span class="line"><span class="comment">/* 将全局表移动到新创建的协程co的栈上 */</span></span><br><span class="line"><span class="comment">/* L栈: |顶|args|entry_func| */</span></span><br><span class="line">lua_xmove(L, co, <span class="number">1</span>);</span><br><span class="line"><span class="comment">/* 从新协程栈上写入其的全局表 */</span></span><br><span class="line">ngx_stream_lua_set_globals_table(co);</span><br><span class="line"></span><br><span class="line"><span class="comment">/* 将新协程从进程虚拟机，移动到父协程中 */</span></span><br><span class="line"><span class="comment">/* L栈: |顶|新协程|args|entry_func| */</span></span><br><span class="line">lua_xmove(vm, L, <span class="number">1</span>);</span><br><span class="line"><span class="comment">/* 入口函数拷贝到L栈顶 */</span></span><br><span class="line"><span class="comment">/* L栈: |顶|entry_func|新协程|args|entry_func| */</span></span><br><span class="line">lua_pushvalue(L, <span class="number">1</span>); </span><br><span class="line"><span class="comment">/* 将入口函数从L移到co栈中 */</span></span><br><span class="line"><span class="comment">/* L栈: |顶|新协程|args|entry_func| */</span></span><br><span class="line"><span class="comment">/* co栈: |顶|entry_func|*/</span></span><br><span class="line">lua_xmove(L, co, <span class="number">1</span>);  </span><br></pre></td></tr></table></figure>
+
+<p><code>create_helper</code>函数返回之后，L的栈顶是新协程，co的栈顶是入口函数。</p>
+<h3 id="初始化uthread"><a href="#初始化uthread" class="headerlink" title="初始化uthread"></a>初始化uthread</h3><p><code>ngx_stream_lua_coroutine_create_helper</code>返回之后，进行uthread的初始化。</p>
+<p>此时，父协程L是这样的：</p>
+<ul>
+<li>栈顶是新创建的协程</li>
+<li>然后是参数和入口函数</li>
+</ul>
+<p>在此之前，先在registry表中保存一个该协程的ref。（到现在还没搞明白这个ref是干嘛用的？只除了创建线程和删除线程，貌似只有检查线程是否活着的时候会查一下这个ref，只是检查状态用coctx-&gt;co_status不是也能做到么）</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* anchor the newly created coroutine into the Lua registry */</span></span><br><span class="line"><span class="comment">/* 把新创建的协程写入Lua registry表中 */</span></span><br><span class="line"><span class="comment">/* 将ngx_stream_lua_coroutines_key的地址压入栈中 */</span></span><br><span class="line">lua_pushlightuserdata(L, &amp;ngx_stream_lua_coroutines_key);</span><br><span class="line"><span class="comment">/* 从registry表中获取协程表 */</span></span><br><span class="line"><span class="comment">/* L栈: |顶|协程表|新协程|args|entry_func| */</span></span><br><span class="line">lua_rawget(L, LUA_REGISTRYINDEX);</span><br><span class="line"><span class="comment">/* 将新协程压栈 */</span></span><br><span class="line"><span class="comment">/* L栈: |顶|新协程|协程表|新协程|args|entry_func| */</span></span><br><span class="line">lua_pushvalue(L, <span class="number">-2</span>);</span><br><span class="line"><span class="comment">/* -2位置是注册表，为新协程创建在报表中的索引 */</span></span><br><span class="line"><span class="comment">/* L栈: |顶|协程表|新协程|args|entry_func| */</span></span><br><span class="line">coctx-&gt;co_ref = luaL_ref(L, <span class="number">-2</span>);    <span class="comment">// </span></span><br><span class="line"><span class="comment">/* 弹出协程表 */</span></span><br><span class="line"><span class="comment">/* L栈: |顶|新协程|args|entry_func| */</span></span><br><span class="line">lua_pop(L, <span class="number">1</span>);</span><br></pre></td></tr></table></figure>
+
+<p>接下来是初始化运行环境：</p>
+<p>此时的，L的栈情况如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">|新协程|参数n|...|参数1|entry_func|</span><br><span class="line">  - 1   -2  ...   2      1</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (n &gt; <span class="number">1</span>) &#123;</span><br><span class="line">    <span class="comment">/* 由于lua函数压栈顺序是从左到右</span></span><br><span class="line"><span class="comment">     * 因此1就是压入的第一个参数，而spawn的第一个参数就是入口函数</span></span><br><span class="line"><span class="comment">     * 把栈顶元素（即新协程）拷贝到1，覆盖入口函数，入口函数前面已经拷贝到新协程栈上了</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="comment">/* L栈: |顶|args|新协程| */</span></span><br><span class="line">    lua_replace(L, <span class="number">1</span>);</span><br><span class="line">    <span class="comment">/* 将参数压入新协程栈中 */</span></span><br><span class="line">    <span class="comment">/* L栈: |顶|新协程| */</span></span><br><span class="line">    <span class="comment">/* co栈: |顶|args|入口函数| */</span></span><br><span class="line">    lua_xmove(L, coctx-&gt;co, n - <span class="number">1</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>保存状态，设置协程的父子关系，设置新协程为下一个调度的线程</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 设置状态 */</span></span><br><span class="line">coctx-&gt;co_status = NGX_STREAM_LUA_CO_RUNNING;</span><br><span class="line">ctx-&gt;co_op = NGX_STREAM_LUA_USER_THREAD_RESUME;</span><br><span class="line">ctx-&gt;cur_co_ctx-&gt;thread_spawn_yielded = <span class="number">1</span>;</span><br><span class="line"></span><br><span class="line"><span class="comment">/* 将父协程放入post_thread队列中 */</span></span><br><span class="line">ngx_stream_lua_post_thread(r, ctx, ctx-&gt;cur_co_ctx)</span><br><span class="line"></span><br><span class="line"><span class="comment">/* 保存子线程的父协程上下文为当前协程 */</span></span><br><span class="line">coctx-&gt;parent_co_ctx = ctx-&gt;cur_co_ctx;</span><br><span class="line"><span class="comment">/* 切换当前协程为新创建的协程 */</span></span><br><span class="line">ctx-&gt;cur_co_ctx = coctx;</span><br></pre></td></tr></table></figure>
+
+<p>最后，spawn函数的返回值是新创建的协程</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 将原协程的执行权切换出去，这里的参数1表示栈上留了一个值，这里是指新创建的协程</span></span><br><span class="line"><span class="comment"> * 主线程并不会取这个值，而是等到新线程spawn返回时作为返回值。</span></span><br><span class="line"><span class="comment"> * 此时L栈中是新协程，co栈中是参数和入口函数。</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">return</span> lua_yield(L, <span class="number">1</span>);</span><br></pre></td></tr></table></figure>
+
+<h2 id="用户创建的coroutine"><a href="#用户创建的coroutine" class="headerlink" title="用户创建的coroutine"></a>用户创建的coroutine</h2><p>OR替换了原生的coroutine接口，当存在<code>getfenv(0).__ngx_req</code>时，使用新的修改后的coroutine接口函数。</p>
+<p><code>create()</code>创建新协程部分跟uthread是一样的，都是调用<code>ngx_stream_lua_coroutine_create_helper</code>()。Lua函数返回新协程。此时新协程栈中是入口函数。</p>
+<p><code>resume()</code>用于开始或恢复新协程，其调用C函数<code>ngx_http_lua_coroutine_resume()</code>。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 首先，获取到协程 */</span></span><br><span class="line"><span class="comment">/* L栈: |参数|co|,  co栈: |入口函数| */</span></span><br><span class="line">co = lua_tothread(L, <span class="number">1</span>);</span><br><span class="line"></span><br><span class="line"><span class="comment">/* 然后设置状态和父子关系 */</span></span><br><span class="line"><span class="comment">/* 父协程为normal */</span></span><br><span class="line">p_coctx-&gt;co_status = NGX_HTTP_LUA_CO_NORMAL;</span><br><span class="line"></span><br><span class="line">coctx-&gt;parent_co_ctx = p_coctx;</span><br><span class="line"></span><br><span class="line">dd(<span class="string">&quot;set coroutine to running&quot;</span>);</span><br><span class="line"><span class="comment">/* 子协程为running */</span></span><br><span class="line">coctx-&gt;co_status = NGX_HTTP_LUA_CO_RUNNING;</span><br><span class="line"></span><br><span class="line"><span class="comment">/* 设置co_op告知主线程yield类型 */</span></span><br><span class="line">ctx-&gt;co_op = NGX_HTTP_LUA_USER_CORO_RESUME;</span><br><span class="line"><span class="comment">/* 设置下一个调度协程为新协程 */</span></span><br><span class="line">ctx-&gt;cur_co_ctx = coctx;</span><br></pre></td></tr></table></figure>
+
+<p>接下来，将控制权交还给主协程，并把参数传给主线程。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 此时L栈: |参数|co|， co栈: |入口函数| */</span></span><br><span class="line"><span class="comment">/* lua_gettop(L) - 1表示留在栈中的返回值个数，</span></span><br><span class="line"><span class="comment"> * 由主线程取用之后，在lua_resume新协程时传递 */</span></span><br><span class="line"><span class="comment">/* 减一个，表示不传底下的co */</span></span><br><span class="line"><span class="keyword">return</span> lua_yield(L, lua_gettop(L) - <span class="number">1</span>);</span><br></pre></td></tr></table></figure>
+
+<h1 id="协程执行和恢复"><a href="#协程执行和恢复" class="headerlink" title="协程执行和恢复"></a>协程执行和恢复</h1><p>OR中协程的执行和恢复总是由主线程来进行，不管是coroutine还是uthread，都是先<code>lua_yield()</code>回到主线程之后，在主线程中<code>lua_resume()</code>。</p>
+<p>注意到前面创建阶段，thread是<code>lua_yield(L, 1)</code>，coroutine是<code>lua_yield(L, lua_gettop(L) - 1)</code>。yield到主线程之后，我们继续看调度程序的处理。</p>
+<h2 id="uthread"><a href="#uthread" class="headerlink" title="uthread"></a>uthread</h2><p>先获取参数个数</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 因为入口函数和参数已经在新线程栈中了,所以从新协程中获取参数个数，-1是除掉入口函数 */</span></span><br><span class="line">nrets = lua_gettop(ctx-&gt;cur_co_ctx-&gt;co) - <span class="number">1</span>;    </span><br></pre></td></tr></table></figure>
+
+<p>然后跳到主循环的前面，执行新线程</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 保存新协程coctx */</span></span><br><span class="line">orig_coctx = ctx-&gt;cur_co_ctx;</span><br><span class="line"><span class="comment">/* 执行新线程，其中nrets为参数个数 */</span></span><br><span class="line">rv = lua_resume(orig_coctx-&gt;co, nrets);</span><br></pre></td></tr></table></figure>
+
+<p>在<code>lua_resume</code>中就会开始新线程的执行。</p>
+<h2 id="coroutine"><a href="#coroutine" class="headerlink" title="coroutine"></a>coroutine</h2><p>同样是先获取参数个数</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 获取父协程 */</span></span><br><span class="line">old_co = ctx-&gt;cur_co_ctx-&gt;parent_co_ctx-&gt;co;</span><br><span class="line"><span class="comment">/* 因为参数还在父协程栈中，所以从父协程栈中获取参数个数 */</span></span><br><span class="line">nrets = lua_gettop(old_co);</span><br><span class="line"><span class="keyword">if</span> (nrets) &#123;</span><br><span class="line">    <span class="comment">/* 将参数从父协程移到子协程 */</span></span><br><span class="line">    lua_xmove(old_co, ctx-&gt;cur_co_ctx-&gt;co, nrets);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>此时子协程栈中是参数和入口函数。</p>
+<p>然后跳到主循环的前面，执行新协程，跟前面uthread时一样。</p>
+<h1 id="协程挂起"><a href="#协程挂起" class="headerlink" title="协程挂起"></a>协程挂起</h1><p>协程的挂起分为两种情况：</p>
+<ul>
+<li>一种是内部在I/O等待时自动挂起，这种情况用户不用参与，OR会自动将相应的事件及其handler挂到事件驱动上，当事件被唤醒时由调度器恢复对应协程的执行。</li>
+<li>另一种是用户在Lua层主动调用<code>coroutine.yield()</code>挂起。此时由调度器恢复其父协程的执行。</li>
+</ul>
+<h2 id="显式主动挂起"><a href="#显式主动挂起" class="headerlink" title="显式主动挂起"></a>显式主动挂起</h2><p>我们先来看用户主动挂起的情况，<code>coroutine.yield()</code>会调用到<code>ngx_stream_lua_coroutine_yield()</code>。我们先来看看它里面干了些什么。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 首先修改当前协程的状态为挂起 */</span></span><br><span class="line">coctx = ctx-&gt;cur_co_ctx;</span><br><span class="line">coctx-&gt;co_status = NGX_STREAM_LUA_CO_SUSPENDED;</span><br><span class="line"><span class="comment">/* 设置co_op */</span></span><br><span class="line">ctx-&gt;co_op = NGX_STREAM_LUA_USER_CORO_YIELD;</span><br><span class="line"></span><br><span class="line"><span class="comment">/* 如果不是用户线程，且有父协程，也即是普通coroutine，</span></span><br><span class="line"><span class="comment">   将其父协程状态设置为running */</span></span><br><span class="line"><span class="keyword">if</span> (!coctx-&gt;is_uthread &amp;&amp; coctx-&gt;parent_co_ctx) &#123;</span><br><span class="line">    coctx-&gt;parent_co_ctx-&gt;co_status = NGX_STREAM_LUA_CO_RUNNING;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/* 最后将控制权交还主线程，将所有参数传递给主线程 */</span></span><br><span class="line"><span class="comment">/* yield and pass retvals to main thread,</span></span><br><span class="line"><span class="comment"> * and resume parent coroutine there */</span></span><br><span class="line"><span class="keyword">return</span> lua_yield(L, lua_gettop(L));</span><br></pre></td></tr></table></figure>
+
+<p>回到主线程之后，根据待挂起协程是thread还是corotine进行不同处理。</p>
+<h3 id="thread"><a href="#thread" class="headerlink" title="thread"></a>thread</h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (ngx_stream_lua_is_thread(ctx)) &#123;</span><br><span class="line">    <span class="comment">/* 丢弃coroutine.yield()的任何参数 */</span></span><br><span class="line">    lua_settop(ctx-&gt;cur_co_ctx-&gt;co, <span class="number">0</span>);</span><br><span class="line">    <span class="comment">/* 因为thread由调度器负责调度，所以将当前线程的状态改为running，为什么不在一起改？*/</span></span><br><span class="line">    ctx-&gt;cur_co_ctx-&gt;co_status = NGX_STREAM_LUA_CO_RUNNING;</span><br><span class="line">    <span class="comment">/* 如果已经有pending的线程，则放到队列中 */</span></span><br><span class="line">    <span class="keyword">if</span> (ctx-&gt;posted_threads) &#123;</span><br><span class="line">        ngx_stream_lua_post_thread(r, ctx, ctx-&gt;cur_co_ctx);</span><br><span class="line">        ctx-&gt;cur_co_ctx = <span class="literal">NULL</span>;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">NULL</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">/* 否则，立即恢复线程 */</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="coroutine-1"><a href="#coroutine-1" class="headerlink" title="coroutine"></a>coroutine</h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 获取当前栈的高度，也即coroutine.yield()的参数个数 */</span></span><br><span class="line">nrets = lua_gettop(ctx-&gt;cur_co_ctx-&gt;co);</span><br><span class="line"><span class="comment">/* 设置父协程为下一个调度的协程 */</span></span><br><span class="line">next_coctx = ctx-&gt;cur_co_ctx-&gt;parent_co_ctx;</span><br><span class="line">next_co = next_coctx-&gt;co;</span><br><span class="line"><span class="comment">/* 将参数从子协程栈中移到父协程栈中 */</span></span><br><span class="line"><span class="keyword">if</span> (nrets) &#123;</span><br><span class="line">    dd(<span class="string">&quot;moving %d return values to next co&quot;</span>, nrets);</span><br><span class="line">    lua_xmove(ctx-&gt;cur_co_ctx-&gt;co, next_co, nrets);</span><br><span class="line"><span class="meta">#<span class="meta-keyword">ifdef</span> NGX_LUA_USE_ASSERT</span></span><br><span class="line">    ctx-&gt;cur_co_ctx-&gt;co_top -= nrets;</span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br><span class="line"></span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">/*) 如果不是wrap封装的，还要加一个true，作为第一个参数 */</span></span><br><span class="line"><span class="keyword">if</span> (!ctx-&gt;cur_co_ctx-&gt;is_wrap) &#123;</span><br><span class="line">    <span class="comment">/* prepare return values for coroutine.resume</span></span><br><span class="line"><span class="comment">     * (true plus any retvals)</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    lua_pushboolean(next_co, <span class="number">1</span>);</span><br><span class="line">    <span class="comment">/* 插入1的位置，作为第一个参数 */</span></span><br><span class="line">    lua_insert(next_co, <span class="number">1</span>);</span><br><span class="line">    nrets++; <span class="comment">/* add the true boolean value */</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">ctx-&gt;cur_co_ctx = next_coctx;</span><br><span class="line"><span class="comment">/* 回到主循环的前面，resume父协程 */</span></span><br><span class="line"><span class="keyword">break</span>;</span><br></pre></td></tr></table></figure>
+
+<h2 id="IO中断场景"><a href="#IO中断场景" class="headerlink" title="IO中断场景"></a>IO中断场景</h2><p>这种场景有很多，不过其背后的原理都差不多：</p>
+<ul>
+<li>定义一个事件，设置恢复时的handler及对应协程上下文，然后<code>lua_yield()</code>回到<code>run_thread</code>。</li>
+<li>主线程将<code>ctx-&gt;cur_co_ctx</code>设为空之后，直接返回<code>NGX_AGAIN</code>，如果有posted_thread会继续执行，否则将控制权交还给nginx层</li>
+<li>后续当事件发生时，将保存的协程上下文设为<code>ctx-&gt;cur_co_ctx</code>，然后调用<code>ngx_stream_lua_run_thread()</code>恢复协程的调度执行。</li>
+</ul>
+<p>这里举两个典型的例子:</p>
+<h3 id="ngx-sleep"><a href="#ngx-sleep" class="headerlink" title="ngx.sleep()"></a>ngx.sleep()</h3><p>它的C函数实现是<code>ngx_stream_lua_ngx_sleep()</code>，先定义设置好handler和coctx，然后<code>lua_yield()</code></p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line">    ngx_stream_lua_cleanup_pending_operation(coctx);</span><br><span class="line">    coctx-&gt;cleanup = ngx_stream_lua_sleep_cleanup;</span><br><span class="line">    coctx-&gt;data = r;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* 保存恢复时的handler和协程上下文 */</span></span><br><span class="line">    coctx-&gt;sleep.handler = ngx_stream_lua_sleep_handler;</span><br><span class="line">    coctx-&gt;sleep.data = coctx;</span><br><span class="line">    coctx-&gt;sleep.<span class="built_in">log</span> = r-&gt;connection-&gt;<span class="built_in">log</span>;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* 当delay为0时，放入post_event队列或添加定时器 */</span></span><br><span class="line">    <span class="keyword">if</span> (delay == <span class="number">0</span>) &#123;</span><br><span class="line"><span class="meta">#<span class="meta-keyword">ifdef</span> HAVE_POSTED_DELAYED_EVENTS_PATCH</span></span><br><span class="line">        dd(<span class="string">&quot;posting 0 sec sleep event to head of delayed queue&quot;</span>);</span><br><span class="line"></span><br><span class="line">        coctx-&gt;sleep.delayed = <span class="number">1</span>;</span><br><span class="line">        ngx_post_event(&amp;coctx-&gt;sleep, &amp;ngx_posted_delayed_events);</span><br><span class="line"><span class="meta">#<span class="meta-keyword">else</span></span></span><br><span class="line">        ngx_log_error(NGX_LOG_WARN, r-&gt;connection-&gt;<span class="built_in">log</span>, <span class="number">0</span>, <span class="string">&quot;ngx.sleep(0)&quot;</span></span><br><span class="line">                      <span class="string">&quot; called without delayed events patch, this will&quot;</span></span><br><span class="line">                      <span class="string">&quot; hurt performance&quot;</span>);</span><br><span class="line">        ngx_add_timer(&amp;coctx-&gt;sleep, (<span class="keyword">ngx_msec_t</span>) delay);</span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br><span class="line"></span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;    <span class="comment">/* 添加定时器 */</span></span><br><span class="line">        ngx_add_timer(&amp;coctx-&gt;sleep, (<span class="keyword">ngx_msec_t</span>) delay);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">/* 外层函数*/</span></span><br><span class="line">    <span class="keyword">return</span> lua_yield(L, <span class="number">0</span>);</span><br></pre></td></tr></table></figure>
+
+<p>在<code>run_thread()</code>里将当前协程上下文置为<code>NULL</code>，然后返回<code>NGX_AGAIN</code></p>
+<p>在<code>by_chunk()</code>里会先检查有没有在post队列里的线程，如果没有则返回</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">rc = ngx_stream_lua_run_thread(L, r, ctx, <span class="number">0</span>);</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> (rc == NGX_ERROR || rc &gt;= NGX_OK) &#123;</span><br><span class="line">    <span class="comment">/* do nothing */</span></span><br><span class="line"></span><br><span class="line">&#125; <span class="keyword">else</span> <span class="keyword">if</span> (rc == NGX_AGAIN) &#123;</span><br><span class="line">    rc = ngx_stream_lua_content_run_posted_threads(L, r, ctx, <span class="number">0</span>);</span><br><span class="line"></span><br><span class="line">&#125; <span class="keyword">else</span> <span class="keyword">if</span> (rc == NGX_DONE) &#123; <span class="comment">/* 这里DONE的情况只有HTTP子请求的时候会出现 */</span></span><br><span class="line">    rc = ngx_stream_lua_content_run_posted_threads(L, r, ctx, <span class="number">1</span>);</span><br><span class="line"></span><br><span class="line">&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">    rc = NGX_OK;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>当定时器超时时，它会执行<code>sleep_handler()</code>，设置<code>ctx-&gt;cur_co_ctx</code>然后执行<code>run_thread()</code>恢复协程调度。</p>
+<h3 id="ngx-tcp-receive"><a href="#ngx-tcp-receive" class="headerlink" title="ngx.tcp.receive()"></a>ngx.tcp.receive()</h3><p>其对应的C函数实现是<code>ngx_stream_lua_socket_tcp_receive()</code>，里面会调<code>ngx_stream_lua_socket_tcp_receive_helper()</code>，我们来看下里面代码：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 这里0表示还未进行协程切换 */</span></span><br><span class="line">u-&gt;read_waiting = <span class="number">0</span>;</span><br><span class="line">u-&gt;read_co_ctx = <span class="literal">NULL</span>;</span><br><span class="line"></span><br><span class="line"><span class="comment">/* 读取的主要逻辑由此函数处理 */</span></span><br><span class="line">rc = ngx_stream_lua_socket_tcp_read(r, u);</span><br><span class="line"><span class="comment">/* 不管是成功、出错或等待I/O，肯定会返回 */</span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* rc == NGX_AGAIN */</span></span><br><span class="line"><span class="comment">/* 如果是等待I/O的情况，设置事件触发时的handler、当前协程上下文 */</span></span><br><span class="line">u-&gt;read_event_handler = ngx_stream_lua_socket_read_handler;</span><br><span class="line">coctx = lctx-&gt;cur_co_ctx;</span><br><span class="line"></span><br><span class="line"><span class="comment">/* 设置请求的写事件handler，这个是返回到Lua层前调用的handler */</span></span><br><span class="line">r-&gt;write_event_handler = ngx_stream_lua_content_wev_handler;</span><br><span class="line"></span><br><span class="line"><span class="comment">/* 保存当前协程上下文到u上 */</span></span><br><span class="line">u-&gt;read_co_ctx = coctx;</span><br><span class="line"><span class="comment">/* 表示是后续是需要协程恢复的 */</span></span><br><span class="line">u-&gt;read_waiting = <span class="number">1</span>;</span><br><span class="line"><span class="comment">/* 设置准备返回值的回调 */</span></span><br><span class="line">u-&gt;read_prepare_retvals = ngx_stream_lua_socket_tcp_receive_retval_handler;</span><br><span class="line"></span><br><span class="line"><span class="keyword">return</span> lua_yield(L, <span class="number">0</span>);</span><br></pre></td></tr></table></figure>
+
+<p>回到<code>run_thread()</code>，同样是将当前协程上下文置为<code>NULL</code>，然后返回<code>NGX_AGAIN</code>。</p>
+<p>当事件被触发时，执行前面设置的<code>ngx_stream_lua_socket_read_handler()</code>，里面又会调用读取操作核心函数<code>ngx_stream_lua_socket_tcp_read()</code>。如果继续碰到等待I/O，handler直接结束，等待下一次事件。如果是完成或出错，会执行如下操作：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 恢复该值为0 */</span></span><br><span class="line">u-&gt;read_waiting = <span class="number">0</span>;</span><br><span class="line"><span class="comment">/* 获取协程上下文 */</span></span><br><span class="line">coctx = u-&gt;read_co_ctx;</span><br><span class="line"></span><br><span class="line"><span class="comment">/* 设置协程恢复的handler */</span></span><br><span class="line">ctx-&gt;resume_handler = ngx_stream_lua_socket_tcp_read_resume;</span><br><span class="line"><span class="comment">/* 设置下一个调度的上下文，为之前调用读取操作的协程 */</span></span><br><span class="line">ctx-&gt;cur_co_ctx = coctx;</span><br><span class="line"></span><br><span class="line"><span class="comment">/* 这个handler就是yield之前设置的那个，它里面调用 ctx-&gt;resume_handler */</span></span><br><span class="line">r-&gt;write_event_handler(r);  </span><br></pre></td></tr></table></figure>
+
+<p><code>ngx_stream_lua_socket_tcp_read_resume()</code>只是封装了一下，最终都是调用的<code>ngx_stream_lua_socket_tcp_resume_helper()</code>，我们看来下它的代码：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 待恢复协程上下文 */</span></span><br><span class="line">coctx = ctx-&gt;cur_co_ctx;</span><br><span class="line"></span><br><span class="line">u = coctx-&gt;data;</span><br><span class="line">prepare_retvals = u-&gt;read_prepare_retvals;</span><br><span class="line"><span class="comment">/* 准备返回值 */</span></span><br><span class="line">nret = prepare_retvals(r, u, ctx-&gt;cur_co_ctx-&gt;co);</span><br><span class="line"></span><br><span class="line"><span class="comment">/* 恢复协程调度，回到Lua层 */</span></span><br><span class="line">rc = ngx_stream_lua_run_thread(vm, r, ctx, nret);</span><br></pre></td></tr></table></figure>
+
+<p>至于完成的条件，取决与不同的调用方式。如果是读取固定字节数的话，会维护一个剩余待读取的字节数<code>u-&gt;rest</code>。如果是读取一行，则读取到<code>\n</code>就结束。如果是readall，则一直读到<code>u-&gt;eof</code>为止。</p>
+<h1 id="协程执行完毕"><a href="#协程执行完毕" class="headerlink" title="协程执行完毕"></a>协程执行完毕</h1><p>为了不失完整性，再说一下正常结束和出错时的情况。正常执行完毕时，会做如下处理：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 将当前协程状态置为DEAD */</span></span><br><span class="line">ctx-&gt;cur_co_ctx-&gt;co_status = NGX_STREAM_LUA_CO_DEAD;</span><br><span class="line"><span class="comment">/* 如果子线程有僵尸线程，则清理之 */</span></span><br><span class="line"><span class="keyword">if</span> (ctx-&gt;cur_co_ctx-&gt;zombie_child_threads) &#123;</span><br><span class="line">    ngx_stream_lua_cleanup_zombie_child_uthreads(</span><br><span class="line">        r, L, ctx, ctx-&gt;cur_co_ctx);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>接下来，根据结束的协程的类型不同执行不同的操作：</p>
+<h2 id="入口线程"><a href="#入口线程" class="headerlink" title="入口线程"></a>入口线程</h2><p>此时直接删除线程即可，然后根据是否还有用户线程，选择返回<code>NGX_AGAIN</code>或<code>NGX_OK</code></p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (ngx_stream_lua_is_entry_thread(ctx)) &#123;</span><br><span class="line">    <span class="comment">/* 将虚拟机栈清空 */</span></span><br><span class="line">    lua_settop(L, <span class="number">0</span>);</span><br><span class="line">    <span class="comment">/* 删除当前线程，会从REGISTY表中解引用当前协程的`coctx-&gt;co_ref` */</span></span><br><span class="line">    ngx_stream_lua_del_thread(r, L, ctx, ctx-&gt;cur_co_ctx);</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* 如果还有其他用户线程，返回NGX_AGAIN */</span></span><br><span class="line">    <span class="keyword">if</span> (ctx-&gt;uthreads) &#123;</span><br><span class="line">        ctx-&gt;cur_co_ctx = <span class="literal">NULL</span>;</span><br><span class="line">        <span class="keyword">return</span> NGX_AGAIN;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* all user threads terminated already */</span></span><br><span class="line">    <span class="keyword">goto</span> done;      <span class="comment">/* 到这就圆满结束了 return NGX_OK; */</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="用户线程"><a href="#用户线程" class="headerlink" title="用户线程"></a>用户线程</h2><p>此时父协程已经死了，处理方式跟入口线程一样，即删除线程，然后根据是否还有任何用户线程或入口线程，选择返回<code>NGX_AGAIN</code>或<code>NGX_OK</code>。</p>
+<p>如果父协程还活着，并且已经在wait它了，直接恢复父协程。否则，加入到父协程的僵尸线程列表中。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (ctx-&gt;cur_co_ctx-&gt;is_uthread) &#123;</span><br><span class="line">    <span class="comment">/* 清空虚拟机栈 */</span></span><br><span class="line">    lua_settop(L, <span class="number">0</span>); </span><br><span class="line">    <span class="comment">/* 获取父协程 */</span></span><br><span class="line">    parent_coctx = ctx-&gt;cur_co_ctx-&gt;parent_co_ctx;</span><br><span class="line">    <span class="comment">/* 如果父协程还活着 */</span></span><br><span class="line">    <span class="keyword">if</span> (ngx_stream_lua_coroutine_alive(parent_coctx)) &#123;</span><br><span class="line">        <span class="comment">/* 并且在wait当前线程，则恢复父协程 */</span></span><br><span class="line">        <span class="keyword">if</span> (ctx-&gt;cur_co_ctx-&gt;waited_by_parent) &#123;</span><br><span class="line">            ngx_stream_lua_probe_info(<span class="string">&quot;parent already waiting&quot;</span>);</span><br><span class="line">            ctx-&gt;cur_co_ctx-&gt;waited_by_parent = <span class="number">0</span>;</span><br><span class="line">            success = <span class="number">1</span>;</span><br><span class="line">            <span class="keyword">goto</span> user_co_done;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">/* 否则将当前线程挂到父协程的僵尸子线程中 */</span></span><br><span class="line">        <span class="keyword">if</span> (ngx_stream_lua_post_zombie_thread(r, parent_coctx,</span><br><span class="line">                                              ctx-&gt;cur_co_ctx)</span><br><span class="line">            != NGX_OK)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">return</span> NGX_ERROR;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">/* 压入第一个返回值true，以备后续wait时返回 */</span></span><br><span class="line">        lua_pushboolean(ctx-&gt;cur_co_ctx-&gt;co, <span class="number">1</span>);</span><br><span class="line">        lua_insert(ctx-&gt;cur_co_ctx-&gt;co, <span class="number">1</span>);</span><br><span class="line">        <span class="comment">/* 设置当前线程状态为ZOMBIE */</span></span><br><span class="line">        ctx-&gt;cur_co_ctx-&gt;co_status = NGX_STREAM_LUA_CO_ZOMBIE;</span><br><span class="line">        ctx-&gt;cur_co_ctx = <span class="literal">NULL</span>;</span><br><span class="line">        <span class="keyword">return</span> NGX_AGAIN;       <span class="comment">/* 返回上层 */</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">/* 如果父协程已经死了，直接删除当前线程</span></span><br><span class="line"><span class="comment">     * 会从REGISTY表中解引用当前协程的`coctx-&gt;co_ref` */</span></span><br><span class="line">    ngx_stream_lua_del_thread(r, L, ctx, ctx-&gt;cur_co_ctx);</span><br><span class="line">    ctx-&gt;uthreads--;</span><br><span class="line">    <span class="comment">/* 如果没有用户线程了 */</span></span><br><span class="line">    <span class="keyword">if</span> (ctx-&gt;uthreads == <span class="number">0</span>) &#123;</span><br><span class="line">        <span class="comment">/* 入口线程在活着，返回上层 */</span></span><br><span class="line">        <span class="keyword">if</span> (ngx_stream_lua_entry_thread_alive(ctx)) &#123;</span><br><span class="line">            ctx-&gt;cur_co_ctx = <span class="literal">NULL</span>;</span><br><span class="line">            <span class="keyword">return</span> NGX_AGAIN;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">/* all threads terminated already */</span></span><br><span class="line">        <span class="keyword">goto</span> done;  <span class="comment">/* 到这就圆满结束了 return NGX_OK; */</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* 如果还有其他用户线程，返回上层 */</span></span><br><span class="line">    ctx-&gt;cur_co_ctx = <span class="literal">NULL</span>;</span><br><span class="line">    <span class="keyword">return</span> NGX_AGAIN;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="用户协程"><a href="#用户协程" class="headerlink" title="用户协程"></a>用户协程</h2><p>剩下的就是用户协程的情况，这个情况跟用户线程被父协程wait的情况是一样的。主要是将返回值移动到父协程栈中，然后跳到主循环前面恢复父协程的执行。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line">success = <span class="number">1</span>;</span><br><span class="line"><span class="comment">/* 获取返回值个数 */</span></span><br><span class="line">nrets = lua_gettop(ctx-&gt;cur_co_ctx-&gt;co);</span><br><span class="line">next_coctx = ctx-&gt;cur_co_ctx-&gt;parent_co_ctx;</span><br><span class="line">next_co = next_coctx-&gt;co;</span><br><span class="line"><span class="comment">/* 将返回值移到父协程栈中 */</span></span><br><span class="line"><span class="keyword">if</span> (nrets) &#123;</span><br><span class="line">    lua_xmove(ctx-&gt;cur_co_ctx-&gt;co, next_co, nrets);</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">/* 如果是用户线程，删除之 */</span></span><br><span class="line"><span class="keyword">if</span> (ctx-&gt;cur_co_ctx-&gt;is_uthread) &#123;</span><br><span class="line">    ngx_stream_lua_del_thread(r, L, ctx, ctx-&gt;cur_co_ctx);</span><br><span class="line">    ctx-&gt;uthreads--;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">/* 除了wrap的用户协程，加上第一个true的返回值 */</span></span><br><span class="line"><span class="keyword">if</span> (!ctx-&gt;cur_co_ctx-&gt;is_wrap) &#123;</span><br><span class="line">    <span class="comment">/* ended successfully, coroutine.resume returns true plus</span></span><br><span class="line"><span class="comment">     * any return values</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    lua_pushboolean(next_co, success);</span><br><span class="line">    lua_insert(next_co, <span class="number">1</span>);</span><br><span class="line">    nrets++;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/* 设置父协程的状态为RUNNING */</span></span><br><span class="line">ctx-&gt;cur_co_ctx = next_coctx;</span><br><span class="line">next_coctx-&gt;co_status = NGX_STREAM_LUA_CO_RUNNING;</span><br><span class="line"><span class="comment">/* 回到主循环前面，恢复父协程的执行 */</span></span><br><span class="line"><span class="keyword">continue</span>;</span><br></pre></td></tr></table></figure>
+
+
+
+<h1 id="出错的情况"><a href="#出错的情况" class="headerlink" title="出错的情况"></a>出错的情况</h1><p>大致处理步骤是，恢复<code>cur_co_ctx</code>，获取虚拟机L栈上错误信息，获取当前协程栈中错误信息，后面的操作类似协程执行完毕时，根据不同的情况选择恢复父协程或者返回上层。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 恢复cur_co_ctx */</span></span><br><span class="line"><span class="keyword">if</span> (ctx-&gt;cur_co_ctx != orig_coctx) &#123;</span><br><span class="line">    ctx-&gt;cur_co_ctx = orig_coctx;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">/* 设置当前协程状态为DEAD */</span></span><br><span class="line">ctx-&gt;cur_co_ctx-&gt;co_status = NGX_HTTP_LUA_CO_DEAD;</span><br><span class="line"><span class="comment">/* 获取错误信息 */</span></span><br><span class="line"><span class="keyword">if</span> (orig_coctx-&gt;is_uthread</span><br><span class="line">    || orig_coctx-&gt;is_wrap</span><br><span class="line">    || ngx_http_lua_is_entry_thread(ctx))</span><br><span class="line">&#123;</span><br><span class="line">    ngx_http_lua_thread_traceback(L, orig_coctx-&gt;co, orig_coctx);</span><br><span class="line">    trace = lua_tostring(L, <span class="number">-1</span>);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (lua_isstring(orig_coctx-&gt;co, <span class="number">-1</span>)) &#123;</span><br><span class="line">        msg = lua_tostring(orig_coctx-&gt;co, <span class="number">-1</span>);</span><br><span class="line">        dd(<span class="string">&quot;user custom error msg: %s&quot;</span>, msg);</span><br><span class="line"></span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        msg = <span class="string">&quot;unknown reason&quot;</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="用户线程-1"><a href="#用户线程-1" class="headerlink" title="用户线程"></a>用户线程</h2><p>跟正常结束的处理一样，除了第一个返回值是false。</p>
+<p>此时父协程已经死了，直接删除线程，然后根据是否还有任何用户线程或入口线程，选择返回<code>NGX_AGAIN</code>或<code>NGX_OK</code>。</p>
+<p>如果父协程还活着，并且已经在wait它了，直接恢复父协程。否则，加入到父协程的僵尸线程列表中。</p>
+<h2 id="入口线程-1"><a href="#入口线程-1" class="headerlink" title="入口线程"></a>入口线程</h2><p><code>ngx_stream_lua_request_cleanup()</code>清理当前请求，里面会清理掉所有的协程，最后清理入口协程自己。最后返回错误码。</p>
+<h2 id="用户协程-1"><a href="#用户协程-1" class="headerlink" title="用户协程"></a>用户协程</h2><p>如果是wrap的协程，将错误传递给父协程（就好像是父协程出错了，然后父协程重新走一遍上面的出错处理流程）。</p>
+<p>如果是普通协程，则恢复父协程的执行，返回false和错误信息。</p>
+<h1 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h1><ul>
+<li><a target="_blank" rel="noopener external nofollow noreferrer" href="https://openresty-reference.readthedocs.io/en/latest/Lua_Nginx_API/">Lua-Ngx-API</a></li>
+<li><a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/openresty/stream-lua-nginx-module">stream-lua-nginx源码</a></li>
+<li><a target="_blank" rel="noopener external nofollow noreferrer" href="https://www.lua.org/manual/5.1/manual.html">lua-5.1-manual</a></li>
+<li><a target="_blank" rel="noopener external nofollow noreferrer" href="https://www.codedump.info/post/20190501-lua-stream/">lua stream实现分析</a></li>
+</ul>
+
+    </div>
+
+    
+    
+    
+      
+<div>
+    
+        <div style="text-align:center;font-size:22px;letter-spacing:10px;user-select:none;color:#bbb;">-------------本文结束<i class="fa fa-paw"></i>感谢您的阅读-------------</div>
+    
+</div>
+
+
+
+        
+
+<div>
+<ul class="post-copyright">
+  <li class="post-copyright-author">
+    <strong>本文作者： </strong>猫猫哥
+  </li>
+  <li class="post-copyright-link">
+    <strong>本文链接：</strong>
+    <a href="https://catbro666.github.io/posts/150430f0/" title="Openresty-Lua协程调度机制">https://catbro666.github.io/posts/150430f0/</a>
+  </li>
+  <li class="post-copyright-license">
+    <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/zh-CN" rel="noopener external nofollow noreferrer" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+        
+
+  <div class="followme">
+    <p>欢迎关注我的其它发布渠道</p>
+
+    <div class="social-list">
+
+        <div class="social-item">
+          <a target="_blank" class="social-link" href="/atom.xml">
+            <span class="icon">
+              <i class="fa fa-rss"></i>
+            </span>
+
+            <span class="label">RSS</span>
+          </a>
+        </div>
+    </div>
+  </div>
+
+
+      <footer class="post-footer">
+          
+          <div class="post-tags">
+              <a href="/tags/OpenResty/" rel="tag"><i class="fa fa-tag"></i> OpenResty</a>
+              <a href="/tags/Nginx/" rel="tag"><i class="fa fa-tag"></i> Nginx</a>
+              <a href="/tags/Lua/" rel="tag"><i class="fa fa-tag"></i> Lua</a>
+              <a href="/tags/%E5%8D%8F%E7%A8%8B/" rel="tag"><i class="fa fa-tag"></i> 协程</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/posts/e416d910/" rel="prev" title="如何编写一个多进程性能测试程序">
+      <i class="fa fa-chevron-left"></i> 如何编写一个多进程性能测试程序
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+    <div class="comments" id="valine-comments"></div>
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%86%99%E5%9C%A8%E5%89%8D%E9%9D%A2"><span class="nav-number">1.</span> <span class="nav-text">写在前面</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%85%B3%E9%94%AE%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84"><span class="nav-number">2.</span> <span class="nav-text">关键数据结构</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%8D%8F%E7%A8%8B%E8%B0%83%E5%BA%A6"><span class="nav-number">3.</span> <span class="nav-text">协程调度</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%A6%82%E6%9E%9C%E7%94%A8%E7%BA%AFLua%E5%AE%9E%E7%8E%B0"><span class="nav-number">3.1.</span> <span class="nav-text">如果用纯Lua实现</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#OpenResty%E5%AE%9E%E7%8E%B0"><span class="nav-number">3.2.</span> <span class="nav-text">OpenResty实现</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8D%8F%E7%A8%8B%E8%B0%83%E5%BA%A6%E9%80%BB%E8%BE%91"><span class="nav-number">3.3.</span> <span class="nav-text">协程调度逻辑</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%BC%82%E5%B8%B8%E4%BF%9D%E6%8A%A4"><span class="nav-number">4.</span> <span class="nav-text">异常保护</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%8D%8F%E7%A8%8B%E5%88%9D%E5%A7%8B%E5%8C%96"><span class="nav-number">5.</span> <span class="nav-text">协程初始化</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%92%A9%E5%AD%90%E7%9A%84%E5%85%A5%E5%8F%A3%E7%BA%BF%E7%A8%8B"><span class="nav-number">5.1.</span> <span class="nav-text">钩子的入口线程</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%94%A8%E6%88%B7%E5%88%9B%E5%BB%BA%E7%9A%84uthread"><span class="nav-number">5.2.</span> <span class="nav-text">用户创建的uthread</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%88%9B%E5%BB%BA%E5%8D%8F%E7%A8%8B"><span class="nav-number">5.2.1.</span> <span class="nav-text">创建协程</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%88%9D%E5%A7%8B%E5%8C%96uthread"><span class="nav-number">5.2.2.</span> <span class="nav-text">初始化uthread</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%94%A8%E6%88%B7%E5%88%9B%E5%BB%BA%E7%9A%84coroutine"><span class="nav-number">5.3.</span> <span class="nav-text">用户创建的coroutine</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%8D%8F%E7%A8%8B%E6%89%A7%E8%A1%8C%E5%92%8C%E6%81%A2%E5%A4%8D"><span class="nav-number">6.</span> <span class="nav-text">协程执行和恢复</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#uthread"><span class="nav-number">6.1.</span> <span class="nav-text">uthread</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#coroutine"><span class="nav-number">6.2.</span> <span class="nav-text">coroutine</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%8D%8F%E7%A8%8B%E6%8C%82%E8%B5%B7"><span class="nav-number">7.</span> <span class="nav-text">协程挂起</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%98%BE%E5%BC%8F%E4%B8%BB%E5%8A%A8%E6%8C%82%E8%B5%B7"><span class="nav-number">7.1.</span> <span class="nav-text">显式主动挂起</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#thread"><span class="nav-number">7.1.1.</span> <span class="nav-text">thread</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#coroutine-1"><span class="nav-number">7.1.2.</span> <span class="nav-text">coroutine</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#IO%E4%B8%AD%E6%96%AD%E5%9C%BA%E6%99%AF"><span class="nav-number">7.2.</span> <span class="nav-text">IO中断场景</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#ngx-sleep"><span class="nav-number">7.2.1.</span> <span class="nav-text">ngx.sleep()</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#ngx-tcp-receive"><span class="nav-number">7.2.2.</span> <span class="nav-text">ngx.tcp.receive()</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%8D%8F%E7%A8%8B%E6%89%A7%E8%A1%8C%E5%AE%8C%E6%AF%95"><span class="nav-number">8.</span> <span class="nav-text">协程执行完毕</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%85%A5%E5%8F%A3%E7%BA%BF%E7%A8%8B"><span class="nav-number">8.1.</span> <span class="nav-text">入口线程</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%94%A8%E6%88%B7%E7%BA%BF%E7%A8%8B"><span class="nav-number">8.2.</span> <span class="nav-text">用户线程</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%94%A8%E6%88%B7%E5%8D%8F%E7%A8%8B"><span class="nav-number">8.3.</span> <span class="nav-text">用户协程</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%87%BA%E9%94%99%E7%9A%84%E6%83%85%E5%86%B5"><span class="nav-number">9.</span> <span class="nav-text">出错的情况</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%94%A8%E6%88%B7%E7%BA%BF%E7%A8%8B-1"><span class="nav-number">9.1.</span> <span class="nav-text">用户线程</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%85%A5%E5%8F%A3%E7%BA%BF%E7%A8%8B-1"><span class="nav-number">9.2.</span> <span class="nav-text">入口线程</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%94%A8%E6%88%B7%E5%8D%8F%E7%A8%8B-1"><span class="nav-number">9.3.</span> <span class="nav-text">用户协程</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99"><span class="nav-number">10.</span> <span class="nav-text">参考资料</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">猫猫哥</p>
+  <div class="site-description" itemprop="description">如果说根号二是无理数，那么我就是个无理人</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">6</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">9</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/catbro666" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;catbro666" rel="noopener external nofollow noreferrer" target="_blank"><i class="fab fa-github fa-fw"></i></a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:chzf_zju@163.com" title="E-Mail → mailto:chzf_zju@163.com" rel="noopener external nofollow noreferrer" target="_blank"><i class="fa fa-envelope fa-fw"></i></a>
+      </span>
+  </div>
+  <div class="cc-license motion-element" itemprop="license">
+    <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/zh-CN" class="cc-opacity" rel="noopener external nofollow noreferrer" target="_blank"><img src="/images/cc-by-nc-sa.svg" alt="Creative Commons"></a>
+  </div>
+
+
+<div style="">
+  <canvas id="canvas" style="width:60%;">当前浏览器不支持canvas，请更换浏览器后再试</canvas>
+</div>
+<script>
+(function(){
+
+   var digit=
+    [
+        [
+            [0,0,1,1,1,0,0],
+            [0,1,1,0,1,1,0],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,0,1,1,0],
+            [0,0,1,1,1,0,0]
+        ],//0
+        [
+            [0,0,0,1,1,0,0],
+            [0,1,1,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [1,1,1,1,1,1,1]
+        ],//1
+        [
+            [0,1,1,1,1,1,0],
+            [1,1,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,0,0],
+            [0,0,1,1,0,0,0],
+            [0,1,1,0,0,0,0],
+            [1,1,0,0,0,0,0],
+            [1,1,0,0,0,1,1],
+            [1,1,1,1,1,1,1]
+        ],//2
+        [
+            [1,1,1,1,1,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,0,0,1,1,0],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,1,1,0]
+        ],//3
+        [
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,1,0],
+            [0,0,1,1,1,1,0],
+            [0,1,1,0,1,1,0],
+            [1,1,0,0,1,1,0],
+            [1,1,1,1,1,1,1],
+            [0,0,0,0,1,1,0],
+            [0,0,0,0,1,1,0],
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,1,1]
+        ],//4
+        [
+            [1,1,1,1,1,1,1],
+            [1,1,0,0,0,0,0],
+            [1,1,0,0,0,0,0],
+            [1,1,1,1,1,1,0],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,1,1,0]
+        ],//5
+        [
+            [0,0,0,0,1,1,0],
+            [0,0,1,1,0,0,0],
+            [0,1,1,0,0,0,0],
+            [1,1,0,0,0,0,0],
+            [1,1,0,1,1,1,0],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,1,1,0]
+        ],//6
+        [
+            [1,1,1,1,1,1,1],
+            [1,1,0,0,0,1,1],
+            [0,0,0,0,1,1,0],
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,1,1,0,0,0],
+            [0,0,1,1,0,0,0],
+            [0,0,1,1,0,0,0],
+            [0,0,1,1,0,0,0]
+        ],//7
+        [
+            [0,1,1,1,1,1,0],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,1,1,0],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,1,1,0]
+        ],//8
+        [
+            [0,1,1,1,1,1,0],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,0,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,0,0],
+            [0,1,1,0,0,0,0]
+        ],//9
+        [
+            [0,0,0,0,0,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,0,0,0,0,0]
+        ]//:
+    ];
+
+var canvas = document.getElementById('canvas');
+
+if(canvas.getContext){
+    var cxt = canvas.getContext('2d');
+    //声明canvas的宽高
+    var H = 100,W = 700;
+    canvas.height = H;
+    canvas.width = W;
+    cxt.fillStyle = '#f00';
+    cxt.fillRect(10,10,50,50);
+
+    //存储时间数据
+    var data = [];
+    //存储运动的小球
+    var balls = [];
+    //设置粒子半径
+    var R = canvas.height/20-1;
+    (function(){
+        var temp = /(\d)(\d):(\d)(\d):(\d)(\d)/.exec(new Date());
+        //存储时间数字，由十位小时、个位小时、冒号、十位分钟、个位分钟、冒号、十位秒钟、个位秒钟这7个数字组成
+        data.push(temp[1],temp[2],10,temp[3],temp[4],10,temp[5],temp[6]);
+    })();
+
+    /*生成点阵数字*/
+    function renderDigit(index,num){
+        for(var i = 0; i < digit[num].length; i++){
+            for(var j = 0; j < digit[num][i].length; j++){
+                if(digit[num][i][j] == 1){
+                    cxt.beginPath();
+                    cxt.arc(14*(R+2)*index + j*2*(R+1)+(R+1),i*2*(R+1)+(R+1),R,0,2*Math.PI);
+                    cxt.closePath();
+                    cxt.fill();
+                }
+            }
+        }
+    }
+
+    /*更新时钟*/
+    function updateDigitTime(){
+        var changeNumArray = [];
+        var temp = /(\d)(\d):(\d)(\d):(\d)(\d)/.exec(new Date());
+        var NewData = [];
+        NewData.push(temp[1],temp[2],10,temp[3],temp[4],10,temp[5],temp[6]);
+        for(var i = data.length-1; i >=0 ; i--){
+            //时间发生变化
+            if(NewData[i] !== data[i]){
+                //将变化的数字值和在data数组中的索引存储在changeNumArray数组中
+                changeNumArray.push(i+'_'+(Number(data[i])+1)%10);
+            }
+        }
+        //增加小球
+        for(var i = 0; i< changeNumArray.length; i++){
+            addBalls.apply(this,changeNumArray[i].split('_'));
+        }
+        data = NewData.concat();
+    }
+
+    /*更新小球状态*/
+    function updateBalls(){
+        for(var i = 0; i < balls.length; i++){
+            balls[i].stepY += balls[i].disY;
+            balls[i].x += balls[i].stepX;
+            balls[i].y += balls[i].stepY;
+            if(balls[i].x > W + R || balls[i].y > H + R){
+                balls.splice(i,1);
+                i--;
+            }
+        }
+    }
+
+    /*增加要运动的小球*/
+    function addBalls(index,num){
+        var numArray = [1,2,3];
+        var colorArray =  ["#3BE","#09C","#A6C","#93C","#9C0","#690","#FB3","#F80","#F44","#C00"];
+        for(var i = 0; i < digit[num].length; i++){
+            for(var j = 0; j < digit[num][i].length; j++){
+                if(digit[num][i][j] == 1){
+                    var ball = {
+                        x:14*(R+2)*index + j*2*(R+1)+(R+1),
+                        y:i*2*(R+1)+(R+1),
+                        stepX:Math.floor(Math.random() * 4 -2),
+                        stepY:-2*numArray[Math.floor(Math.random()*numArray.length)],
+                        color:colorArray[Math.floor(Math.random()*colorArray.length)],
+                        disY:1
+                    };
+                    balls.push(ball);
+                }
+            }
+        }
+    }
+
+    /*渲染*/
+    function render(){
+        //重置画布宽度，达到清空画布的效果
+        canvas.height = 100;
+        //渲染时钟
+        for(var i = 0; i < data.length; i++){
+            renderDigit(i,data[i]);
+        }
+        //渲染小球
+        for(var i = 0; i < balls.length; i++){
+            cxt.beginPath();
+            cxt.arc(balls[i].x,balls[i].y,R,0,2*Math.PI);
+            cxt.fillStyle = balls[i].color;
+            cxt.closePath();
+            cxt.fill();
+        }
+    }
+
+    clearInterval(oTimer);
+    var oTimer = setInterval(function(){
+        //更新时钟
+        updateDigitTime();
+        //更新小球状态
+        updateBalls();
+        //渲染
+        render();
+    },50);
+}
+
+})();
+</script>
+
+
+      </div>
+        <div class="back-to-top motion-element">
+          <i class="fa fa-arrow-up"></i>
+          <span>0%</span>
+        </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 2019 – 
+  <span itemprop="copyrightYear">2021</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">猫猫哥</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+      <span class="post-meta-item-text">站点总字数：</span>
+    <span title="站点总字数">81k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+      <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
+    <span title="站点阅读时长">1:14</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener external nofollow noreferrer" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener external nofollow noreferrer" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+<script>
+  (function() {
+    function leancloudSelector(url) {
+      url = encodeURI(url);
+      return document.getElementById(url).querySelector('.leancloud-visitors-count');
+    }
+
+    function addCount(Counter) {
+      var visitors = document.querySelector('.leancloud_visitors');
+      var url = decodeURI(visitors.id);
+      var title = visitors.dataset.flagTitle;
+
+      Counter('get', '/classes/Counter?where=' + encodeURIComponent(JSON.stringify({ url })))
+        .then(response => response.json())
+        .then(({ results }) => {
+          if (results.length > 0) {
+            var counter = results[0];
+            leancloudSelector(url).innerText = counter.time + 1;
+            Counter('put', '/classes/Counter/' + counter.objectId, { time: { '__op': 'Increment', 'amount': 1 } })
+              .catch(error => {
+                console.error('Failed to save visitor count', error);
+              });
+          } else {
+              leancloudSelector(url).innerText = 'Counter not initialized! More info at console err msg.';
+              console.error('ATTENTION! LeanCloud counter has security bug, see how to solve it here: https://github.com/theme-next/hexo-leancloud-counter-security. \n However, you can still use LeanCloud without security, by setting `security` option to `false`.');
+            
+          }
+        })
+        .catch(error => {
+          console.error('LeanCloud Counter Error', error);
+        });
+    }
+
+    function showTime(Counter) {
+      var visitors = document.querySelectorAll('.leancloud_visitors');
+      var entries = [...visitors].map(element => {
+        return decodeURI(element.id);
+      });
+
+      Counter('get', '/classes/Counter?where=' + encodeURIComponent(JSON.stringify({ url: { '$in': entries } })))
+        .then(response => response.json())
+        .then(({ results }) => {
+          for (let url of entries) {
+            let target = results.find(item => item.url === url);
+            leancloudSelector(url).innerText = target ? target.time : 0;
+          }
+        })
+        .catch(error => {
+          console.error('LeanCloud Counter Error', error);
+        });
+    }
+
+    let { app_id, app_key, server_url } = {"enable":true,"app_id":"0Syy5qyXX1qTBOGiD0vUzpHb-MdYXbMMI","app_key":"B3MuN4GIHf7ru1ojTSkjjI9a","server_url":null,"security":true,"betterPerformance":true};
+    function fetchData(api_server) {
+      var Counter = (method, url, data) => {
+        return fetch(`${api_server}/1.1${url}`, {
+          method,
+          headers: {
+            'X-LC-Id'     : app_id,
+            'X-LC-Key'    : app_key,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(data)
+        });
+      };
+      if (CONFIG.page.isPost) {
+        if (CONFIG.hostname !== location.hostname) return;
+        addCount(Counter);
+      } else if (document.querySelectorAll('.post-title-link').length >= 1) {
+        showTime(Counter);
+      }
+    }
+
+    let api_server = app_id.slice(-9) !== '-MdYXbMMI' ? server_url : `https://${app_id.slice(0, 8).toLowerCase()}.api.lncldglobal.com`;
+
+    if (api_server) {
+      fetchData(api_server);
+    } else {
+      fetch('https://app-router.leancloud.cn/2/route?appId=' + app_id)
+        .then(response => response.json())
+        .then(({ api_server }) => {
+          fetchData('https://' + api_server);
+        });
+    }
+  })();
+</script>
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+  <script>
+    (function(){
+      var canonicalURL, curProtocol;
+      //Get the <link> tag
+      var x=document.getElementsByTagName("link");
+		//Find the last canonical URL
+		if(x.length > 0){
+			for (i=0;i<x.length;i++){
+				if(x[i].rel.toLowerCase() == 'canonical' && x[i].href){
+					canonicalURL=x[i].href;
+				}
+			}
+		}
+    //Get protocol
+	    if (!canonicalURL){
+	    	curProtocol = window.location.protocol.split(':')[0];
+	    }
+	    else{
+	    	curProtocol = canonicalURL.split(':')[0];
+	    }
+      //Get current URL if the canonical URL does not exist
+	    if (!canonicalURL) canonicalURL = window.location.href;
+	    //Assign script content. Replace current URL with the canonical URL
+      !function(){var e=/([http|https]:\/\/[a-zA-Z0-9\_\.]+\.baidu\.com)/gi,r=canonicalURL,t=document.referrer;if(!e.test(r)){var n=(String(curProtocol).toLowerCase() === 'https')?"https://sp0.baidu.com/9_Q4simg2RQJ8t7jm9iCKT-xh_/s.gif":"//api.share.baidu.com/s.gif";t?(n+="?r="+encodeURIComponent(document.referrer),r&&(n+="&l="+r)):r&&(n+="?l="+r);var i=new Image;i.src=n}}(window);})();
+  </script>
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+
+<script>
+NexT.utils.loadComments(document.querySelector('#valine-comments'), () => {
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/valine@1/dist/Valine.min.js', () => {
+    var GUEST = ['nick', 'mail', 'link'];
+    var guest = 'nick,mail,link';
+    guest = guest.split(',').filter(item => {
+      return GUEST.includes(item);
+    });
+    new Valine({
+      el         : '#valine-comments',
+      verify     : false,
+      notify     : true,
+      appId      : '0Syy5qyXX1qTBOGiD0vUzpHb-MdYXbMMI',
+      appKey     : 'B3MuN4GIHf7ru1ojTSkjjI9a',
+      placeholder: "欢迎留言讨论，记得在上方【邮箱】处填上邮箱地址，可以收到回复通知哦(^。^)",
+      avatar     : 'mm',
+      meta       : guest,
+      pageSize   : '10' || 10,
+      visitor    : false,
+      lang       : '' || 'zh-cn',
+      path       : location.pathname,
+      recordIP   : false,
+      serverURLs : ''
+    });
+  }, window.Valine);
+});
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/jquery/dist/jquery.min.js"></script>
+
+
+
+  <script async src="/js/cursor/fireworks.js"></script>
+
+
+
+  <script type="text/javascript" src="/js/fold_action.js"></script>
+
+
+</body>
+</html>
