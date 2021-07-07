@@ -25,13 +25,13 @@
 
   <meta name="description" content="写在前面OpenResty（后面简称：OR）是一个基于Nginx和Lua的高性能Web平台，它内部集成大量的Lua API以及第三方模块，可以利用它快速搭建支持高并发、极具动态性和扩展性的Web应用、Web服务或动态网关。OR最大的特点就是，将Lua协程与Nginx事件驱动模型及非阻塞I&#x2F;O结合起来。使用户可以在handler中使用 同步但是依然是非阻塞 的方式编写其应用">
 <meta property="og:type" content="article">
-<meta property="og:title" content="Openresty-Lua协程调度机制">
+<meta property="og:title" content="Openresty Lua协程调度机制">
 <meta property="og:url" content="https://catbro666.github.io/posts/150430f0/index.html">
 <meta property="og:site_name" content="CatBro&#39;s Blog">
 <meta property="og:description" content="写在前面OpenResty（后面简称：OR）是一个基于Nginx和Lua的高性能Web平台，它内部集成大量的Lua API以及第三方模块，可以利用它快速搭建支持高并发、极具动态性和扩展性的Web应用、Web服务或动态网关。OR最大的特点就是，将Lua协程与Nginx事件驱动模型及非阻塞I&#x2F;O结合起来。使用户可以在handler中使用 同步但是依然是非阻塞 的方式编写其应用">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2021-07-03T10:52:24.000Z">
-<meta property="article:modified_time" content="2021-07-04T06:48:06.772Z">
+<meta property="article:modified_time" content="2021-07-07T15:31:15.719Z">
 <meta property="article:author" content="猫猫哥">
 <meta property="article:tag" content="OpenResty">
 <meta property="article:tag" content="Nginx">
@@ -56,7 +56,7 @@
 
 
 
-  <title>Openresty-Lua协程调度机制 | CatBro's Blog</title>
+  <title>Openresty Lua协程调度机制 | CatBro's Blog</title>
   
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-6PKG8T836C"></script>
     <script>
@@ -251,7 +251,7 @@
     </span>
       <header class="post-header">
         <h1 class="post-title" itemprop="name headline">
-          Openresty-Lua协程调度机制
+          Openresty Lua协程调度机制
         </h1>
 
         <div class="post-meta">
@@ -268,7 +268,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-07-04 14:48:06" itemprop="dateModified" datetime="2021-07-04T14:48:06+08:00">2021-07-04</time>
+                <time title="修改时间：2021-07-07 23:31:15" itemprop="dateModified" datetime="2021-07-07T23:31:15+08:00">2021-07-07</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -281,7 +281,7 @@
             </span>
 
           
-            <span id="/posts/150430f0/" class="post-meta-item leancloud_visitors" data-flag-title="Openresty-Lua协程调度机制" title="阅读次数">
+            <span id="/posts/150430f0/" class="post-meta-item leancloud_visitors" data-flag-title="Openresty Lua协程调度机制" title="阅读次数">
               <span class="post-meta-item-icon">
                 <i class="fa fa-eye"></i>
               </span>
@@ -333,7 +333,7 @@ translateInitilization();
                 <i class="far fa-clock"></i>
               </span>
                 <span class="post-meta-item-text">阅读时长 &asymp;</span>
-              <span>18 分钟</span>
+              <span>19 分钟</span>
             </span>
 
         </div>
@@ -346,7 +346,7 @@ translateInitilization();
 
       
         <div class="note primary">
-            <h1 id="写在前面"><a href="#写在前面" class="headerlink" title="写在前面"></a>写在前面</h1><p>OpenResty（后面简称：OR）是一个基于Nginx和Lua的高性能Web平台，它内部集成大量的Lua API以及第三方模块，可以利用它快速搭建支持高并发、极具动态性和扩展性的Web应用、Web服务或动态网关。</p><p>OR最大的特点就是，将Lua协程与Nginx事件驱动模型及非阻塞I/O结合起来。使用户可以在handler中使用 <strong>同步但是依然是非阻塞</strong> 的方式编写其应用代码，而无需关心底层的协程调度以及与Nginx事件驱动模型的交互。</p><p>本文将先从总体上介绍OR的协程调度机制，然后结合源码以及Lua栈的情况来详细了解各个部分是如何实现的，包括其异常保护、协程初始化、协程的恢复和执行、协程的挂起、协程的执行结束、协程出错的情况。</p>
+            <h1 id="写在前面"><a href="#写在前面" class="headerlink" title="写在前面"></a>写在前面</h1><p>OpenResty（后面简称：OR）是一个基于Nginx和Lua的高性能Web平台，它内部集成大量的Lua API以及第三方模块，可以利用它快速搭建支持高并发、极具动态性和扩展性的Web应用、Web服务或动态网关。</p><p>OR最大的特点就是，将Lua协程与Nginx事件驱动模型及非阻塞I/O结合起来。使用户可以在handler中使用 <strong>同步但是依然是非阻塞</strong> 的方式编写其应用代码，而无需关心底层的协程调度以及与Nginx事件驱动模型的交互。</p><p>source/_posts/openresty-lua-coroutine-schedule.md本文将先从总体上介绍OR的协程调度机制，然后结合源码以及Lua栈的情况来详细了解各个部分是如何实现的，包括其异常保护、协程初始化、协程的恢复和执行、协程的挂起、协程的执行结束、协程出错的情况。</p><p>本文主要关注调度函数内部的逻辑，如果想了解外部的调用流程。可以参看<a href="../30b81f82/">Openresty Lua钩子调用完整流程</a></p>
           </div>
 
 <span id="more"></span>
@@ -409,10 +409,9 @@ translateInitilization();
 <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 返回栈顶元素的索引，等于栈中元素的个数 */</span></span><br><span class="line">base = lua_gettop(L);</span><br><span class="line"><span class="comment">/* 将存储协程的表对应的key压栈 */</span></span><br><span class="line">lua_pushlightuserdata(L, ngx_stream_lua_lightudata_mask(</span><br><span class="line">                      coroutines_key));</span><br><span class="line"><span class="comment">/* 将key出栈，获取Registry表中key对应的元素，然后将结果入栈 */</span></span><br><span class="line">lua_rawget(L, LUA_REGISTRYINDEX);</span><br></pre></td></tr></table></figure>
 
 <p>接下来创建一个新的协程，同时初始化其全局表：</p>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 创建Lua协程，返回的新lua_State跟原有的lua_State共享所有的全局对象（如表），</span></span><br><span class="line"><span class="comment">   但是有一个独立的执行栈。 协程依赖垃圾回收销毁 */</span></span><br><span class="line"><span class="comment">/* L栈： |顶|新协程|协程表| */</span></span><br><span class="line">co = lua_newthread(L);  </span><br><span class="line"><span class="comment">/* 创建该协程的全局表，设置_G field为全局表自己 */</span></span><br><span class="line"><span class="comment">/* L栈： |顶|协程新的全局表|新协程|协程表| */</span></span><br><span class="line">ngx_stream_lua_create_new_globals_table(co, <span class="number">0</span>, <span class="number">0</span>); </span><br><span class="line"><span class="comment">/* 再创建一个新表 */</span></span><br><span class="line"><span class="comment">/* L栈： |顶|新表|协程新的全局表|新协程|协程表| */</span></span><br><span class="line">lua_createtable(co, <span class="number">0</span>, <span class="number">1</span>);  </span><br><span class="line"><span class="comment">/* 拿到全局表 */</span></span><br><span class="line"><span class="comment">/* L栈： |顶|全局表|新表|协程新的全局表|新协程|协程表| */</span></span><br><span class="line">ngx_stream_lua_get_globals_table(co);   </span><br><span class="line"><span class="comment">/* 全局表的__index指向新创建的表；新表的__index的值为栈顶的值，也即全局表 */</span></span><br><span class="line"><span class="comment">/* L栈： |顶|新表|协程新的全局表|新协程|协程表| */</span></span><br><span class="line">lua_setfield(co, <span class="number">-2</span>, <span class="string">&quot;__index&quot;</span>);    </span><br><span class="line"><span class="comment">/* 全局表的meta table指向新创建的表；</span></span><br><span class="line"><span class="comment">   新表出栈，将其设为-2即协程新的全局表的新元表 */</span></span><br><span class="line"><span class="comment">/* L栈： |顶|协程新的全局表|新协程|协程表| */</span></span><br><span class="line">lua_setmetatable(co, <span class="number">-2</span>);</span><br><span class="line"><span class="comment">/* 设置协程新的全局表到对应索引，其_G field是自己，</span></span><br><span class="line"><span class="comment">   其元表是新表，新表的__index是父协程的全局表 */</span></span><br><span class="line"><span class="comment">/* L栈： |顶|新协程|协程表| */</span></span><br><span class="line">ngx_stream_lua_set_globals_table(co);</span><br></pre></td></tr></table></figure>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 创建Lua协程，返回的新lua_State跟原有的lua_State共享所有的全局对象（如表），</span></span><br><span class="line"><span class="comment">   但是有一个独立的执行栈。 协程依赖垃圾回收销毁 */</span></span><br><span class="line"><span class="comment">/* L栈： |顶|新协程|协程表| */</span></span><br><span class="line">co = lua_newthread(L);  </span><br><span class="line"><span class="comment">/* 创建该协程的全局表，设置_G field为全局表自己 */</span></span><br><span class="line"><span class="comment">/* L栈： |顶|协程新的全局表|新协程|协程表| */</span></span><br><span class="line">ngx_stream_lua_create_new_globals_table(co, <span class="number">0</span>, <span class="number">0</span>); </span><br><span class="line"><span class="comment">/* 再创建一个新表 */</span></span><br><span class="line"><span class="comment">/* L栈： |顶|新表|协程新的全局表|新协程|协程表| */</span></span><br><span class="line">lua_createtable(co, <span class="number">0</span>, <span class="number">1</span>);  </span><br><span class="line"><span class="comment">/* 拿到全局表 */</span></span><br><span class="line"><span class="comment">/* L栈： |顶|旧全局表|新表|协程新的全局表|新协程|协程表| */</span></span><br><span class="line">ngx_stream_lua_get_globals_table(co);   </span><br><span class="line"><span class="comment">/* 新表的__index的值为栈顶的值，也即就全局表 */</span></span><br><span class="line"><span class="comment">/* L栈： |顶|新表|协程新的全局表|新协程|协程表| */</span></span><br><span class="line">lua_setfield(co, <span class="number">-2</span>, <span class="string">&quot;__index&quot;</span>);    </span><br><span class="line"><span class="comment">/* 新表出栈，将其设为-2即协程新的全局表的新元表 */</span></span><br><span class="line"><span class="comment">/* L栈： |顶|协程新的全局表|新协程|协程表| */</span></span><br><span class="line">lua_setmetatable(co, <span class="number">-2</span>);</span><br><span class="line"><span class="comment">/* 设置协程新的全局表到对应索引，其_G field是自己，</span></span><br><span class="line"><span class="comment">   其元表是新表，新表的__index是父协程的全局表 */</span></span><br><span class="line"><span class="comment">/* L栈： |顶|新协程|协程表| */</span></span><br><span class="line">ngx_stream_lua_set_globals_table(co);</span><br></pre></td></tr></table></figure>
 
-
-
+<p>这一块的逻辑有点绕，我们来稍微理一下，其实就是用新建的全局表替换了旧的全局表，其中新的全局表的<code>_G</code>字段是它自己，新全局表的元表中<code>__index</code>是旧的全局表。</p>
 <p>此时的Lua虚拟机栈顶情况如下图所示：</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">L-&gt;top      |   栈顶    |</span><br><span class="line">L-&gt;top - 1  |Lua_State*|    新创建的协程</span><br><span class="line">L-&gt;top -2   | Lua Table|    存储协程引用的表</span><br></pre></td></tr></table></figure>
 
@@ -560,6 +559,12 @@ translateInitilization();
     
     
       
+  <div class="popular-posts-header">相关文章推荐</div>
+  <ul class="popular-posts">
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/posts/30b81f82/" rel="bookmark">OpenResty Lua钩子调用完整流程</a></div>
+    </li>
+  </ul>
 <div>
     
         <div style="text-align:center;font-size:22px;letter-spacing:10px;user-select:none;color:#bbb;">-------------本文结束<i class="fa fa-paw"></i>感谢您的阅读-------------</div>
@@ -577,7 +582,7 @@ translateInitilization();
   </li>
   <li class="post-copyright-link">
     <strong>本文链接：</strong>
-    <a href="https://catbro666.github.io/posts/150430f0/" title="Openresty-Lua协程调度机制">https://catbro666.github.io/posts/150430f0/</a>
+    <a href="https://catbro666.github.io/posts/150430f0/" title="Openresty Lua协程调度机制">https://catbro666.github.io/posts/150430f0/</a>
   </li>
   <li class="post-copyright-license">
     <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/zh-CN" rel="noopener external nofollow noreferrer" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！
@@ -623,7 +628,10 @@ translateInitilization();
     <a href="/posts/e416d910/" rel="prev" title="如何编写一个多进程性能测试程序">
       <i class="fa fa-chevron-left"></i> 如何编写一个多进程性能测试程序
     </a></div>
-      <div class="post-nav-item"></div>
+      <div class="post-nav-item">
+    <a href="/posts/30b81f82/" rel="next" title="OpenResty Lua钩子调用完整流程">
+      OpenResty Lua钩子调用完整流程 <i class="fa fa-chevron-right"></i>
+    </a></div>
     </div>
       </footer>
     
@@ -697,7 +705,7 @@ translateInitilization();
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">6</span>
+          <span class="site-state-item-count">7</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
@@ -710,7 +718,7 @@ translateInitilization();
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">9</span>
+        <span class="site-state-item-count">10</span>
         <span class="site-state-item-name">标签</span></a>
       </div>
   </nav>
@@ -1027,13 +1035,13 @@ if(canvas.getContext){
       <i class="fa fa-chart-area"></i>
     </span>
       <span class="post-meta-item-text">站点总字数：</span>
-    <span title="站点总字数">82k</span>
+    <span title="站点总字数">101k</span>
     <span class="post-meta-divider">|</span>
     <span class="post-meta-item-icon">
       <i class="fa fa-coffee"></i>
     </span>
       <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
-    <span title="站点阅读时长">1:14</span>
+    <span title="站点阅读时长">1:32</span>
 </div>
   <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener external nofollow noreferrer" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener external nofollow noreferrer" target="_blank">NexT.Gemini</a> 强力驱动
   </div>
