@@ -6,7 +6,7 @@
   <link href="https://catbro666.github.io/atom.xml" rel="self"/>
   
   <link href="https://catbro666.github.io/"/>
-  <updated>2021-07-07T15:34:00.118Z</updated>
+  <updated>2021-07-09T02:24:07.135Z</updated>
   <id>https://catbro666.github.io/</id>
   
   <author>
@@ -15,6 +15,23 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>test-post</title>
+    <link href="https://catbro666.github.io/posts/dce1f5ed/"/>
+    <id>https://catbro666.github.io/posts/dce1f5ed/</id>
+    <published>2021-07-09T02:21:51.000Z</published>
+    <updated>2021-07-09T02:24:07.135Z</updated>
+    
+    
+    <summary type="html">&lt;div class=&quot;note primary&quot;&gt;
+            &lt;p&gt;文章摘要&lt;/p&gt;
+          &lt;/div&gt;</summary>
+    
+    
+    
+    
+  </entry>
   
   <entry>
     <title>OpenResty Lua钩子调用完整流程</title>
