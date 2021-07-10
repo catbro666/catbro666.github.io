@@ -6,7 +6,7 @@
   <link href="https://catbro666.github.io/atom.xml" rel="self"/>
   
   <link href="https://catbro666.github.io/"/>
-  <updated>2021-07-09T02:24:07.135Z</updated>
+  <updated>2021-07-10T06:32:23.467Z</updated>
   <id>https://catbro666.github.io/</id>
   
   <author>
@@ -21,12 +21,15 @@
     <link href="https://catbro666.github.io/posts/dce1f5ed/"/>
     <id>https://catbro666.github.io/posts/dce1f5ed/</id>
     <published>2021-07-09T02:21:51.000Z</published>
-    <updated>2021-07-09T02:24:07.135Z</updated>
+    <updated>2021-07-10T06:32:23.467Z</updated>
     
     
     <summary type="html">&lt;div class=&quot;note primary&quot;&gt;
             &lt;p&gt;文章摘要&lt;/p&gt;
-          &lt;/div&gt;</summary>
+          &lt;/div&gt;
+
+
+&lt;p&gt;&lt;img src=&quot;https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/dce1f5ed/sea.jpg&quot; alt=&quot;sea&quot; loading=&quot;lazy&quot;&gt;&lt;/p&gt;</summary>
     
     
     
@@ -38,11 +41,11 @@
     <link href="https://catbro666.github.io/posts/30b81f82/"/>
     <id>https://catbro666.github.io/posts/30b81f82/</id>
     <published>2021-07-03T18:05:36.000Z</published>
-    <updated>2021-07-07T15:34:00.118Z</updated>
+    <updated>2021-07-10T07:37:11.743Z</updated>
     
     
     <summary type="html">&lt;div class=&quot;note primary&quot;&gt;
-            &lt;p&gt;前面一篇文章介绍了&lt;a href=&quot;../150430f0/&quot;&gt;Openresty-Lua协程调度机制&lt;/a&gt;，主要关心的是核心调度函数&lt;code&gt;run_thread()&lt;/code&gt;内部发生的事情，而对于外部的事情我们并没有涉及。本篇作为其姊妹篇，准备补上剩余的部分。本篇将通过一个例子，完整介绍OpenResty中Lua钩子的调用流程，包括初始化阶段的工作、新连接进来时如何进入钩子、I/O等待时如何出去、事件触发时如何恢复、钩子正常执行结束时的操作、钩子内出错的情况。本文同样是基于&lt;code&gt;stream-lua&lt;/code&gt;模块的代码。&lt;/p&gt;
+            &lt;p&gt;前面一篇文章介绍了&lt;a href=&quot;../150430f0/&quot;&gt;Openresty Lua协程调度机制&lt;/a&gt;，主要关心的是核心调度函数&lt;code&gt;run_thread()&lt;/code&gt;内部发生的事情，而对于外部的事情我们并没有涉及。本篇作为其姊妹篇，准备补上剩余的部分。本篇将通过一个例子，完整介绍OpenResty中Lua钩子的调用流程，包括初始化阶段的工作、新连接进来时如何进入钩子、I/O等待时如何出去、事件触发时如何恢复、钩子正常执行结束时的操作、钩子内出错的情况。本文同样是基于&lt;code&gt;stream-lua&lt;/code&gt;模块的代码。&lt;/p&gt;
           &lt;/div&gt;</summary>
     
     
@@ -65,11 +68,11 @@
     <link href="https://catbro666.github.io/posts/150430f0/"/>
     <id>https://catbro666.github.io/posts/150430f0/</id>
     <published>2021-07-03T10:52:24.000Z</published>
-    <updated>2021-07-07T15:31:15.719Z</updated>
+    <updated>2021-07-09T16:01:50.003Z</updated>
     
     
     <summary type="html">&lt;div class=&quot;note primary&quot;&gt;
-            &lt;h1 id=&quot;写在前面&quot;&gt;&lt;a href=&quot;#写在前面&quot; class=&quot;headerlink&quot; title=&quot;写在前面&quot;&gt;&lt;/a&gt;写在前面&lt;/h1&gt;&lt;p&gt;OpenResty（后面简称：OR）是一个基于Nginx和Lua的高性能Web平台，它内部集成大量的Lua API以及第三方模块，可以利用它快速搭建支持高并发、极具动态性和扩展性的Web应用、Web服务或动态网关。&lt;/p&gt;&lt;p&gt;OR最大的特点就是，将Lua协程与Nginx事件驱动模型及非阻塞I/O结合起来。使用户可以在handler中使用 &lt;strong&gt;同步但是依然是非阻塞&lt;/strong&gt; 的方式编写其应用代码，而无需关心底层的协程调度以及与Nginx事件驱动模型的交互。&lt;/p&gt;&lt;p&gt;source/_posts/openresty-lua-coroutine-schedule.md本文将先从总体上介绍OR的协程调度机制，然后结合源码以及Lua栈的情况来详细了解各个部分是如何实现的，包括其异常保护、协程初始化、协程的恢复和执行、协程的挂起、协程的执行结束、协程出错的情况。&lt;/p&gt;&lt;p&gt;本文主要关注调度函数内部的逻辑，如果想了解外部的调用流程。可以参看&lt;a href=&quot;../30b81f82/&quot;&gt;Openresty Lua钩子调用完整流程&lt;/a&gt;&lt;/p&gt;
+            &lt;h1 id=&quot;写在前面&quot;&gt;&lt;a href=&quot;#写在前面&quot; class=&quot;headerlink&quot; title=&quot;写在前面&quot;&gt;&lt;/a&gt;写在前面&lt;/h1&gt;&lt;p&gt;OpenResty（后面简称：OR）是一个基于Nginx和Lua的高性能Web平台，它内部集成大量的Lua API以及第三方模块，可以利用它快速搭建支持高并发、极具动态性和扩展性的Web应用、Web服务或动态网关。&lt;/p&gt;&lt;p&gt;OR最大的特点就是，将Lua协程与Nginx事件驱动模型及非阻塞I/O结合起来。使用户可以在handler中使用 &lt;strong&gt;同步但是依然是非阻塞&lt;/strong&gt; 的方式编写其应用代码，而无需关心底层的协程调度以及与Nginx事件驱动模型的交互。&lt;/p&gt;&lt;p&gt;本文将先从总体上介绍OR的协程调度机制，然后结合源码以及Lua栈的情况来详细了解各个部分是如何实现的，包括其异常保护、协程初始化、协程的恢复和执行、协程的挂起、协程的执行结束、协程出错的情况。&lt;/p&gt;&lt;p&gt;本文主要关注调度函数内部的逻辑，如果想了解外部的调用流程。可以参看&lt;a href=&quot;../30b81f82/&quot;&gt;Openresty Lua钩子调用完整流程&lt;/a&gt;&lt;/p&gt;
           &lt;/div&gt;</summary>
     
     

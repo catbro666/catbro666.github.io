@@ -1329,7 +1329,7 @@ pre .javascript .function {
 }
 .links-of-author a::before,
 .links-of-author span.exturl::before {
-  background: #6a5b78;
+  background: #4affff;
   border-radius: 50%;
   content: ' ';
   display: inline-block;
@@ -2963,7 +2963,7 @@ body footer > div > div {
 }
 .menu-item a {
   color: #222;
-  font: 1em;
+  font-size: 1em;
 }
 .sidebar {
   opacity: 0.9;
@@ -2997,27 +2997,53 @@ code {
 }
 .header {
   width: 86%;
+  max-width: 1260px;
 }
 @media (min-width: 768px) and (max-width: 991px) {
   .header {
-    width: 100%;
+    width: auto !important;
   }
 }
 @media (max-width: 767px) {
   .header {
-    width: 100%;
+    width: auto;
   }
 }
 .container .main-inner {
   width: 86%;
+  max-width: 1260px;
 }
 @media (min-width: 768px) and (max-width: 991px) {
   .container .main-inner {
-    width: 100%;
+    width: auto !important;
   }
 }
 @media (max-width: 767px) {
   .container .main-inner {
-    width: 100%;
+    width: auto;
   }
+}
+.post-toc {
+  font-size: 1em;
+}
+.sidebar-nav li {
+  font-size: 1em;
+}
+.site-author-name {
+  font-size: 1.2em;
+  color: #222;
+}
+.site-description {
+  font-size: 0.875em;
+}
+.site-state-item-count {
+  font-size: 1em;
+}
+.site-state-item-name {
+  font-size: 0.95em;
+  color: #2a4;
+}
+.posts-expand .post-title {
+  font-size: 1.625em;
+  font-weight: bold;
 }

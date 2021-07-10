@@ -82,26 +82,6 @@
       </tags>
   </entry>
   <entry>
-    <title>Hello World</title>
-    <url>/posts/4a17b156/</url>
-    <content><![CDATA[<p>Welcome to <a href="https://hexo.io/">Hexo</a>! This is your very first post. Check <a href="https://hexo.io/docs/">documentation</a> for more info. If you get any problems when using Hexo, you can find the answer in <a href="https://hexo.io/docs/troubleshooting.html">troubleshooting</a> or you can ask me on <a href="https://github.com/hexojs/hexo/issues">GitHub</a>.</p>
-<span id="more"></span>
-
-<h2 id="Quick-Start"><a href="#Quick-Start" class="headerlink" title="Quick Start"></a>Quick Start</h2><h3 id="Create-a-new-post"><a href="#Create-a-new-post" class="headerlink" title="Create a new post"></a>Create a new post</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo new <span class="string">&quot;My New Post&quot;</span></span><br></pre></td></tr></table></figure>
-
-<p>More info: <a href="https://hexo.io/docs/writing.html">Writing</a></p>
-<h3 id="Run-server"><a href="#Run-server" class="headerlink" title="Run server"></a>Run server</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo server</span><br></pre></td></tr></table></figure>
-
-<p>More info: <a href="https://hexo.io/docs/server.html">Server</a></p>
-<h3 id="Generate-static-files"><a href="#Generate-static-files" class="headerlink" title="Generate static files"></a>Generate static files</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo generate</span><br></pre></td></tr></table></figure>
-
-<p>More info: <a href="https://hexo.io/docs/generating.html">Generating</a></p>
-<h3 id="Deploy-to-remote-sites"><a href="#Deploy-to-remote-sites" class="headerlink" title="Deploy to remote sites"></a>Deploy to remote sites</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo deploy</span><br></pre></td></tr></table></figure>
-
-<p>More info: <a href="https://hexo.io/docs/deployment.html">Deployment</a></p>
-]]></content>
-  </entry>
-  <entry>
     <title>Hexo-NexT Tag 插件的使用</title>
     <url>/posts/29bfe8c9/</url>
     <content><![CDATA[<p><code>Tag Plugin</code> 是一种使 Hexo 支持特殊样式内容的方法。例如，我们无法在标准 Markdown 中显示具有自定义尺寸的图像。然后我们可以使用标签插件来解决它。 Hexo 有很多可以帮助用户的标签。 Hexo 还具有主题接口，使主题能够创建自己的标签。</p>
@@ -214,15 +194,35 @@
       </tags>
   </entry>
   <entry>
+    <title>Hello World</title>
+    <url>/posts/4a17b156/</url>
+    <content><![CDATA[<p>Welcome to <a href="https://hexo.io/">Hexo</a>! This is your very first post. Check <a href="https://hexo.io/docs/">documentation</a> for more info. If you get any problems when using Hexo, you can find the answer in <a href="https://hexo.io/docs/troubleshooting.html">troubleshooting</a> or you can ask me on <a href="https://github.com/hexojs/hexo/issues">GitHub</a>.</p>
+<span id="more"></span>
+
+<h2 id="Quick-Start"><a href="#Quick-Start" class="headerlink" title="Quick Start"></a>Quick Start</h2><h3 id="Create-a-new-post"><a href="#Create-a-new-post" class="headerlink" title="Create a new post"></a>Create a new post</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo new <span class="string">&quot;My New Post&quot;</span></span><br></pre></td></tr></table></figure>
+
+<p>More info: <a href="https://hexo.io/docs/writing.html">Writing</a></p>
+<h3 id="Run-server"><a href="#Run-server" class="headerlink" title="Run server"></a>Run server</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo server</span><br></pre></td></tr></table></figure>
+
+<p>More info: <a href="https://hexo.io/docs/server.html">Server</a></p>
+<h3 id="Generate-static-files"><a href="#Generate-static-files" class="headerlink" title="Generate static files"></a>Generate static files</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo generate</span><br></pre></td></tr></table></figure>
+
+<p>More info: <a href="https://hexo.io/docs/generating.html">Generating</a></p>
+<h3 id="Deploy-to-remote-sites"><a href="#Deploy-to-remote-sites" class="headerlink" title="Deploy to remote sites"></a>Deploy to remote sites</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo deploy</span><br></pre></td></tr></table></figure>
+
+<p>More info: <a href="https://hexo.io/docs/deployment.html">Deployment</a></p>
+]]></content>
+  </entry>
+  <entry>
     <title>test-post</title>
     <url>/posts/dce1f5ed/</url>
     <content><![CDATA[<div class="note primary">
             <p>文章摘要</p>
           </div>
 
-<span id="more"></span>
 
-<p><img src="/test-post/sea.jpg" alt="sea"></p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/dce1f5ed/sea.jpg" alt="sea" loading="lazy"></p>
+<span id="more"></span>
 ]]></content>
   </entry>
   <entry>
@@ -321,7 +321,7 @@
     <title>OpenResty Lua钩子调用完整流程</title>
     <url>/posts/30b81f82/</url>
     <content><![CDATA[<div class="note primary">
-            <p>前面一篇文章介绍了<a href="../150430f0/">Openresty-Lua协程调度机制</a>，主要关心的是核心调度函数<code>run_thread()</code>内部发生的事情，而对于外部的事情我们并没有涉及。本篇作为其姊妹篇，准备补上剩余的部分。本篇将通过一个例子，完整介绍OpenResty中Lua钩子的调用流程，包括初始化阶段的工作、新连接进来时如何进入钩子、I/O等待时如何出去、事件触发时如何恢复、钩子正常执行结束时的操作、钩子内出错的情况。本文同样是基于<code>stream-lua</code>模块的代码。</p>
+            <p>前面一篇文章介绍了<a href="../150430f0/">Openresty Lua协程调度机制</a>，主要关心的是核心调度函数<code>run_thread()</code>内部发生的事情，而对于外部的事情我们并没有涉及。本篇作为其姊妹篇，准备补上剩余的部分。本篇将通过一个例子，完整介绍OpenResty中Lua钩子的调用流程，包括初始化阶段的工作、新连接进来时如何进入钩子、I/O等待时如何出去、事件触发时如何恢复、钩子正常执行结束时的操作、钩子内出错的情况。本文同样是基于<code>stream-lua</code>模块的代码。</p>
           </div>
 
 <span id="more"></span>
@@ -471,7 +471,7 @@
     <title>Openresty Lua协程调度机制</title>
     <url>/posts/150430f0/</url>
     <content><![CDATA[<div class="note primary">
-            <h1 id="写在前面"><a href="#写在前面" class="headerlink" title="写在前面"></a>写在前面</h1><p>OpenResty（后面简称：OR）是一个基于Nginx和Lua的高性能Web平台，它内部集成大量的Lua API以及第三方模块，可以利用它快速搭建支持高并发、极具动态性和扩展性的Web应用、Web服务或动态网关。</p><p>OR最大的特点就是，将Lua协程与Nginx事件驱动模型及非阻塞I/O结合起来。使用户可以在handler中使用 <strong>同步但是依然是非阻塞</strong> 的方式编写其应用代码，而无需关心底层的协程调度以及与Nginx事件驱动模型的交互。</p><p>source/_posts/openresty-lua-coroutine-schedule.md本文将先从总体上介绍OR的协程调度机制，然后结合源码以及Lua栈的情况来详细了解各个部分是如何实现的，包括其异常保护、协程初始化、协程的恢复和执行、协程的挂起、协程的执行结束、协程出错的情况。</p><p>本文主要关注调度函数内部的逻辑，如果想了解外部的调用流程。可以参看<a href="../30b81f82/">Openresty Lua钩子调用完整流程</a></p>
+            <h1 id="写在前面"><a href="#写在前面" class="headerlink" title="写在前面"></a>写在前面</h1><p>OpenResty（后面简称：OR）是一个基于Nginx和Lua的高性能Web平台，它内部集成大量的Lua API以及第三方模块，可以利用它快速搭建支持高并发、极具动态性和扩展性的Web应用、Web服务或动态网关。</p><p>OR最大的特点就是，将Lua协程与Nginx事件驱动模型及非阻塞I/O结合起来。使用户可以在handler中使用 <strong>同步但是依然是非阻塞</strong> 的方式编写其应用代码，而无需关心底层的协程调度以及与Nginx事件驱动模型的交互。</p><p>本文将先从总体上介绍OR的协程调度机制，然后结合源码以及Lua栈的情况来详细了解各个部分是如何实现的，包括其异常保护、协程初始化、协程的恢复和执行、协程的挂起、协程的执行结束、协程出错的情况。</p><p>本文主要关注调度函数内部的逻辑，如果想了解外部的调用流程。可以参看<a href="../30b81f82/">Openresty Lua钩子调用完整流程</a></p>
           </div>
 
 <span id="more"></span>
