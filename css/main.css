@@ -1329,7 +1329,7 @@ pre .javascript .function {
 }
 .links-of-author a::before,
 .links-of-author span.exturl::before {
-  background: #4affff;
+  background: #93545e;
   border-radius: 50%;
   content: ' ';
   display: inline-block;
@@ -2997,7 +2997,7 @@ code {
 }
 .header {
   width: 86%;
-  max-width: 1260px;
+  max-width: 1460px;
 }
 @media (min-width: 768px) and (max-width: 991px) {
   .header {
@@ -3011,7 +3011,7 @@ code {
 }
 .container .main-inner {
   width: 86%;
-  max-width: 1260px;
+  max-width: 1460px;
 }
 @media (min-width: 768px) and (max-width: 991px) {
   .container .main-inner {
