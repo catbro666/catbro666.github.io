@@ -1,0 +1,1162 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.4.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/images/hiking-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/images/hiking-16.png">
+  <link rel="mask-icon" href="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/images/logo.svg" color="#222">
+  <meta name="google-site-verification" content="JT1HKSsLR6ZiapLatX1c6-7k-OcEM8cAMdR5pgCSptk">
+  <meta name="yandex-verification" content="5ab41d9d91227789">
+  <meta name="baidu-site-verification" content="code-9Qi2zUhBf4">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="https://fonts.loli.net/css?family=Noto Serif SC:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="//cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"catbro666.github.io","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","width":240,"display":"post","padding":18,"offset":42,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":"mac"},"back2top":{"enable":true,"sidebar":true,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="最近在看《自己动手实现Lua—虚拟机、编译器和标准库》。这是本挺不错的书，通过学习此书能够对Lua语言有比较深刻的理解，此外还可以对如何自己实现一门脚本语言有直观的认识。对于想学习Lua的同学，安利一下这本书。废话不多说，书中留了一个作业，让读者自己实现TAILCALL指令，实现尾调用的优化。本文就算是交作业吧。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="自己动手实现Lua--实现TAILCALL指令">
+<meta property="og:url" content="https://catbro666.github.io/posts/74970c0e/index.html">
+<meta property="og:site_name" content="CatBro&#39;s Blog">
+<meta property="og:description" content="最近在看《自己动手实现Lua—虚拟机、编译器和标准库》。这是本挺不错的书，通过学习此书能够对Lua语言有比较深刻的理解，此外还可以对如何自己实现一门脚本语言有直观的认识。对于想学习Lua的同学，安利一下这本书。废话不多说，书中留了一个作业，让读者自己实现TAILCALL指令，实现尾调用的优化。本文就算是交作业吧。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2021-07-17T08:46:43.000Z">
+<meta property="article:modified_time" content="2021-07-17T09:25:16.070Z">
+<meta property="article:author" content="猫猫哥">
+<meta property="article:tag" content="Lua">
+<meta property="article:tag" content="TAILCALL">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="https://catbro666.github.io/posts/74970c0e/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <meta name="360-site-verification" content="e7586a6caf7e44316b4a27dfaf53e858"/>
+
+
+
+  <title>自己动手实现Lua--实现TAILCALL指令 | CatBro's Blog</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-6PKG8T836C"></script>
+    <script>
+      if (CONFIG.hostname === location.hostname) {
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-6PKG8T836C');
+      }
+    </script>
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?43ceb843b17e732b0a5dd658f624cac5";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+<link rel="alternate" href="/atom.xml" title="CatBro's Blog" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">CatBro's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">Volar con el viento</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+        <li class="menu-item menu-item-hot">
+
+    <a href="/hot/" rel="section"><i class="fa fa-thermometer-half fa-fw"></i>热度排行</a>
+
+  </li>
+        <li class="menu-item menu-item-commonweal">
+
+    <a href="/404.html" rel="section"><i class="fa fa-heartbeat fa-fw"></i>公益 404</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="reading-progress-bar"></div>
+
+  <a href="https://github.com/catbro666" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener external nofollow noreferrer" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://catbro666.github.io/posts/74970c0e/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/images/avatar.gif">
+      <meta itemprop="name" content="猫猫哥">
+      <meta itemprop="description" content="如果说根号二是无理数，那么我就是个无理人">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="CatBro's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          自己动手实现Lua--实现TAILCALL指令
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2021-07-17 16:46:43 / 修改时间：17:25:16" itemprop="dateCreated datePublished" datetime="2021-07-17T16:46:43+08:00">2021-07-17</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E6%8A%80%E6%9C%AF%E5%90%91/" itemprop="url" rel="index"><span itemprop="name">技术向</span></a>
+                </span>
+            </span>
+
+          
+            <span id="/posts/74970c0e/" class="post-meta-item leancloud_visitors" data-flag-title="自己动手实现Lua--实现TAILCALL指令" title="阅读次数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span class="leancloud-visitors-count"></span>
+            </span>
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="far fa-comment"></i>
+      </span>
+      <span class="post-meta-item-text">评论数：</span>
+    
+    <a title="valine" href="/posts/74970c0e/#valine-comments" itemprop="discussionUrl">
+      <span class="post-comments-count valine-comment-count" data-xid="/posts/74970c0e/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  <br>
+  <span class="post-meta-item" title="繁/简：">
+    <span class="post-meta-item-icon">
+      <i class="fas fa-yin-yang"></i>
+    </span>
+      <span class="post-meta-item-text">繁/简：</span>
+    <a id="translateLink" href="javascript:translatePage();" rel="external nofollow noreferrer">繁體</a>
+  </span>
+
+<script type="text/javascript" src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/js/tw_cn.js"></script>
+<script type="text/javascript">
+var defaultEncoding = 2; //网站编写字体是否繁体，1-繁体，2-简体
+var translateDelay = 0; //延迟时间,若不在前, 要设定延迟翻译时间, 如100表示100ms,默认为0
+var cookieDomain = "https://catbro666.github.io/"; //Cookie地址, 一定要设定, 通常为你的网址
+var msgToTraditionalChinese = "繁體"; //此处可以更改为你想要显示的文字
+var msgToSimplifiedChinese = "简体"; //同上，但两处均不建议更改
+var translateButtonId = "translateLink"; //默认互换id
+translateInitilization();
+</script>
+<br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>16k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>15 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <div class="note primary">
+            <p>最近在看《自己动手实现Lua—虚拟机、编译器和标准库》。这是本挺不错的书，通过学习此书能够对Lua语言有比较深刻的理解，此外还可以对如何自己实现一门脚本语言有直观的认识。对于想学习Lua的同学，安利一下这本书。</p><p>废话不多说，书中留了一个作业，让读者自己实现<code>TAILCALL</code>指令，实现尾调用的优化。本文就算是交作业吧。</p>
+          </div>
+
+<span id="more"></span>
+
+<h1 id="尾调用"><a href="#尾调用" class="headerlink" title="尾调用"></a>尾调用</h1><p>尾调用，被调函数可以重用主调函数的调用帧，可以有效缓解调用栈溢出。</p>
+<p>不过尾调用的条件非常苛刻，必须是直接返回函数调用。下面的是一个尾调用的例子，<code>TAILCALL</code>指令后面肯定紧跟着<code>RETURN</code>指令，并且<code>RETURN</code>指令的操作数A跟<code>TAILCALL</code>相同，<code>RETURN</code>指令的操作数B肯定是0。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">$ luac -l -</span><br><span class="line"><span class="built_in">return</span> f(a)</span><br><span class="line">^D</span><br><span class="line">main &lt;stdin:0,0&gt; (5 instructions at 0x7fa2b9d00070)</span><br><span class="line">0+ params, 2 slots, 1 upvalue, 0 locals, 2 constants, 0 <span class="built_in">functions</span></span><br><span class="line">	1	[1]	GETTABUP 	0 0 -1	; _ENV <span class="string">&quot;f&quot;</span></span><br><span class="line">	2	[1]	GETTABUP 	1 0 -2	; _ENV <span class="string">&quot;a&quot;</span></span><br><span class="line">	3	[1]	TAILCALL 	0 2 0</span><br><span class="line">	4	[1]	RETURN   	0 0</span><br><span class="line">	5	[1]	RETURN   	0 1</span><br></pre></td></tr></table></figure>
+
+
+
+<p>下面几个例子，都不是尾调用。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">$ luac -l -</span><br><span class="line"><span class="built_in">return</span> (f(a))</span><br><span class="line">^D</span><br><span class="line">main &lt;stdin:0,0&gt; (5 instructions at 0x7fb5a34035e0)</span><br><span class="line">0+ params, 2 slots, 1 upvalue, 0 locals, 2 constants, 0 <span class="built_in">functions</span></span><br><span class="line">	1	[1]	GETTABUP 	0 0 -1	; _ENV <span class="string">&quot;f&quot;</span></span><br><span class="line">	2	[1]	GETTABUP 	1 0 -2	; _ENV <span class="string">&quot;a&quot;</span></span><br><span class="line">	3	[1]	CALL     	0 2 2</span><br><span class="line">	4	[1]	RETURN   	0 2</span><br><span class="line">	5	[1]	RETURN   	0 1</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">$ luac -l -</span><br><span class="line"><span class="built_in">return</span> f(a)+1</span><br><span class="line">^D</span><br><span class="line">main &lt;stdin:0,0&gt; (6 instructions at 0x7f98c3d00070)</span><br><span class="line">0+ params, 2 slots, 1 upvalue, 0 locals, 3 constants, 0 <span class="built_in">functions</span></span><br><span class="line">	1	[1]	GETTABUP 	0 0 -1	; _ENV <span class="string">&quot;f&quot;</span></span><br><span class="line">	2	[1]	GETTABUP 	1 0 -2	; _ENV <span class="string">&quot;a&quot;</span></span><br><span class="line">	3	[1]	CALL     	0 2 2</span><br><span class="line">	4	[1]	ADD      	0 0 -3	; - 1</span><br><span class="line">	5	[1]	RETURN   	0 2</span><br><span class="line">	6	[1]	RETURN   	0 1</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">$ luac -l -</span><br><span class="line"><span class="built_in">return</span> &#123;f(a)&#125;</span><br><span class="line">^D</span><br><span class="line">main &lt;stdin:0,0&gt; (7 instructions at 0x7fb1b95006f0)</span><br><span class="line">0+ params, 3 slots, 1 upvalue, 0 locals, 2 constants, 0 <span class="built_in">functions</span></span><br><span class="line">	1	[1]	NEWTABLE 	0 0 0</span><br><span class="line">	2	[1]	GETTABUP 	1 0 -1	; _ENV <span class="string">&quot;f&quot;</span></span><br><span class="line">	3	[1]	GETTABUP 	2 0 -2	; _ENV <span class="string">&quot;a&quot;</span></span><br><span class="line">	4	[1]	CALL     	1 2 0</span><br><span class="line">	5	[1]	SETLIST  	0 0 1	; 1</span><br><span class="line">	6	[1]	RETURN   	0 2</span><br><span class="line">	7	[1]	RETURN   	0 1</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">$ luac -l -</span><br><span class="line"><span class="built_in">return</span> 1, f(a)</span><br><span class="line">^D</span><br><span class="line">main &lt;stdin:0,0&gt; (6 instructions at 0x7f8f9c500070)</span><br><span class="line">0+ params, 3 slots, 1 upvalue, 0 locals, 3 constants, 0 <span class="built_in">functions</span></span><br><span class="line">	1	[1]	LOADK    	0 -1	; 1</span><br><span class="line">	2	[1]	GETTABUP 	1 0 -2	; _ENV <span class="string">&quot;f&quot;</span></span><br><span class="line">	3	[1]	GETTABUP 	2 0 -3	; _ENV <span class="string">&quot;a&quot;</span></span><br><span class="line">	4	[1]	CALL     	1 2 0</span><br><span class="line">	5	[1]	RETURN   	0 0</span><br><span class="line">	6	[1]	RETURN   	0 1</span><br></pre></td></tr></table></figure>
+
+
+
+<h1 id="CALL指令"><a href="#CALL指令" class="headerlink" title="CALL指令"></a>CALL指令</h1><p>我们先来看看普通的<code>CALL</code>指令的操作流程：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// R(A), ... ,R(A+C-2) := R(A)(R(A+1), ... ,R(A+B-1))</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">call</span><span class="params">(i Instruction, vm LuaVM)</span></span> &#123;</span><br><span class="line">    a, b, c := i.ABC()</span><br><span class="line">    a += <span class="number">1</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// println(&quot;:::&quot;+ vm.StackToString())</span></span><br><span class="line">    nArgs := _pushFuncAndArgs(a, b, vm)</span><br><span class="line">    vm.Call(nArgs, c<span class="number">-1</span>)</span><br><span class="line">    _popResults(a, c, vm)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>首先将位于寄存器中的函数和参数推入栈顶，然后调用<code>Call()</code>方法执行函数，最后将栈上的返回值出栈并放入指定寄存器中。</p>
+<p><code>_pushFuncAndArgs()</code>和<code>_popResults()</code>分别要处理操作数B和操作数C为0的特殊情况。操作数B为0的情况，部分参数已经在栈上了（由前面的<code>CALL</code>指令或<code>VARARG</code>指令留在栈上）。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> _<span class="title">pushFuncAndArgs</span><span class="params">(a, b <span class="keyword">int</span>, vm LuaVM)</span> <span class="params">(nArgs <span class="keyword">int</span>)</span></span> &#123;</span><br><span class="line">    <span class="keyword">if</span> b &gt;= <span class="number">1</span> &#123;</span><br><span class="line">        vm.CheckStack(b)</span><br><span class="line">        <span class="keyword">for</span> i := a; i &lt; a+b; i++ &#123;</span><br><span class="line">            vm.PushValue(i)</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> b - <span class="number">1</span></span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        _fixStack(a, vm)</span><br><span class="line">        <span class="keyword">return</span> vm.GetTop() - vm.RegisterCount() - <span class="number">1</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>而操作数C为0的情况，则不需要将返回值从栈上弹出。直接将返回值留在栈上，供后面的指令使用。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> _<span class="title">popResults</span><span class="params">(a, c <span class="keyword">int</span>, vm LuaVM)</span></span> &#123;</span><br><span class="line">    <span class="keyword">if</span> c == <span class="number">1</span> &#123;</span><br><span class="line">        <span class="comment">// no results</span></span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> c &gt; <span class="number">1</span> &#123;</span><br><span class="line">        <span class="keyword">for</span> i := a + c - <span class="number">2</span>; i &gt;= a; i-- &#123;</span><br><span class="line">            vm.Replace(i)</span><br><span class="line">        &#125;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="comment">// leave results on stack</span></span><br><span class="line">        vm.CheckStack(<span class="number">1</span>)</span><br><span class="line">        vm.PushInteger(<span class="keyword">int64</span>(a))</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>然后我们来看下<code>Call()</code>方法做了什么。它首先根据索引找到要调用的函数的值，检查它是否是闭包类型，如果不是直接报错。然后通过<code>callLuaClosure()</code>调用该函数。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// [-(nargs+1), +nresults, e]</span></span><br><span class="line"><span class="comment">// http://www.lua.org/manual/5.3/manual.html#lua_call</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(self *luaState)</span> <span class="title">Call</span><span class="params">(nArgs, nResults <span class="keyword">int</span>)</span></span> &#123;</span><br><span class="line">    val := self.stack.get(-(nArgs + <span class="number">1</span>))</span><br><span class="line">    <span class="keyword">if</span> c, ok := val.(*closure); ok &#123;</span><br><span class="line">        fmt.Printf(<span class="string">&quot;call %s&lt;%d,%d&gt;\n&quot;</span>, c.proto.Source,</span><br><span class="line">            c.proto.LineDefined, c.proto.LastLineDefined)</span><br><span class="line">        self.callLuaClosure(nArgs, nResults, c)</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="built_in">panic</span>(<span class="string">&quot;not function!&quot;</span>)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>callLuaClosure()</code>稍微有点复杂，来看下代码。首先从闭包的函数原型中获取到各种信息，如寄存器个数、固定参数个数、是否是vararg。接着创建一个新的调用帧，并将闭包与调用帧关联。然后将函数和参数值全部从主调帧栈顶弹出，并将固定参数压入被调帧栈顶，如果是vararg且参数个数大于固定参数个数，还要将vararg参数记录下来。</p>
+<p>到这新帧就准备就绪了，将新帧推入调用帧顶，然后调用<code>runLuaClosure()</code>开始执行被调函数的指令。执行结束之后，被调帧的任务结束，将其弹出调用栈顶。</p>
+<p>此时，返回值还留在被调帧的栈顶，需要移到主调帧栈顶。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(self *luaState)</span> <span class="title">callLuaClosure</span><span class="params">(nArgs, nResults <span class="keyword">int</span>, c *closure)</span></span> &#123;</span><br><span class="line">    nRegs := <span class="keyword">int</span>(c.proto.MaxStackSize)</span><br><span class="line">    nParams := <span class="keyword">int</span>(c.proto.NumParams)</span><br><span class="line">    isVararg := c.proto.IsVararg == <span class="number">1</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// create new lua stack</span></span><br><span class="line">    newStack := newLuaStack(nRegs + <span class="number">20</span>)</span><br><span class="line">    newStack.closure = c</span><br><span class="line"></span><br><span class="line">    <span class="comment">// pass args, pop func</span></span><br><span class="line">    funcAndArgs := self.stack.popN(nArgs + <span class="number">1</span>)</span><br><span class="line">    newStack.pushN(funcAndArgs[<span class="number">1</span>:], nParams)</span><br><span class="line">    newStack.top = nRegs</span><br><span class="line">    <span class="keyword">if</span> nArgs &gt; nParams &amp;&amp; isVararg &#123;</span><br><span class="line">        newStack.varargs = funcAndArgs[nParams+<span class="number">1</span>:]</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// run closure</span></span><br><span class="line">    self.pushLuaStack(newStack)</span><br><span class="line">    self.runLuaClosure()</span><br><span class="line">    self.popLuaStack()</span><br><span class="line"></span><br><span class="line">    <span class="comment">// return results, nResults == c - 1</span></span><br><span class="line">    <span class="keyword">if</span> nResults != <span class="number">0</span> &#123;</span><br><span class="line">        results := newStack.popN(newStack.top - nRegs)</span><br><span class="line">        self.stack.check(<span class="built_in">len</span>(results))</span><br><span class="line">        self.stack.pushN(results, nResults)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h1 id="实现TAILCALL指令"><a href="#实现TAILCALL指令" class="headerlink" title="实现TAILCALL指令"></a>实现TAILCALL指令</h1><p>知道了<code>CALL</code>指令的流程，我们就可以着手实现<code>TAILCALL</code>指令了。其操作数A和操作数B的含义跟<code>CALL</code>指令完全一致，操作数C没用，相当于固定为0。所以<code>_pushFuncAndArgs()</code>和<code>_popResults()</code>函数可以重用，主要是修改中间的调用流程。我们首先给LuaVM新增一个接口<code>TailCall()</code>。</p>
+<p>在<code>api/lua_vm.go</code>文件中添加如下代码：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> LuaVM <span class="keyword">interface</span> &#123;</span><br><span class="line">	...</span><br><span class="line">    TailCall(nArgs <span class="keyword">int</span>)	<span class="comment">// add this</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p>因为<code>TAILCALL</code>指令后面紧跟着<code>RETURN</code>指令，且<code>RETURN</code>指令的操作数B为0，操作数A跟<code>TAILCALL</code>指令一样。所以<code>_popResults()</code>之后，我们啥都不用干，直接把返回值保留在栈上即可。</p>
+<p>在<code>vm/inst_call.go</code>文件中修改<code>tailCall()</code>如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// return R(A)(R(A+1), ... ,R(A+B-1))</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">tailCall</span><span class="params">(i Instruction, vm LuaVM)</span></span> &#123;</span><br><span class="line">    a, b, _ := i.ABC()</span><br><span class="line">    a += <span class="number">1</span></span><br><span class="line"></span><br><span class="line">    nArgs := _pushFuncAndArgs(a, b, vm)</span><br><span class="line">    vm.TailCall(nArgs)</span><br><span class="line">    _popResults(a, <span class="number">0</span>, vm)</span><br><span class="line">    <span class="comment">// no need to _return() as ‘b’ of the following ‘RETURN’ is 0, </span></span><br><span class="line">    <span class="comment">// ‘a’ of ‘RETURN’ is same ‘as’ a of ‘TAILCALL’</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在<code>state/api_call.go</code>文件中添加<code>TailCall()</code>代码如下</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// [-(nargs+1), +nresults, e]</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(self *luaState)</span> <span class="title">TailCall</span><span class="params">(nArgs <span class="keyword">int</span>)</span></span> &#123;</span><br><span class="line">    val := self.stack.get(-(nArgs + <span class="number">1</span>))</span><br><span class="line">    <span class="keyword">if</span> c, ok := val.(*closure); ok &#123;</span><br><span class="line">        fmt.Printf(<span class="string">&quot;tailcall %s&lt;%d,%d&gt;\n&quot;</span>, c.proto.Source,</span><br><span class="line">            c.proto.LineDefined, c.proto.LastLineDefined)</span><br><span class="line">        self.tailCallLuaClosure(nArgs, c)</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="built_in">panic</span>(<span class="string">&quot;not function!&quot;</span>)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>然后在<code>tailCallLuaClosure()</code>中实现主要逻辑。在<code>state/api_call.go</code>文件中添加<code>tailCallLuaClosure()</code>代码如下。</p>
+<p>首先同样是从闭包中获取函数原型的信息。因为当前帧在<code>TAILCALL</code>之后肯定跟着<code>RETURN</code>，所以保存参数之后可以直接清理掉当前帧的栈，然后直接给被调函数重用。将被调函数的信息设置到当前帧，先检查栈空间是否够，然后将当前帧关联到新的闭包，然后将固定参数推入栈顶，修改栈顶指针指向最后一个寄存器。如果是vararg且参数个数大于固定参数个数，还要将vararg参数记录下来。</p>
+<p>一切就绪之后，就可以调用<code>runLuaClosure()</code>开始执行闭包的指令了。执行完毕后返回值保留在栈顶。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(self *luaState)</span> <span class="title">tailCallLuaClosure</span><span class="params">(nArgs <span class="keyword">int</span>, c *closure)</span></span> &#123;</span><br><span class="line">    nRegs := <span class="keyword">int</span>(c.proto.MaxStackSize)</span><br><span class="line">    nParams := <span class="keyword">int</span>(c.proto.NumParams)</span><br><span class="line">    isVararg := c.proto.IsVararg == <span class="number">1</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// store args</span></span><br><span class="line">    args := self.stack.popN(nArgs)</span><br><span class="line">    <span class="comment">// clean the stack</span></span><br><span class="line">    self.SetTop(<span class="number">0</span>)    </span><br><span class="line">    <span class="comment">// check if stack space is enough</span></span><br><span class="line">    self.stack.check(nRegs + <span class="number">20</span>)</span><br><span class="line">    <span class="comment">// substitue the closure to new one</span></span><br><span class="line">    self.stack.closure = c</span><br><span class="line">    <span class="comment">// push fixed args</span></span><br><span class="line">    self.stack.pushN(args[<span class="number">1</span>:], nParams)</span><br><span class="line">	self.stack.top = nRegs</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// store varargs</span></span><br><span class="line">    <span class="keyword">if</span> nArgs &gt; nParams &amp;&amp; isVararg &#123;</span><br><span class="line">        self.stack.varargs = args[nParams+<span class="number">1</span>:]</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// run closure</span></span><br><span class="line">    self.runLuaClosure()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<h1 id="测试代码"><a href="#测试代码" class="headerlink" title="测试代码"></a>测试代码</h1><p>我们重新编译Go代码</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cd</span> <span class="variable">$LUAGO</span>/go</span><br><span class="line"><span class="built_in">export</span> GOPATH=<span class="variable">$PWD</span>/ch08</span><br><span class="line"><span class="built_in">export</span> GOBIN=<span class="variable">$PWD</span>/ch08/bin</span><br><span class="line">go install luago</span><br></pre></td></tr></table></figure>
+
+<p>然后来编写Lua脚本，我们编写了一个求和的函数</p>
+<figure class="highlight lua"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">local</span> <span class="function"><span class="keyword">function</span> <span class="title">sum</span><span class="params">(n, s, fun)</span></span></span><br><span class="line">    <span class="keyword">if</span> n == <span class="number">0</span> <span class="keyword">then</span></span><br><span class="line">        <span class="keyword">return</span> s</span><br><span class="line">    <span class="keyword">end</span></span><br><span class="line">    s = s + n</span><br><span class="line">    <span class="keyword">return</span> fun(n<span class="number">-1</span>, s, fun)</span><br><span class="line"><span class="keyword">end</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">local</span> <span class="function"><span class="keyword">function</span> <span class="title">assert</span><span class="params">(v)</span></span></span><br><span class="line">  <span class="keyword">if</span> <span class="keyword">not</span> v <span class="keyword">then</span> fail() <span class="keyword">end</span></span><br><span class="line"><span class="keyword">end</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">local</span> v1 = sum(<span class="number">0</span>, <span class="number">0</span>, sum)</span><br><span class="line"><span class="built_in">assert</span>(v1 == <span class="number">0</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">local</span> v2 = sum(<span class="number">1</span>, <span class="number">0</span>, sum)</span><br><span class="line"><span class="built_in">assert</span>(v2 == <span class="number">1</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">local</span> v3 = sum(<span class="number">3</span>, <span class="number">0</span>, sum)</span><br><span class="line"><span class="built_in">assert</span>(v3 == <span class="number">6</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">local</span> v4 = sum(<span class="number">10</span>, <span class="number">0</span>, sum)</span><br><span class="line"><span class="built_in">assert</span>(v4 == <span class="number">55</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">local</span> v5 = sum(<span class="number">10000</span>, <span class="number">0</span>, sum)</span><br><span class="line"><span class="built_in">assert</span>(v5 == <span class="number">50005000</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">local</span> v6 = sum(<span class="number">1000000</span>, <span class="number">0</span>, sum)</span><br><span class="line"><span class="built_in">assert</span>(v6 == <span class="number">500000500000</span>)</span><br></pre></td></tr></table></figure>
+
+<p>先来看看<code>sum()</code>函数会被编译成什么指令。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line">$ luac -l -</span><br><span class="line"><span class="built_in">local</span> <span class="keyword">function</span> sum(n, s, fun)</span><br><span class="line">    <span class="keyword">if</span> n == 0 <span class="keyword">then</span></span><br><span class="line">        <span class="built_in">return</span> s</span><br><span class="line">    end</span><br><span class="line">    s = s + n</span><br><span class="line">    <span class="built_in">return</span> fun(n-1, s, fun)</span><br><span class="line">end</span><br><span class="line">^D</span><br><span class="line">main &lt;stdin:0,0&gt; (2 instructions at 0x7fe071d00070)</span><br><span class="line">0+ params, 2 slots, 1 upvalue, 1 <span class="built_in">local</span>, 0 constants, 1 <span class="keyword">function</span></span><br><span class="line">	1	[7]	CLOSURE  	0 0	; 0x7fe071e00110</span><br><span class="line">	2	[7]	RETURN   	0 1</span><br><span class="line"></span><br><span class="line"><span class="keyword">function</span> &lt;stdin:1,7&gt; (11 instructions at 0x7fe071e00110)</span><br><span class="line">3 params, 7 slots, 0 upvalues, 3 locals, 2 constants, 0 <span class="built_in">functions</span></span><br><span class="line">	1	[2]	EQ       	0 0 -1	; - 0</span><br><span class="line">	2	[2]	JMP      	0 1	; to 4</span><br><span class="line">	3	[3]	RETURN   	1 2</span><br><span class="line">	4	[5]	ADD      	1 1 0</span><br><span class="line">	5	[6]	MOVE     	3 2</span><br><span class="line">	6	[6]	SUB      	4 0 -2	; - 1</span><br><span class="line">	7	[6]	MOVE     	5 1</span><br><span class="line">	8	[6]	MOVE     	6 2</span><br><span class="line">	9	[6]	TAILCALL 	3 4 0</span><br><span class="line">	10	[6]	RETURN   	3 0</span><br><span class="line">	11	[7]	RETURN   	0 1</span><br></pre></td></tr></table></figure>
+
+<p>可以看到的确是被编译成了<code>TAILCALL</code>，后面紧跟<code>RETURN</code>指令，且<code>RETURN</code>指令的操作数A与<code>TAILCALL</code>相同，操作数B为0。</p>
+<p>我们编译Lua脚本，然后用我们的虚拟机进行执行。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">luac ../lua/ch08/tailcall.lua</span><br><span class="line">./ch08/bin/luago  luac.out</span><br><span class="line">call @../lua/ch08/tailcall.lua&lt;0,0&gt;</span><br><span class="line">call @../lua/ch08/tailcall.lua&lt;1,7&gt;</span><br><span class="line">call @../lua/ch08/tailcall.lua&lt;9,11&gt;</span><br><span class="line">call @../lua/ch08/tailcall.lua&lt;1,7&gt;</span><br><span class="line">call @../lua/ch08/tailcall.lua&lt;9,11&gt;</span><br><span class="line">panic: GETTABUP</span><br></pre></td></tr></table></figure>
+
+<p>哦哦，执行失败了，残念！</p>
+<p>于是加日志进行问题排查，把指令执行时的栈打出来</p>
+<div><div class="fold_hider"><div class="close hider_title">点击展开</div></div><div class="fold">
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br></pre></td><td class="code"><pre><span class="line">call @../lua/ch08/tailcall.lua&lt;0,0&gt;</span><br><span class="line">CLOSURE  	0 0	[nil][nil][nil][nil][nil][nil][nil]</span><br><span class="line"></span><br><span class="line">CLOSURE  	1 1	[<span class="keyword">function</span>][nil][nil][nil][nil][nil][nil]</span><br><span class="line"></span><br><span class="line">MOVE     	2 0	[<span class="keyword">function</span>][<span class="keyword">function</span>][nil][nil][nil][nil][nil]</span><br><span class="line"></span><br><span class="line">LOADK    	3 -1	[<span class="keyword">function</span>][<span class="keyword">function</span>][<span class="keyword">function</span>][nil][nil][nil][nil]</span><br><span class="line"></span><br><span class="line">LOADK    	4 -1	[<span class="keyword">function</span>][<span class="keyword">function</span>][<span class="keyword">function</span>][0][nil][nil][nil]</span><br><span class="line"></span><br><span class="line">MOVE     	5 0	[<span class="keyword">function</span>][<span class="keyword">function</span>][<span class="keyword">function</span>][0][0][nil][nil]</span><br><span class="line"></span><br><span class="line">CALL     	2 4 2	[<span class="keyword">function</span>][<span class="keyword">function</span>][<span class="keyword">function</span>][0][0][<span class="keyword">function</span>][nil]</span><br><span class="line"></span><br><span class="line">call @../lua/ch08/tailcall.lua&lt;1,7&gt;</span><br><span class="line">EQ       	0 0 -1	[0][0][<span class="keyword">function</span>][nil][nil][nil][nil]</span><br><span class="line"></span><br><span class="line">RETURN   	1 2	[0][0][<span class="keyword">function</span>][nil][nil][nil][nil]</span><br><span class="line"></span><br><span class="line">RETURN   	after 	[0][0][<span class="keyword">function</span>][nil][nil][nil][nil][0]</span><br><span class="line"></span><br><span class="line">CALL     	after 	[<span class="keyword">function</span>][<span class="keyword">function</span>][0][0][0][<span class="keyword">function</span>][nil]</span><br><span class="line"></span><br><span class="line">MOVE     	3 1	[<span class="keyword">function</span>][<span class="keyword">function</span>][0][0][0][<span class="keyword">function</span>][nil]</span><br><span class="line"></span><br><span class="line">EQ       	1 2 -1	[<span class="keyword">function</span>][<span class="keyword">function</span>][0][<span class="keyword">function</span>][0][<span class="keyword">function</span>][nil]</span><br><span class="line"></span><br><span class="line">JMP      	0 1	[<span class="keyword">function</span>][<span class="keyword">function</span>][0][<span class="keyword">function</span>][0][<span class="keyword">function</span>][nil]</span><br><span class="line"></span><br><span class="line">LOADBOOL 	4 1 0	[<span class="keyword">function</span>][<span class="keyword">function</span>][0][<span class="keyword">function</span>][0][<span class="keyword">function</span>][nil]</span><br><span class="line"></span><br><span class="line">CALL     	3 2 1	[<span class="keyword">function</span>][<span class="keyword">function</span>][0][<span class="keyword">function</span>][<span class="literal">true</span>][<span class="keyword">function</span>][nil]</span><br><span class="line"></span><br><span class="line">call @../lua/ch08/tailcall.lua&lt;9,11&gt;</span><br><span class="line">TEST     	0 1	[<span class="literal">true</span>][nil]</span><br><span class="line"></span><br><span class="line">JMP      	0 2	[<span class="literal">true</span>][nil]</span><br><span class="line"></span><br><span class="line">RETURN   	0 1	[<span class="literal">true</span>][nil]</span><br><span class="line"></span><br><span class="line">RETURN   	after 	[<span class="literal">true</span>][nil]</span><br><span class="line"></span><br><span class="line">CALL     	after 	[<span class="keyword">function</span>][<span class="keyword">function</span>][0][<span class="keyword">function</span>][<span class="literal">true</span>][<span class="keyword">function</span>][nil]</span><br><span class="line"></span><br><span class="line">MOVE     	3 0	[<span class="keyword">function</span>][<span class="keyword">function</span>][0][<span class="keyword">function</span>][<span class="literal">true</span>][<span class="keyword">function</span>][nil]</span><br><span class="line"></span><br><span class="line">LOADK    	4 -2	[<span class="keyword">function</span>][<span class="keyword">function</span>][0][<span class="keyword">function</span>][<span class="literal">true</span>][<span class="keyword">function</span>][nil]</span><br><span class="line"></span><br><span class="line">LOADK    	5 -1	[<span class="keyword">function</span>][<span class="keyword">function</span>][0][<span class="keyword">function</span>][1][<span class="keyword">function</span>][nil]</span><br><span class="line"></span><br><span class="line">MOVE     	6 0	[<span class="keyword">function</span>][<span class="keyword">function</span>][0][<span class="keyword">function</span>][1][0][nil]</span><br><span class="line"></span><br><span class="line">CALL     	3 4 2	[<span class="keyword">function</span>][<span class="keyword">function</span>][0][<span class="keyword">function</span>][1][0][<span class="keyword">function</span>]</span><br><span class="line"></span><br><span class="line">call @../lua/ch08/tailcall.lua&lt;1,7&gt;</span><br><span class="line">EQ       	0 0 -1	[1][0][<span class="keyword">function</span>][nil][nil][nil][nil]</span><br><span class="line"></span><br><span class="line">JMP      	0 1	[1][0][<span class="keyword">function</span>][nil][nil][nil][nil]</span><br><span class="line"></span><br><span class="line">ADD      	1 1 0	[1][0][<span class="keyword">function</span>][nil][nil][nil][nil]</span><br><span class="line"></span><br><span class="line">MOVE     	3 2	[1][1][<span class="keyword">function</span>][nil][nil][nil][nil]</span><br><span class="line"></span><br><span class="line">SUB      	4 0 -2	[1][1][<span class="keyword">function</span>][<span class="keyword">function</span>][nil][nil][nil]</span><br><span class="line"></span><br><span class="line">MOVE     	5 1	[1][1][<span class="keyword">function</span>][<span class="keyword">function</span>][0][nil][nil]</span><br><span class="line"></span><br><span class="line">MOVE     	6 2	[1][1][<span class="keyword">function</span>][<span class="keyword">function</span>][0][1][nil]</span><br><span class="line"></span><br><span class="line">TAILCALL 	3 4 0	[1][1][<span class="keyword">function</span>][<span class="keyword">function</span>][0][1][<span class="keyword">function</span>]</span><br><span class="line"></span><br><span class="line">RETURN   	3 0	[1][<span class="keyword">function</span>][nil][nil][nil][nil][nil]</span><br><span class="line"></span><br><span class="line">RETURN   	after 	[1][<span class="keyword">function</span>][nil][nil][nil][nil]</span><br><span class="line"></span><br><span class="line">TAILCALL 	after 	[1][<span class="keyword">function</span>][nil][nil][nil][nil][4]</span><br><span class="line"></span><br><span class="line">RETURN   	0 1	[1][<span class="keyword">function</span>][nil][nil][nil][nil][4]</span><br><span class="line"></span><br><span class="line">RETURN   	after 	[1][<span class="keyword">function</span>][nil][nil][nil][nil][4]</span><br><span class="line"></span><br><span class="line">CALL     	after 	[<span class="keyword">function</span>][<span class="keyword">function</span>][0][nil][1][0][<span class="keyword">function</span>]</span><br><span class="line"></span><br><span class="line">MOVE     	4 1	[<span class="keyword">function</span>][<span class="keyword">function</span>][0][nil][1][0][<span class="keyword">function</span>]</span><br><span class="line"></span><br><span class="line">EQ       	1 3 -2	[<span class="keyword">function</span>][<span class="keyword">function</span>][0][nil][<span class="keyword">function</span>][0][<span class="keyword">function</span>]</span><br><span class="line"></span><br><span class="line">LOADBOOL 	5 0 1	[<span class="keyword">function</span>][<span class="keyword">function</span>][0][nil][<span class="keyword">function</span>][0][<span class="keyword">function</span>]</span><br><span class="line"></span><br><span class="line">CALL     	4 2 1	[<span class="keyword">function</span>][<span class="keyword">function</span>][0][nil][<span class="keyword">function</span>][<span class="literal">false</span>][<span class="keyword">function</span>]</span><br><span class="line"></span><br><span class="line">call @../lua/ch08/tailcall.lua&lt;9,11&gt;</span><br><span class="line">TEST     	0 1	[<span class="literal">false</span>][nil]</span><br><span class="line"></span><br><span class="line">GETTABUP 	1 0 -1	[<span class="literal">false</span>][nil]</span><br><span class="line"></span><br><span class="line">panic: GETTABUP</span><br></pre></td></tr></table></figure>
+
+</div></div>
+
+<p>我们发现在<code>TAILCALL</code>调用之后立马调用了<code>RETURN</code>，问题就是出在这里，我们虽然替换了当前帧的闭包为被调函数的闭包，当时忘了更新pc。于是修改<code>tailCallLuaClosure()</code>初始化pc为0。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(self *luaState)</span> <span class="title">tailCallLuaClosure</span><span class="params">(nArgs <span class="keyword">int</span>, c *closure)</span></span> &#123;</span><br><span class="line">    <span class="comment">// substitue the closure to new one</span></span><br><span class="line">    self.stack.closure = c</span><br><span class="line">    self.stack.pc = <span class="number">0</span> <span class="comment">// add this</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>重新编译之后测试</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line">$ go install luago</span><br><span class="line">$ ./ch08/bin/luago  luac.out</span><br><span class="line">...	<span class="comment"># 省略前面的日志</span></span><br><span class="line">call @../lua/ch08/tailcall.lua&lt;1,7&gt;</span><br><span class="line">EQ       	0 0 -1	[1][0][<span class="keyword">function</span>][nil][nil][nil][nil]</span><br><span class="line"></span><br><span class="line">JMP      	0 1	[1][0][<span class="keyword">function</span>][nil][nil][nil][nil]</span><br><span class="line"></span><br><span class="line">ADD      	1 1 0	[1][0][<span class="keyword">function</span>][nil][nil][nil][nil]</span><br><span class="line"></span><br><span class="line">MOVE     	3 2	[1][1][<span class="keyword">function</span>][nil][nil][nil][nil]</span><br><span class="line"></span><br><span class="line">SUB      	4 0 -2	[1][1][<span class="keyword">function</span>][<span class="keyword">function</span>][nil][nil][nil]</span><br><span class="line"></span><br><span class="line">MOVE     	5 1	[1][1][<span class="keyword">function</span>][<span class="keyword">function</span>][0][nil][nil]</span><br><span class="line"></span><br><span class="line">MOVE     	6 2	[1][1][<span class="keyword">function</span>][<span class="keyword">function</span>][0][1][nil]</span><br><span class="line"></span><br><span class="line">TAILCALL 	3 4 0	[1][1][<span class="keyword">function</span>][<span class="keyword">function</span>][0][1][<span class="keyword">function</span>]</span><br><span class="line"></span><br><span class="line">EQ       	0 0 -1	[1][<span class="keyword">function</span>][nil][nil][nil][nil][nil]</span><br><span class="line"></span><br><span class="line">JMP      	0 1	[1][<span class="keyword">function</span>][nil][nil][nil][nil][nil]</span><br><span class="line"></span><br><span class="line">ADD      	1 1 0	[1][<span class="keyword">function</span>][nil][nil][nil][nil][nil]</span><br><span class="line"></span><br><span class="line">panic: arithmetic error!</span><br></pre></td></tr></table></figure>
+
+<p>哦哦，又执行失败了🤷‍♂️！查看打印的栈信息，<code>TAILCALL</code>指令执行之前栈的情况是正常的，三个参数都已经推入栈顶<code>[0][1][function]</code>，但是执行<code>EQ</code>指令前栈中却少了一个参数，只有<code>[1][function]</code>。于是检查代码，原来是数组索引搞错了，Go的起始索引是0，跟Lua搞混了🤷‍♂️。。。</p>
+<p>修改<code>tailCallLuaClosure()</code>如下之后</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(self *luaState)</span> <span class="title">tailCallLuaClosure</span><span class="params">(nArgs <span class="keyword">int</span>, c *closure)</span></span> &#123;</span><br><span class="line">    nRegs := <span class="keyword">int</span>(c.proto.MaxStackSize)</span><br><span class="line">    nParams := <span class="keyword">int</span>(c.proto.NumParams)</span><br><span class="line">    isVararg := c.proto.IsVararg == <span class="number">1</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// store args</span></span><br><span class="line">    args := self.stack.popN(nArgs)</span><br><span class="line">    <span class="comment">// clean the stack</span></span><br><span class="line">    self.SetTop(<span class="number">0</span>)</span><br><span class="line">    <span class="comment">// check if stack space is enough</span></span><br><span class="line">    self.stack.check(nRegs + <span class="number">20</span>)</span><br><span class="line">    <span class="comment">// substitue the closure to new one</span></span><br><span class="line">    self.stack.closure = c</span><br><span class="line">    self.stack.pc = <span class="number">0</span></span><br><span class="line">    <span class="comment">// push fixed args</span></span><br><span class="line">    self.stack.pushN(args, nParams)</span><br><span class="line">    self.stack.top = nRegs</span><br><span class="line"></span><br><span class="line">    <span class="comment">// store varargs</span></span><br><span class="line">    <span class="keyword">if</span> nArgs &gt; nParams &amp;&amp; isVararg &#123;</span><br><span class="line">        self.stack.varargs = args[nParams:]</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// run closure</span></span><br><span class="line">    self.runLuaClosure()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>重新编译，然后继续执行，程序进入了死循环。。。</p>
+<div><div class="fold_hider"><div class="close hider_title">点击展开</div></div><div class="fold">
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br></pre></td><td class="code"><pre><span class="line">$ go install luago</span><br><span class="line">$ ./ch08/bin/luago  luac.out</span><br><span class="line">...	<span class="comment"># 程序停不下来了。。。</span></span><br><span class="line">call @../lua/ch08/tailcall.lua&lt;1,7&gt;</span><br><span class="line">EQ          0 0 -1  [1][0][<span class="keyword">function</span>][nil][nil][nil][nil]</span><br><span class="line"></span><br><span class="line">JMP         0 1 [1][0][<span class="keyword">function</span>][nil][nil][nil][nil]</span><br><span class="line"></span><br><span class="line">ADD         1 1 0   [1][0][<span class="keyword">function</span>][nil][nil][nil][nil]</span><br><span class="line"></span><br><span class="line">MOVE        3 2 [1][1][<span class="keyword">function</span>][nil][nil][nil][nil]</span><br><span class="line"></span><br><span class="line">SUB         4 0 -2  [1][1][<span class="keyword">function</span>][<span class="keyword">function</span>][nil][nil][nil]</span><br><span class="line"></span><br><span class="line">MOVE        5 1 [1][1][<span class="keyword">function</span>][<span class="keyword">function</span>][0][nil][nil]</span><br><span class="line"></span><br><span class="line">MOVE        6 2 [1][1][<span class="keyword">function</span>][<span class="keyword">function</span>][0][1][nil]</span><br><span class="line"></span><br><span class="line">TAILCALL    3 4 0   [1][1][<span class="keyword">function</span>][<span class="keyword">function</span>][0][1][<span class="keyword">function</span>]</span><br><span class="line"></span><br><span class="line">EQ          0 0 -1  [0][1][<span class="keyword">function</span>][nil][nil][nil][nil]</span><br><span class="line"></span><br><span class="line">RETURN      1 2 [0][1][<span class="keyword">function</span>][nil][nil][nil][nil]</span><br><span class="line"></span><br><span class="line">RETURN      after   [0][1][<span class="keyword">function</span>][nil][nil][nil][nil][1]</span><br><span class="line"></span><br><span class="line">TAILCALL    after   [0][1][<span class="keyword">function</span>][nil][nil][nil][nil][1][4]</span><br><span class="line"></span><br><span class="line">ADD         1 1 0   [0][1][<span class="keyword">function</span>][nil][nil][nil][nil][1][4]</span><br><span class="line"></span><br><span class="line">MOVE        3 2 [0][1][<span class="keyword">function</span>][nil][nil][nil][nil][1][4]</span><br><span class="line"></span><br><span class="line">SUB         4 0 -2  [0][1][<span class="keyword">function</span>][<span class="keyword">function</span>][nil][nil][nil][1][4]</span><br><span class="line"></span><br><span class="line">MOVE        5 1 [0][1][<span class="keyword">function</span>][<span class="keyword">function</span>][-1][nil][nil][1][4]</span><br><span class="line"></span><br><span class="line">MOVE        6 2 [0][1][<span class="keyword">function</span>][<span class="keyword">function</span>][-1][1][nil][1][4]</span><br><span class="line"></span><br><span class="line">TAILCALL    3 4 0   [0][1][<span class="keyword">function</span>][<span class="keyword">function</span>][-1][1][<span class="keyword">function</span>][1][4]</span><br><span class="line">EQ          0 0 -1  [-1][1][<span class="keyword">function</span>][nil][nil][nil][nil]</span><br><span class="line"></span><br><span class="line">JMP         0 1 [-1][1][<span class="keyword">function</span>][nil][nil][nil][nil]</span><br><span class="line"></span><br><span class="line">ADD         1 1 0   [-1][1][<span class="keyword">function</span>][nil][nil][nil][nil]</span><br><span class="line"></span><br><span class="line">MOVE        3 2 [-1][0][<span class="keyword">function</span>][nil][nil][nil][nil]</span><br><span class="line"></span><br><span class="line">SUB         4 0 -2  [-1][0][<span class="keyword">function</span>][<span class="keyword">function</span>][nil][nil][nil]</span><br><span class="line"></span><br><span class="line">MOVE        5 1 [-1][0][<span class="keyword">function</span>][<span class="keyword">function</span>][-2][nil][nil]</span><br><span class="line"></span><br><span class="line">MOVE        6 2 [-1][0][<span class="keyword">function</span>][<span class="keyword">function</span>][-2][0][nil]</span><br><span class="line"></span><br><span class="line">TAILCALL    3 4 0   [-1][0][<span class="keyword">function</span>][<span class="keyword">function</span>][-2][0][<span class="keyword">function</span>]</span><br><span class="line"></span><br><span class="line">EQ          0 0 -1  [-2][0][<span class="keyword">function</span>][nil][nil][nil][nil]</span><br><span class="line"></span><br><span class="line">JMP         0 1 [-2][0][<span class="keyword">function</span>][nil][nil][nil][nil]</span><br><span class="line"></span><br><span class="line">ADD         1 1 0   [-2][0][<span class="keyword">function</span>][nil][nil][nil][nil]</span><br><span class="line"></span><br><span class="line">MOVE        3 2 [-2][-2][<span class="keyword">function</span>][nil][nil][nil][nil]</span><br><span class="line"></span><br><span class="line">SUB         4 0 -2  [-2][-2][<span class="keyword">function</span>][<span class="keyword">function</span>][nil][nil][nil]</span><br><span class="line"></span><br><span class="line">MOVE        5 1 [-2][-2][<span class="keyword">function</span>][<span class="keyword">function</span>][-3][nil][nil]</span><br><span class="line"></span><br><span class="line">MOVE        6 2 [-2][-2][<span class="keyword">function</span>][<span class="keyword">function</span>][-3][-2][nil]</span><br><span class="line">...</span><br></pre></td></tr></table></figure>
+
+</div></div>
+
+<p>观察到在<code>TAILCALL</code>结束之后，又继续执行<code>RETURN</code>指令后面的<code>ADD</code>指令了。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">TAILCALL    3 4 0   [1][1][<span class="keyword">function</span>][<span class="keyword">function</span>][0][1][<span class="keyword">function</span>]</span><br><span class="line"></span><br><span class="line">EQ          0 0 -1  [0][1][<span class="keyword">function</span>][nil][nil][nil][nil]</span><br><span class="line"></span><br><span class="line">RETURN      1 2 [0][1][<span class="keyword">function</span>][nil][nil][nil][nil]</span><br><span class="line"></span><br><span class="line">RETURN      after   [0][1][<span class="keyword">function</span>][nil][nil][nil][nil][1]</span><br><span class="line"></span><br><span class="line">TAILCALL    after   [0][1][<span class="keyword">function</span>][nil][nil][nil][nil][1][4]</span><br><span class="line"></span><br><span class="line">ADD         1 1 0   [0][1][<span class="keyword">function</span>][nil][nil][nil][nil][1][4]</span><br></pre></td></tr></table></figure>
+
+<p>正常在执行第3条指令<code>RETURN</code>之后就应该返回上层了</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">function</span> &lt;../lua/ch08/tailcall.lua:1,7&gt; (11 instructions at 0x7fd783c03070)</span><br><span class="line">3 params, 7 slots, 0 upvalues, 3 locals, 2 constants, 0 <span class="built_in">functions</span></span><br><span class="line">	1	[2]	EQ       	0 0 -1	; - 0</span><br><span class="line">	2	[2]	JMP      	0 1	; to 4</span><br><span class="line">	3	[3]	RETURN   	1 2</span><br><span class="line">	4	[5]	ADD      	1 1 0</span><br><span class="line">	5	[6]	MOVE     	3 2</span><br><span class="line">	6	[6]	SUB      	4 0 -2	; - 1</span><br><span class="line">	7	[6]	MOVE     	5 1</span><br><span class="line">	8	[6]	MOVE     	6 2</span><br><span class="line">	9	[6]	TAILCALL 	3 4 0</span><br><span class="line">	10	[6]	RETURN   	3 0</span><br><span class="line">	11	[7]	RETURN   	0 1</span><br></pre></td></tr></table></figure>
+
+
+
+<p>猛然想到，之前把<code>RETURN</code>语句给略过了，虽然在返回值的处理上是没有问题，但是外层帧依赖<code>RETURN</code>语句来结束</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(self *luaState)</span> <span class="title">runLuaClosure</span><span class="params">()</span></span> &#123;</span><br><span class="line">    ...</span><br><span class="line">    <span class="keyword">if</span> inst.Opcode() == vm.OP_RETURN &#123;</span><br><span class="line">        <span class="keyword">break</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>所以我们修改<code>runLuaClosure()</code>，使<code>TAILCALL</code>指令执行之后也结束。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(self *luaState)</span> <span class="title">runLuaClosure</span><span class="params">()</span></span> &#123;</span><br><span class="line">    ...</span><br><span class="line">	<span class="keyword">if</span> inst.Opcode() == vm.OP_RETURN || inst.Opcode() == vm.OP_TAILCALL &#123;</span><br><span class="line">    	<span class="keyword">break</span>;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>还有一个地方需要修改，因为我们省略了<code>RETURN</code>指令，所以<code>tailCall()</code>里的<code>_popResults()</code>也就不需要了，否则栈上会多出一个值。<code>_popResults()</code>会推一个整数值（即a）到栈顶指示返回值起始的寄存器位置，相应的在<code>RETURN</code>指令的时候会把这个整数值弹出。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// return R(A)(R(A+1), ... ,R(A+B-1))</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">tailCall</span><span class="params">(i Instruction, vm LuaVM)</span></span> &#123;</span><br><span class="line">    a, b, _ := i.ABC()</span><br><span class="line">    a += <span class="number">1</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// todo: optimize tail call!</span></span><br><span class="line">    nArgs := _pushFuncAndArgs(a, b, vm)</span><br><span class="line">    vm.TailCall(nArgs)</span><br><span class="line">    <span class="comment">// _popResults(a, 0, vm)</span></span><br><span class="line">    <span class="comment">// no need to _return() as ‘b’ of the following ‘RETURN’ is 0, </span></span><br><span class="line">    <span class="comment">// ‘a’ of ‘RETURN’ is same ‘as’ a of ‘TAILCALL’</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p>重新编译执行，这回终于大功告成了！</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">$ go install luago</span><br><span class="line">$ ./ch08/bin/luago  luac.out</span><br><span class="line">call @../lua/ch08/tailcall.lua&lt;0,0&gt;</span><br><span class="line">call @../lua/ch08/tailcall.lua&lt;1,7&gt;</span><br><span class="line">call @../lua/ch08/tailcall.lua&lt;9,11&gt;</span><br><span class="line">call @../lua/ch08/tailcall.lua&lt;1,7&gt;</span><br><span class="line">call @../lua/ch08/tailcall.lua&lt;9,11&gt;</span><br><span class="line">call @../lua/ch08/tailcall.lua&lt;1,7&gt;</span><br><span class="line">call @../lua/ch08/tailcall.lua&lt;9,11&gt;</span><br><span class="line">call @../lua/ch08/tailcall.lua&lt;1,7&gt;</span><br><span class="line">call @../lua/ch08/tailcall.lua&lt;9,11&gt;</span><br><span class="line">call @../lua/ch08/tailcall.lua&lt;1,7&gt;</span><br><span class="line">call @../lua/ch08/tailcall.lua&lt;9,11&gt;</span><br><span class="line">call @../lua/ch08/tailcall.lua&lt;1,7&gt;</span><br><span class="line">call @../lua/ch08/tailcall.lua&lt;9,11&gt;</span><br></pre></td></tr></table></figure>
+
+
+
+<p>我们再来试试可变参数的情况，修改Lua脚本如下</p>
+<figure class="highlight lua"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">local</span> <span class="function"><span class="keyword">function</span> <span class="title">sum</span><span class="params">(n, s, fun, ...)</span></span></span><br><span class="line">    <span class="keyword">if</span> n == <span class="number">0</span> <span class="keyword">then</span></span><br><span class="line">        <span class="keyword">return</span> s</span><br><span class="line">    <span class="keyword">end</span></span><br><span class="line">    <span class="keyword">local</span> args = &#123;...&#125;</span><br><span class="line">    <span class="keyword">if</span> args[n] <span class="keyword">then</span></span><br><span class="line">        s = s + args[n]</span><br><span class="line">    <span class="keyword">end</span></span><br><span class="line">    <span class="keyword">return</span> fun(n<span class="number">-1</span>, s, fun, ...)</span><br><span class="line"><span class="keyword">end</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">local</span> <span class="function"><span class="keyword">function</span> <span class="title">assert</span><span class="params">(v)</span></span></span><br><span class="line">  <span class="keyword">if</span> <span class="keyword">not</span> v <span class="keyword">then</span> fail() <span class="keyword">end</span></span><br><span class="line"><span class="keyword">end</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">local</span> v1 = sum(<span class="number">0</span>, <span class="number">0</span>, sum)</span><br><span class="line"><span class="built_in">assert</span>(v1 == <span class="number">0</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">local</span> v2 = sum(<span class="number">1</span>, <span class="number">0</span>, sum, <span class="number">1</span>)</span><br><span class="line"><span class="built_in">assert</span>(v2 == <span class="number">1</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">local</span> v3 = sum(<span class="number">3</span>, <span class="number">0</span>, sum, <span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>)</span><br><span class="line"><span class="built_in">assert</span>(v3 == <span class="number">6</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">local</span> v4 = sum(<span class="number">3</span>, <span class="number">0</span>, sum, <span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>)</span><br><span class="line"><span class="built_in">assert</span>(v4 == <span class="number">6</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">local</span> v3 = sum(<span class="number">3</span>, <span class="number">0</span>, sum, <span class="number">1</span>, <span class="number">2</span>)</span><br><span class="line"><span class="built_in">assert</span>(v3 == <span class="number">3</span>)</span><br></pre></td></tr></table></figure>
+
+<p>编译Lua脚本，执行测试。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">$ luac ../lua/ch08/tailcall2.lua</span><br><span class="line">$ ./ch08/bin/luago  luac.out</span><br><span class="line">call @../lua/ch08/tailcall2.lua&lt;0,0&gt;</span><br><span class="line">call @../lua/ch08/tailcall2.lua&lt;1,10&gt;</span><br><span class="line">call @../lua/ch08/tailcall2.lua&lt;12,14&gt;</span><br><span class="line">call @../lua/ch08/tailcall2.lua&lt;1,10&gt;</span><br><span class="line">call @../lua/ch08/tailcall2.lua&lt;12,14&gt;</span><br><span class="line">call @../lua/ch08/tailcall2.lua&lt;1,10&gt;</span><br><span class="line">call @../lua/ch08/tailcall2.lua&lt;12,14&gt;</span><br><span class="line">call @../lua/ch08/tailcall2.lua&lt;1,10&gt;</span><br><span class="line">call @../lua/ch08/tailcall2.lua&lt;12,14&gt;</span><br><span class="line">call @../lua/ch08/tailcall2.lua&lt;1,10&gt;</span><br><span class="line">call @../lua/ch08/tailcall2.lua&lt;12,14&gt;</span><br></pre></td></tr></table></figure>
+
+<p>也没有问题✌️</p>
+
+    </div>
+
+    
+    
+    
+      
+  <div class="popular-posts-header">相关文章推荐</div>
+  <ul class="popular-posts">
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/posts/30b81f82/" rel="bookmark">OpenResty Lua钩子调用完整流程</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/posts/150430f0/" rel="bookmark">Openresty Lua协程调度机制</a></div>
+    </li>
+  </ul>
+<div>
+    
+        <div style="text-align:center;font-size:22px;letter-spacing:10px;user-select:none;color:#bbb;">-------------本文结束<i class="fa fa-paw"></i>感谢您的阅读-------------</div>
+    
+</div>
+
+
+
+        
+
+<div>
+<ul class="post-copyright">
+  <li class="post-copyright-author">
+    <strong>本文作者： </strong>猫猫哥
+  </li>
+  <li class="post-copyright-link">
+    <strong>本文链接：</strong>
+    <a href="https://catbro666.github.io/posts/74970c0e/" title="自己动手实现Lua--实现TAILCALL指令">https://catbro666.github.io/posts/74970c0e/</a>
+  </li>
+  <li class="post-copyright-license">
+    <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/zh-CN" rel="noopener external nofollow noreferrer" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+        
+
+  <div class="followme">
+    <p>欢迎关注我的其它发布渠道</p>
+
+    <div class="social-list">
+
+        <div class="social-item">
+          <a target="_blank" class="social-link" href="/atom.xml">
+            <span class="icon">
+              <i class="fa fa-rss"></i>
+            </span>
+
+            <span class="label">RSS</span>
+          </a>
+        </div>
+    </div>
+  </div>
+
+
+      <footer class="post-footer">
+          
+          <div class="post-tags">
+              <a href="/tags/Lua/" rel="tag"><i class="fa fa-tag"></i> Lua</a>
+              <a href="/tags/TAILCALL/" rel="tag"><i class="fa fa-tag"></i> TAILCALL</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/posts/30b81f82/" rel="prev" title="OpenResty Lua钩子调用完整流程">
+      <i class="fa fa-chevron-left"></i> OpenResty Lua钩子调用完整流程
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+    <div class="comments" id="valine-comments"></div>
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%B0%BE%E8%B0%83%E7%94%A8"><span class="nav-number">1.</span> <span class="nav-text">尾调用</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#CALL%E6%8C%87%E4%BB%A4"><span class="nav-number">2.</span> <span class="nav-text">CALL指令</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%AE%9E%E7%8E%B0TAILCALL%E6%8C%87%E4%BB%A4"><span class="nav-number">3.</span> <span class="nav-text">实现TAILCALL指令</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E6%B5%8B%E8%AF%95%E4%BB%A3%E7%A0%81"><span class="nav-number">4.</span> <span class="nav-text">测试代码</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">猫猫哥</p>
+  <div class="site-description" itemprop="description">如果说根号二是无理数，那么我就是个无理人</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">8</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">11</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/catbro666" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;catbro666" rel="noopener external nofollow noreferrer" target="_blank"><i class="fab fa-github fa-fw"></i></a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:chzf_zju@163.com" title="E-Mail → mailto:chzf_zju@163.com" rel="noopener external nofollow noreferrer" target="_blank"><i class="fa fa-envelope fa-fw"></i></a>
+      </span>
+  </div>
+  <div class="cc-license motion-element" itemprop="license">
+    <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/zh-CN" class="cc-opacity" rel="noopener external nofollow noreferrer" target="_blank"><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/images/cc-by-nc-sa.svg" alt="Creative Commons"></a>
+  </div>
+
+
+<div style="">
+  <canvas id="canvas" style="width:60%;">当前浏览器不支持canvas，请更换浏览器后再试</canvas>
+</div>
+<script>
+(function(){
+
+   var digit=
+    [
+        [
+            [0,0,1,1,1,0,0],
+            [0,1,1,0,1,1,0],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,0,1,1,0],
+            [0,0,1,1,1,0,0]
+        ],//0
+        [
+            [0,0,0,1,1,0,0],
+            [0,1,1,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [1,1,1,1,1,1,1]
+        ],//1
+        [
+            [0,1,1,1,1,1,0],
+            [1,1,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,0,0],
+            [0,0,1,1,0,0,0],
+            [0,1,1,0,0,0,0],
+            [1,1,0,0,0,0,0],
+            [1,1,0,0,0,1,1],
+            [1,1,1,1,1,1,1]
+        ],//2
+        [
+            [1,1,1,1,1,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,0,0,1,1,0],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,1,1,0]
+        ],//3
+        [
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,1,0],
+            [0,0,1,1,1,1,0],
+            [0,1,1,0,1,1,0],
+            [1,1,0,0,1,1,0],
+            [1,1,1,1,1,1,1],
+            [0,0,0,0,1,1,0],
+            [0,0,0,0,1,1,0],
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,1,1]
+        ],//4
+        [
+            [1,1,1,1,1,1,1],
+            [1,1,0,0,0,0,0],
+            [1,1,0,0,0,0,0],
+            [1,1,1,1,1,1,0],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,1,1,0]
+        ],//5
+        [
+            [0,0,0,0,1,1,0],
+            [0,0,1,1,0,0,0],
+            [0,1,1,0,0,0,0],
+            [1,1,0,0,0,0,0],
+            [1,1,0,1,1,1,0],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,1,1,0]
+        ],//6
+        [
+            [1,1,1,1,1,1,1],
+            [1,1,0,0,0,1,1],
+            [0,0,0,0,1,1,0],
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,1,1,0,0,0],
+            [0,0,1,1,0,0,0],
+            [0,0,1,1,0,0,0],
+            [0,0,1,1,0,0,0]
+        ],//7
+        [
+            [0,1,1,1,1,1,0],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,1,1,0],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,1,1,0]
+        ],//8
+        [
+            [0,1,1,1,1,1,0],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,0,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,0,0],
+            [0,1,1,0,0,0,0]
+        ],//9
+        [
+            [0,0,0,0,0,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,0,0,0,0,0]
+        ]//:
+    ];
+
+var canvas = document.getElementById('canvas');
+
+if(canvas.getContext){
+    var cxt = canvas.getContext('2d');
+    //声明canvas的宽高
+    var H = 100,W = 700;
+    canvas.height = H;
+    canvas.width = W;
+    cxt.fillStyle = '#f00';
+    cxt.fillRect(10,10,50,50);
+
+    //存储时间数据
+    var data = [];
+    //存储运动的小球
+    var balls = [];
+    //设置粒子半径
+    var R = canvas.height/20-1;
+    (function(){
+        var temp = /(\d)(\d):(\d)(\d):(\d)(\d)/.exec(new Date());
+        //存储时间数字，由十位小时、个位小时、冒号、十位分钟、个位分钟、冒号、十位秒钟、个位秒钟这7个数字组成
+        data.push(temp[1],temp[2],10,temp[3],temp[4],10,temp[5],temp[6]);
+    })();
+
+    /*生成点阵数字*/
+    function renderDigit(index,num){
+        for(var i = 0; i < digit[num].length; i++){
+            for(var j = 0; j < digit[num][i].length; j++){
+                if(digit[num][i][j] == 1){
+                    cxt.beginPath();
+                    cxt.arc(14*(R+2)*index + j*2*(R+1)+(R+1),i*2*(R+1)+(R+1),R,0,2*Math.PI);
+                    cxt.closePath();
+                    cxt.fill();
+                }
+            }
+        }
+    }
+
+    /*更新时钟*/
+    function updateDigitTime(){
+        var changeNumArray = [];
+        var temp = /(\d)(\d):(\d)(\d):(\d)(\d)/.exec(new Date());
+        var NewData = [];
+        NewData.push(temp[1],temp[2],10,temp[3],temp[4],10,temp[5],temp[6]);
+        for(var i = data.length-1; i >=0 ; i--){
+            //时间发生变化
+            if(NewData[i] !== data[i]){
+                //将变化的数字值和在data数组中的索引存储在changeNumArray数组中
+                changeNumArray.push(i+'_'+(Number(data[i])+1)%10);
+            }
+        }
+        //增加小球
+        for(var i = 0; i< changeNumArray.length; i++){
+            addBalls.apply(this,changeNumArray[i].split('_'));
+        }
+        data = NewData.concat();
+    }
+
+    /*更新小球状态*/
+    function updateBalls(){
+        for(var i = 0; i < balls.length; i++){
+            balls[i].stepY += balls[i].disY;
+            balls[i].x += balls[i].stepX;
+            balls[i].y += balls[i].stepY;
+            if(balls[i].x > W + R || balls[i].y > H + R){
+                balls.splice(i,1);
+                i--;
+            }
+        }
+    }
+
+    /*增加要运动的小球*/
+    function addBalls(index,num){
+        var numArray = [1,2,3];
+        var colorArray =  ["#3BE","#09C","#A6C","#93C","#9C0","#690","#FB3","#F80","#F44","#C00"];
+        for(var i = 0; i < digit[num].length; i++){
+            for(var j = 0; j < digit[num][i].length; j++){
+                if(digit[num][i][j] == 1){
+                    var ball = {
+                        x:14*(R+2)*index + j*2*(R+1)+(R+1),
+                        y:i*2*(R+1)+(R+1),
+                        stepX:Math.floor(Math.random() * 4 -2),
+                        stepY:-2*numArray[Math.floor(Math.random()*numArray.length)],
+                        color:colorArray[Math.floor(Math.random()*colorArray.length)],
+                        disY:1
+                    };
+                    balls.push(ball);
+                }
+            }
+        }
+    }
+
+    /*渲染*/
+    function render(){
+        //重置画布宽度，达到清空画布的效果
+        canvas.height = 100;
+        //渲染时钟
+        for(var i = 0; i < data.length; i++){
+            renderDigit(i,data[i]);
+        }
+        //渲染小球
+        for(var i = 0; i < balls.length; i++){
+            cxt.beginPath();
+            cxt.arc(balls[i].x,balls[i].y,R,0,2*Math.PI);
+            cxt.fillStyle = balls[i].color;
+            cxt.closePath();
+            cxt.fill();
+        }
+    }
+
+    clearInterval(oTimer);
+    var oTimer = setInterval(function(){
+        //更新时钟
+        updateDigitTime();
+        //更新小球状态
+        updateBalls();
+        //渲染
+        render();
+    },50);
+}
+
+})();
+</script>
+
+
+      </div>
+        <div class="back-to-top motion-element">
+          <i class="fa fa-arrow-up"></i>
+          <span>0%</span>
+        </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 2019 – 
+  <span itemprop="copyrightYear">2021</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">猫猫哥</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+      <span class="post-meta-item-text">站点总字数：</span>
+    <span title="站点总字数">117k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+      <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
+    <span title="站点阅读时长">1:47</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener external nofollow noreferrer" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener external nofollow noreferrer" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+<script>
+  (function() {
+    function leancloudSelector(url) {
+      url = encodeURI(url);
+      return document.getElementById(url).querySelector('.leancloud-visitors-count');
+    }
+
+    function addCount(Counter) {
+      var visitors = document.querySelector('.leancloud_visitors');
+      var url = decodeURI(visitors.id);
+      var title = visitors.dataset.flagTitle;
+
+      Counter('get', '/classes/Counter?where=' + encodeURIComponent(JSON.stringify({ url })))
+        .then(response => response.json())
+        .then(({ results }) => {
+          if (results.length > 0) {
+            var counter = results[0];
+            leancloudSelector(url).innerText = counter.time + 1;
+            Counter('put', '/classes/Counter/' + counter.objectId, { time: { '__op': 'Increment', 'amount': 1 } })
+              .catch(error => {
+                console.error('Failed to save visitor count', error);
+              });
+          } else {
+              leancloudSelector(url).innerText = 'Counter not initialized! More info at console err msg.';
+              console.error('ATTENTION! LeanCloud counter has security bug, see how to solve it here: https://github.com/theme-next/hexo-leancloud-counter-security. \n However, you can still use LeanCloud without security, by setting `security` option to `false`.');
+            
+          }
+        })
+        .catch(error => {
+          console.error('LeanCloud Counter Error', error);
+        });
+    }
+
+    function showTime(Counter) {
+      var visitors = document.querySelectorAll('.leancloud_visitors');
+      var entries = [...visitors].map(element => {
+        return decodeURI(element.id);
+      });
+
+      Counter('get', '/classes/Counter?where=' + encodeURIComponent(JSON.stringify({ url: { '$in': entries } })))
+        .then(response => response.json())
+        .then(({ results }) => {
+          for (let url of entries) {
+            let target = results.find(item => item.url === url);
+            leancloudSelector(url).innerText = target ? target.time : 0;
+          }
+        })
+        .catch(error => {
+          console.error('LeanCloud Counter Error', error);
+        });
+    }
+
+    let { app_id, app_key, server_url } = {"enable":true,"app_id":"0Syy5qyXX1qTBOGiD0vUzpHb-MdYXbMMI","app_key":"B3MuN4GIHf7ru1ojTSkjjI9a","server_url":null,"security":true,"betterPerformance":true};
+    function fetchData(api_server) {
+      var Counter = (method, url, data) => {
+        return fetch(`${api_server}/1.1${url}`, {
+          method,
+          headers: {
+            'X-LC-Id'     : app_id,
+            'X-LC-Key'    : app_key,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(data)
+        });
+      };
+      if (CONFIG.page.isPost) {
+        if (CONFIG.hostname !== location.hostname) return;
+        addCount(Counter);
+      } else if (document.querySelectorAll('.post-title-link').length >= 1) {
+        showTime(Counter);
+      }
+    }
+
+    let api_server = app_id.slice(-9) !== '-MdYXbMMI' ? server_url : `https://${app_id.slice(0, 8).toLowerCase()}.api.lncldglobal.com`;
+
+    if (api_server) {
+      fetchData(api_server);
+    } else {
+      fetch('https://app-router.leancloud.cn/2/route?appId=' + app_id)
+        .then(response => response.json())
+        .then(({ api_server }) => {
+          fetchData('https://' + api_server);
+        });
+    }
+  })();
+</script>
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="//cdn.jsdelivr.net/npm/animejs@3.1.0/lib/anime.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/velocity-animate@1/velocity.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/velocity-animate@1/velocity.ui.min.js"></script>
+
+<script src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/js/utils.js"></script>
+
+<script src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/js/motion.js"></script>
+
+
+<script src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/js/schemes/pisces.js"></script>
+
+
+<script src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/js/next-boot.js"></script>
+
+
+
+
+  
+  <script>
+    (function(){
+      var canonicalURL, curProtocol;
+      //Get the <link> tag
+      var x=document.getElementsByTagName("link");
+		//Find the last canonical URL
+		if(x.length > 0){
+			for (i=0;i<x.length;i++){
+				if(x[i].rel.toLowerCase() == 'canonical' && x[i].href){
+					canonicalURL=x[i].href;
+				}
+			}
+		}
+    //Get protocol
+	    if (!canonicalURL){
+	    	curProtocol = window.location.protocol.split(':')[0];
+	    }
+	    else{
+	    	curProtocol = canonicalURL.split(':')[0];
+	    }
+      //Get current URL if the canonical URL does not exist
+	    if (!canonicalURL) canonicalURL = window.location.href;
+	    //Assign script content. Replace current URL with the canonical URL
+      !function(){var e=/([http|https]:\/\/[a-zA-Z0-9\_\.]+\.baidu\.com)/gi,r=canonicalURL,t=document.referrer;if(!e.test(r)){var n=(String(curProtocol).toLowerCase() === 'https')?"https://sp0.baidu.com/9_Q4simg2RQJ8t7jm9iCKT-xh_/s.gif":"//api.share.baidu.com/s.gif";t?(n+="?r="+encodeURIComponent(document.referrer),r&&(n+="&l="+r)):r&&(n+="?l="+r);var i=new Image;i.src=n}}(window);})();
+  </script>
+
+
+
+
+  
+<script src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+
+<script>
+NexT.utils.loadComments(document.querySelector('#valine-comments'), () => {
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/valine@1/dist/Valine.min.js', () => {
+    var GUEST = ['nick', 'mail', 'link'];
+    var guest = 'nick,mail,link';
+    guest = guest.split(',').filter(item => {
+      return GUEST.includes(item);
+    });
+    new Valine({
+      el         : '#valine-comments',
+      verify     : false,
+      notify     : true,
+      appId      : '0Syy5qyXX1qTBOGiD0vUzpHb-MdYXbMMI',
+      appKey     : 'B3MuN4GIHf7ru1ojTSkjjI9a',
+      placeholder: "欢迎留言讨论，记得在上方【邮箱】处填上邮箱地址，可以收到回复通知哦(^。^)",
+      avatar     : 'mm',
+      meta       : guest,
+      pageSize   : '10' || 10,
+      visitor    : false,
+      lang       : '' || 'zh-cn',
+      path       : location.pathname,
+      recordIP   : false,
+      serverURLs : ''
+    });
+  }, window.Valine);
+});
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/jquery/dist/jquery.min.js"></script>
+
+
+
+  <script async src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/js/cursor/fireworks.js"></script>
+
+
+
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/js/fold_action.js"></script>
+
+
+</body>
+</html>

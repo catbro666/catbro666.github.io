@@ -31,7 +31,7 @@
 <meta property="og:description" content="写在前面OpenResty（后面简称：OR）是一个基于Nginx和Lua的高性能Web平台，它内部集成大量的Lua API以及第三方模块，可以利用它快速搭建支持高并发、极具动态性和扩展性的Web应用、Web服务或动态网关。OR最大的特点就是，将Lua协程与Nginx事件驱动模型及非阻塞I&#x2F;O结合起来。使用户可以在handler中使用 同步但是依然是非阻塞 的方式编写其应用">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2021-07-03T10:52:24.000Z">
-<meta property="article:modified_time" content="2021-07-09T16:01:50.003Z">
+<meta property="article:modified_time" content="2021-07-10T17:17:35.477Z">
 <meta property="article:author" content="猫猫哥">
 <meta property="article:tag" content="OpenResty">
 <meta property="article:tag" content="Nginx">
@@ -263,7 +263,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-07-10 00:01:50" itemprop="dateModified" datetime="2021-07-10T00:01:50+08:00">2021-07-10</time>
+                <time title="修改时间：2021-07-11 01:17:35" itemprop="dateModified" datetime="2021-07-11T01:17:35+08:00">2021-07-11</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -378,7 +378,7 @@ translateInitilization();
 <p>所以OR中协程拓扑是一个单层的结构，它只有<strong>一个入口点</strong>。这样使得协程调度更加灵活，I/O事件的触发时回调函数也更容易实现。</p>
 <p>OR调度器根据<code>lua_resume()</code>的返回值，确定协程是挂起了、结束了还是出错了。因为OR改动了创建新协程时行为，同时又抽象了thread概念，所以如果是协程挂起的情况，还需要知道是什么原因挂起，以便做相应的不同处理。是继续调度？还是返回上层？我们后面会提到的<code>ctx-&gt;co_op</code>便是做这个用途。</p>
 <h2 id="协程调度逻辑"><a href="#协程调度逻辑" class="headerlink" title="协程调度逻辑"></a>协程调度逻辑</h2><p>协程的调度在核心调度函数<code>ngx_stream_lua_run_thread()</code>中进行，它是创建或恢复协程的唯一入口点。它里面实现了一个调度循环，循环里面先从<code>ctx-&gt;cur_co_ctx</code>获取下一个待resume的协程上下文，然后<code>lua_resume()</code>执行或恢复该协程，其返回值<code>LUA_YIELD</code>表示协程挂起，<code>0</code>表示协程执行结束，其余的表示协程出错了。其中协程挂起又分为几种不同的情况：即等待I/O、新建thread、<code>coroutine.resume</code>和<code>coroutine.yield</code>。根据不同的情况，决定是跳到循环前面继续调度，还是返回上层函数。</p>
-<p>下图是一个协程调度的主要逻辑示意图，可以看到Lua代码域无论是新建、挂起或恢复协程，都是先调用<code>lua_yield()</code>回到主线程。I/O操作例如<code>ngx.tcp.send()</code>如果碰到了I/O等待，会在内部主动<code>lua_yield()</code>，事件触发时恢复未完成的I/O操作，结束之后<code>lua_resume()</code>恢复之前的调用协程。</p>
+<p>下图是一个协程调度的主要逻辑示意图，可以看到Lua代码域无论是新建、挂起或恢复协程，都是先调用<code>lua_yield()</code>回到主线程。I/O操作例如<code>ngx.tcp.send()</code>如果碰到了I/O等待，会在内部自动<code>lua_yield()</code>，事件触发时恢复未完成的I/O操作，结束之后<code>lua_resume()</code>恢复之前的调用协程。</p>
 <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line">                                    C region            :   Lua Region</span><br><span class="line">                            &gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;:&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;<span class="function">v</span></span><br><span class="line"><span class="function"><span class="title">xx_handler</span><span class="params">()</span>                ^                           :   never directly  v</span></span><br><span class="line"><span class="function">+-- <span class="title">by_chunk</span><span class="params">()</span>              ^                           :    <span class="title">lua_resume</span><span class="params">()</span>   v</span></span><br><span class="line"><span class="function">    |-- <span class="title">new_thread</span><span class="params">()</span>        ^                           :   in Lua Region,  v</span></span><br><span class="line"><span class="function">    |-- <span class="title">run_thread</span><span class="params">()</span>        ^                           :    always be      v</span></span><br><span class="line"><span class="function">    |   |-- <span class="title">for</span><span class="params">(;;)</span> </span>&#123;       ^                           :   lua_yield()     v</span><br><span class="line">    |   |-- rv = lua_resume()&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt; lua_yield()&lt;&lt;&lt;&lt;&lt;&lt;:&lt;&lt;&lt;&lt;               v</span><br><span class="line">    |   |-- <span class="keyword">switch</span>(rv)                      ^           :   ^               v</span><br><span class="line">    |   |                                   ^           :   ^               v</span><br><span class="line">    |   |-- <span class="keyword">case</span> LUA_YIELD                  ^           :   ^               v</span><br><span class="line">    |   |   |                       (I/O interruption)&lt;&lt;:&lt;&lt;(ngx.tcp.send)   v</span><br><span class="line">    |   |   |-- <span class="keyword">switch</span> (ctx-&gt;co_op)         |           :   ^               v</span><br><span class="line">    |   |   |                               |           :   ^               v</span><br><span class="line">    |   |   |-- <span class="keyword">case</span> NGX_STREAM_LUA_USER_CORO_NOP       :   ^               v</span><br><span class="line">    |   |   |   +-- <span class="keyword">return</span> NGX_AGAIN                    :   ^               v</span><br><span class="line">    |   |   |                                           :   ^               v</span><br><span class="line">    |   |   |-- <span class="keyword">case</span> NGX_STREAM_LUA_USER_THREAD_RESUME--:--(ngx.thread.spwan)</span><br><span class="line">    |   |   |                                           :</span><br><span class="line">    |   |   |-- <span class="keyword">case</span> NGX_STREAM_LUA_USER_CORO_RESUME----:--(coroutine.resume)</span><br><span class="line">    |   |   |                                           :</span><br><span class="line">    |   |   +-- <span class="keyword">case</span> NGX_STREAM_LUA_USER_CORO_YIELD-----:--(coroutine.yield)</span><br><span class="line">    |   |                                               :</span><br><span class="line">    |   |-- <span class="keyword">case</span> <span class="number">0</span> (coroutine finish work)</span><br><span class="line">    |   |</span><br><span class="line">    |   |-- <span class="keyword">case</span> XXX_ERR (error)                </span><br><span class="line">    |   +-- &#125;   <span class="comment">/* for&#123;;;&#125; */</span>                   OpenResty Coroutine</span><br><span class="line">    |                                               Schedule</span><br><span class="line">    |-- run_posted_threads()                       by catbro666</span><br><span class="line">    |   |-- run_thread()                            <span class="number">2021.07</span><span class="number">.02</span></span><br><span class="line">    +-- <span class="keyword">return</span>                                      </span><br></pre></td></tr></table></figure>
 
 
@@ -559,6 +559,9 @@ translateInitilization();
     <li class="popular-posts-item">
       <div class="popular-posts-title"><a href="/posts/30b81f82/" rel="bookmark">OpenResty Lua钩子调用完整流程</a></div>
     </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/posts/74970c0e/" rel="bookmark">自己动手实现Lua--实现TAILCALL指令</a></div>
+    </li>
   </ul>
 <div>
     
@@ -700,7 +703,7 @@ translateInitilization();
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">7</span>
+          <span class="site-state-item-count">8</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
@@ -713,7 +716,7 @@ translateInitilization();
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">10</span>
+        <span class="site-state-item-count">11</span>
         <span class="site-state-item-name">标签</span></a>
       </div>
   </nav>
@@ -1030,13 +1033,13 @@ if(canvas.getContext){
       <i class="fa fa-chart-area"></i>
     </span>
       <span class="post-meta-item-text">站点总字数：</span>
-    <span title="站点总字数">101k</span>
+    <span title="站点总字数">117k</span>
     <span class="post-meta-divider">|</span>
     <span class="post-meta-item-icon">
       <i class="fa fa-coffee"></i>
     </span>
       <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
-    <span title="站点阅读时长">1:32</span>
+    <span title="站点阅读时长">1:47</span>
 </div>
   <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener external nofollow noreferrer" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener external nofollow noreferrer" target="_blank">NexT.Gemini</a> 强力驱动
   </div>
