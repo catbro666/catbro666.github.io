@@ -5,6 +5,7 @@
 {"title":"Hexo-NexT Tag 插件的使用","url":"/posts/29bfe8c9/"},
 {"title":"OpenResty Lua钩子调用完整流程","url":"/posts/30b81f82/"},
 {"title":"Hello World","url":"/posts/4a17b156/"},
+{"title":"自己动手实现Lua--实现TAILCALL指令","url":"/posts/74970c0e/"},
 {"title":"UNIX环境高级编程APUE练习4.6-实现类似cp(1)的程序，保留文件中的空洞","url":"/posts/aa99fc97/"},
 {"title":"test-post","url":"/posts/dce1f5ed/"},
 {"title":"多进程性能测试程序demo","url":"/posts/e416d910/"},
