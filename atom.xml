@@ -6,7 +6,7 @@
   <link href="https://catbro666.github.io/atom.xml" rel="self"/>
   
   <link href="https://catbro666.github.io/"/>
-  <updated>2021-07-19T15:57:04.995Z</updated>
+  <updated>2021-08-08T15:32:23.547Z</updated>
   <id>https://catbro666.github.io/</id>
   
   <author>
@@ -15,6 +15,27 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>SSL-protocol-introduction</title>
+    <link href="https://catbro666.github.io/posts/e92ef4b4/"/>
+    <id>https://catbro666.github.io/posts/e92ef4b4/</id>
+    <published>2021-08-08T15:32:26.000Z</published>
+    <updated>2021-08-08T15:32:23.547Z</updated>
+    
+    
+    <summary type="html">&lt;div class=&quot;note primary&quot;&gt;
+            &lt;p&gt;SSL协议是现代网络通信中重要的一环，它提供了传输层上的数据安全。为了方便大家的理解，本文将先从加密学的基础知识入手，然后展开对SSL协议原理、流程以及一些重要的特性的详解，最后会从扩展介绍一下国密SSL协议的差异、安全性以及TLS 1.3的关键新特性。&lt;/p&gt;&lt;p&gt;限于篇幅以及个人知识水平，本文不会涉及过于细节的内容。特别地，本文将不涉及算法的具体原理，也不涉及实际代码的实现。而是试图以图表等直观的方式来了解基本的原理以及流程。&lt;/p&gt;
+          &lt;/div&gt;</summary>
+    
+    
+    
+    <category term="理论向" scheme="https://catbro666.github.io/categories/%E7%90%86%E8%AE%BA%E5%90%91/"/>
+    
+    
+    <category term="SSL/TLS, 密码学" scheme="https://catbro666.github.io/tags/SSL-TLS-%E5%AF%86%E7%A0%81%E5%AD%A6/"/>
+    
+  </entry>
   
   <entry>
     <title>自己动手实现Lua--实现TAILCALL指令</title>
