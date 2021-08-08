@@ -71,7 +71,7 @@
 <meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/Simplified_Heartbleed_explanation.svg">
 <meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/TLS1_3-Key-Schedule.png">
 <meta property="article:published_time" content="2021-08-08T15:32:26.000Z">
-<meta property="article:modified_time" content="2021-08-08T15:51:36.058Z">
+<meta property="article:modified_time" content="2021-08-08T16:11:42.177Z">
 <meta property="article:author" content="猫猫哥">
 <meta property="article:tag" content="SSL&#x2F;TLS">
 <meta property="article:tag" content="密码学">
@@ -294,10 +294,16 @@
                 <i class="far fa-calendar"></i>
               </span>
               <span class="post-meta-item-text">发表于</span>
-              
 
-              <time title="创建时间：2021-08-08 23:32:26 / 修改时间：23:51:36" itemprop="dateCreated datePublished" datetime="2021-08-08T23:32:26+08:00">2021-08-08</time>
+              <time title="创建时间：2021-08-08 23:32:26" itemprop="dateCreated datePublished" datetime="2021-08-08T23:32:26+08:00">2021-08-08</time>
             </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-08-09 00:11:42" itemprop="dateModified" datetime="2021-08-09T00:11:42+08:00">2021-08-09</time>
+              </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
                 <i class="far fa-folder"></i>
@@ -580,36 +586,26 @@ translateInitilization();
 <h3 id="密钥交换流程-RSA"><a href="#密钥交换流程-RSA" class="headerlink" title="密钥交换流程-RSA"></a>密钥交换流程-RSA</h3><p>基于RSA的密钥交换流程如下：</p>
 <p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/SSL-keyexchange-RSA.jpeg" alt="SSL-keyexchange-RSA" loading="lazy"></p>
 <p>我们来模拟下协商过程：</p>
-<span class="label info">客户端</span>：Hi，服务端，我这边支持这些算法，这是我本次的随机数。
-
-<span class="label success">服务端</span>：好的，我看看，我们就选用这个算法套件吧，这是我本次的随机数，这是我的证书，你用这个证书里的公钥来加密预主密钥。
-
-<span class="label info">客户端</span>：稍等我验下证书，嗯，的确是服务端的证书。这是用证书中公钥加密的预主密钥。（计算会话密钥中。。。）好了，我这边OK了。
-
-<span class="label success">服务端</span>：收到。（用私钥解密出预主密钥，计算会话密钥中。。。）好了，我这边也OK了。
-
-<span class="label info">客户端</span>：这是加密的应用数据。。。
-
-<span class="label success">服务端</span>：这是加密的应用数据。。。
-
-
-
+<ul>
+<li><span class="label info">客户端</span>：Hi，服务端，我这边支持这些算法，这是我本次的随机数。</li>
+<li><span class="label success">服务端</span>：好的，我看看，我们就选用这个算法套件吧，这是我本次的随机数，这是我的证书，你用这个证书里的公钥来加密预主密钥。</li>
+<li><span class="label info">客户端</span>：稍等我验下证书，嗯，的确是服务端的证书。这是用证书中公钥加密的预主密钥。（计算会话密钥中。。。）好了，我这边OK了。</li>
+<li><span class="label success">服务端</span>：收到。（用私钥解密出预主密钥，计算会话密钥中。。。）好了，我这边也OK了。</li>
+<li><span class="label info">客户端</span>：这是加密的应用数据。。。</li>
+<li><span class="label success">服务端</span>：这是加密的应用数据。。。</li>
+</ul>
 <p>注：上面的流程是单向认证（服务端没有验证客户端的身份），如果服务端也需要验客户端的身份，会在第一次交互中发送<code>Certificate Request</code>消息，客户端相应的在第二次交互中发送自己的证书以及签名给服务端。</p>
 <h3 id="密钥交换流程-DH"><a href="#密钥交换流程-DH" class="headerlink" title="密钥交换流程-DH"></a>密钥交换流程-DH</h3><p>基于DH的密钥交换流程如下：</p>
 <p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/SSL-keyexchange-DH.jpeg" alt="SSL-keyexchange-DH" loading="lazy"></p>
 <p>我们同样来模拟下协商过程：</p>
-<span class="label info">客户端</span>：Hi，服务端，我这边支持这些算法，这是我本次的随机数。
-
-<span class="label success">服务端</span>：好的，我看看，我们就选用这个算法套件吧，这是我本次的随机数，给你我的证书。我这边用这个DH参数，这是对应的签名。
-
-<span class="label info">客户端</span>：稍等我验下签名和证书，嗯，的确是服务端的证书对应的签名。这是我这边的DH参数。（推导预主密钥，计算会话密钥中。。。）好了，我这边OK了。
-
-<span class="label success">服务端</span>：收到。（推导预主密钥，计算会话密钥中。。。）好了，我这边也OK了。
-
-<span class="label info">客户端</span>：这是加密的应用数据。。。
-
-<span class="label success">服务端</span>：这是加密的应用数据。。。
-
+<ul>
+<li><span class="label info">客户端</span>：Hi，服务端，我这边支持这些算法，这是我本次的随机数。</li>
+<li><span class="label success">服务端</span>：好的，我看看，我们就选用这个算法套件吧，这是我本次的随机数，给你我的证书。我这边用这个DH参数，这是对应的签名。</li>
+<li><span class="label info">客户端</span>：稍等我验下签名和证书，嗯，的确是服务端的证书对应的签名。这是我这边的DH参数。（推导预主密钥，计算会话密钥中。。。）好了，我这边OK了。</li>
+<li><span class="label success">服务端</span>：收到。（推导预主密钥，计算会话密钥中。。。）好了，我这边也OK了。</li>
+<li><span class="label info">客户端</span>：这是加密的应用数据。。。</li>
+<li><span class="label success">服务端</span>：这是加密的应用数据。。。</li>
+</ul>
 <h3 id="密钥生成"><a href="#密钥生成" class="headerlink" title="密钥生成"></a>密钥生成</h3><p>通过第一次ClientHello和ServerHello的交互、以及密钥交换的过程，客户端和服务端双方，都得到了client随机数、server随机数以及预主密钥。接下来就可以通过这些来计算主密钥了。</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">master_secret = PRF(pre_master_secret, &quot;master secret&quot;,</span><br><span class="line">                    ClientHello.random + ServerHello.random)</span><br><span class="line">                    [0..47];</span><br></pre></td></tr></table></figure>
 

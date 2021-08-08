@@ -1205,36 +1205,26 @@
 <h3 id="密钥交换流程-RSA"><a href="#密钥交换流程-RSA" class="headerlink" title="密钥交换流程-RSA"></a>密钥交换流程-RSA</h3><p>基于RSA的密钥交换流程如下：</p>
 <p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/SSL-keyexchange-RSA.jpeg" alt="SSL-keyexchange-RSA" loading="lazy"></p>
 <p>我们来模拟下协商过程：</p>
-<span class="label info">客户端</span>：Hi，服务端，我这边支持这些算法，这是我本次的随机数。
-
-<span class="label success">服务端</span>：好的，我看看，我们就选用这个算法套件吧，这是我本次的随机数，这是我的证书，你用这个证书里的公钥来加密预主密钥。
-
-<span class="label info">客户端</span>：稍等我验下证书，嗯，的确是服务端的证书。这是用证书中公钥加密的预主密钥。（计算会话密钥中。。。）好了，我这边OK了。
-
-<span class="label success">服务端</span>：收到。（用私钥解密出预主密钥，计算会话密钥中。。。）好了，我这边也OK了。
-
-<span class="label info">客户端</span>：这是加密的应用数据。。。
-
-<span class="label success">服务端</span>：这是加密的应用数据。。。
-
-
-
+<ul>
+<li><span class="label info">客户端</span>：Hi，服务端，我这边支持这些算法，这是我本次的随机数。</li>
+<li><span class="label success">服务端</span>：好的，我看看，我们就选用这个算法套件吧，这是我本次的随机数，这是我的证书，你用这个证书里的公钥来加密预主密钥。</li>
+<li><span class="label info">客户端</span>：稍等我验下证书，嗯，的确是服务端的证书。这是用证书中公钥加密的预主密钥。（计算会话密钥中。。。）好了，我这边OK了。</li>
+<li><span class="label success">服务端</span>：收到。（用私钥解密出预主密钥，计算会话密钥中。。。）好了，我这边也OK了。</li>
+<li><span class="label info">客户端</span>：这是加密的应用数据。。。</li>
+<li><span class="label success">服务端</span>：这是加密的应用数据。。。</li>
+</ul>
 <p>注：上面的流程是单向认证（服务端没有验证客户端的身份），如果服务端也需要验客户端的身份，会在第一次交互中发送<code>Certificate Request</code>消息，客户端相应的在第二次交互中发送自己的证书以及签名给服务端。</p>
 <h3 id="密钥交换流程-DH"><a href="#密钥交换流程-DH" class="headerlink" title="密钥交换流程-DH"></a>密钥交换流程-DH</h3><p>基于DH的密钥交换流程如下：</p>
 <p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/SSL-keyexchange-DH.jpeg" alt="SSL-keyexchange-DH" loading="lazy"></p>
 <p>我们同样来模拟下协商过程：</p>
-<span class="label info">客户端</span>：Hi，服务端，我这边支持这些算法，这是我本次的随机数。
-
-<span class="label success">服务端</span>：好的，我看看，我们就选用这个算法套件吧，这是我本次的随机数，给你我的证书。我这边用这个DH参数，这是对应的签名。
-
-<span class="label info">客户端</span>：稍等我验下签名和证书，嗯，的确是服务端的证书对应的签名。这是我这边的DH参数。（推导预主密钥，计算会话密钥中。。。）好了，我这边OK了。
-
-<span class="label success">服务端</span>：收到。（推导预主密钥，计算会话密钥中。。。）好了，我这边也OK了。
-
-<span class="label info">客户端</span>：这是加密的应用数据。。。
-
-<span class="label success">服务端</span>：这是加密的应用数据。。。
-
+<ul>
+<li><span class="label info">客户端</span>：Hi，服务端，我这边支持这些算法，这是我本次的随机数。</li>
+<li><span class="label success">服务端</span>：好的，我看看，我们就选用这个算法套件吧，这是我本次的随机数，给你我的证书。我这边用这个DH参数，这是对应的签名。</li>
+<li><span class="label info">客户端</span>：稍等我验下签名和证书，嗯，的确是服务端的证书对应的签名。这是我这边的DH参数。（推导预主密钥，计算会话密钥中。。。）好了，我这边OK了。</li>
+<li><span class="label success">服务端</span>：收到。（推导预主密钥，计算会话密钥中。。。）好了，我这边也OK了。</li>
+<li><span class="label info">客户端</span>：这是加密的应用数据。。。</li>
+<li><span class="label success">服务端</span>：这是加密的应用数据。。。</li>
+</ul>
 <h3 id="密钥生成"><a href="#密钥生成" class="headerlink" title="密钥生成"></a>密钥生成</h3><p>通过第一次ClientHello和ServerHello的交互、以及密钥交换的过程，客户端和服务端双方，都得到了client随机数、server随机数以及预主密钥。接下来就可以通过这些来计算主密钥了。</p>
 <figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">master_secret = PRF(pre_master_secret, &quot;master secret&quot;,</span><br><span class="line">                    ClientHello.random + ServerHello.random)</span><br><span class="line">                    [0..47];</span><br></pre></td></tr></table></figure>
 
