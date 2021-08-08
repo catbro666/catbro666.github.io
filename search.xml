@@ -996,7 +996,7 @@
       </tags>
   </entry>
   <entry>
-    <title>SSL-protocol-introduction</title>
+    <title>一篇文章搞懂密码学基础及SSL/TLS协议</title>
     <url>/posts/e92ef4b4/</url>
     <content><![CDATA[<div class="note primary">
             <p>SSL协议是现代网络通信中重要的一环，它提供了传输层上的数据安全。为了方便大家的理解，本文将先从加密学的基础知识入手，然后展开对SSL协议原理、流程以及一些重要的特性的详解，最后会从扩展介绍一下国密SSL协议的差异、安全性以及TLS 1.3的关键新特性。</p><p>限于篇幅以及个人知识水平，本文不会涉及过于细节的内容。特别地，本文将不涉及算法的具体原理，也不涉及实际代码的实现。而是试图以图表等直观的方式来了解基本的原理以及流程。</p>
