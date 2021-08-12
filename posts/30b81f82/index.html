@@ -33,7 +33,7 @@
 <meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/30b81f82/openresty-lua-hook-flow-init-phase.svg">
 <meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/30b81f82/openresty-lua-hook-flow-connect-phase.svg">
 <meta property="article:published_time" content="2021-07-03T18:05:36.000Z">
-<meta property="article:modified_time" content="2021-08-03T07:05:20.304Z">
+<meta property="article:modified_time" content="2021-08-12T12:04:21.878Z">
 <meta property="article:author" content="猫猫哥">
 <meta property="article:tag" content="Lua">
 <meta property="article:tag" content="OpenResty">
@@ -266,7 +266,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-03 15:05:20" itemprop="dateModified" datetime="2021-08-03T15:05:20+08:00">2021-08-03</time>
+                <time title="修改时间：2021-08-12 20:04:21" itemprop="dateModified" datetime="2021-08-12T20:04:21+08:00">2021-08-12</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -359,8 +359,8 @@ translateInitilization();
 <h2 id="初始化阶段"><a href="#初始化阶段" class="headerlink" title="初始化阶段"></a>初始化阶段</h2><p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/30b81f82/openresty-lua-hook-flow-init-phase.svg" alt="openresty-lua-hook-flow-init-phase" loading="lazy"></p>
 <p>初始化阶段的流程比较简单：配置解析阶段会读取配置文件中的代码块进行解析保存，然后创建Lua代码的key，这个key是用于后面将代码cache到注册表的。配置合并阶段，主要是合并配置项，然后设置<code>cert_cb</code>回调。配置后处理阶段，主要工作是初始化Lua VM，包括创建注册表项、创建全局表项<code>ngx</code>、替换coroutine接口。</p>
 <h2 id="连接阶段"><a href="#连接阶段" class="headerlink" title="连接阶段"></a>连接阶段</h2><p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/30b81f82/openresty-lua-hook-flow-connect-phase.svg" alt="openresty-lua-hook-flow-connect-phase" loading="lazy"></p>
-<p>连接阶段因为涉及新连接进入钩子、I/O等待时出去、事件触发时恢复、钩子正常执行结束、钩子内出错等各种情况，相对比较复杂。图中用不同颜色分别表示这几种不同的情况，每种颜色又用数字标识了其流程顺序。读者可以结合这个图，阅读后续每个阶段的代码，应该能够帮助您更好地理解。</p>
-<p>另外提一下，本文没有涉及执行Lua代码执行过程没有碰到YIELD就直接完成或者出错的情况。因为这种情况比较简单，整个流程都是一个同步的过程。执行完成或者出错之后，<code>lua_resume()</code>返回，后续的流程就跟图中I/O等待（棕色）的情况是一样的。</p>
+<p>连接阶段因为涉及新连接进入钩子、I/O等待时出去、事件触发时恢复、钩子正常执行结束（YIELD之后）、钩子内出错（YIELD之后）等各种情况，相对比较复杂。图中用不同颜色分别表示这几种不同的情况，每种颜色又用数字标识了其流程顺序。读者可以结合这个图，阅读后续每个阶段的代码，应该能够帮助您更好地理解。</p>
+<p>另外提一下，本文没有涉及Lua代码执行过程没有碰到YIELD就直接完成或者出错的情况。因为这种情况比较简单，整个流程都是一个同步的过程。执行完成或者出错之后，<code>lua_resume()</code>返回，后续的流程就跟图中I/O等待（棕色）的情况是一样的。</p>
 <h1 id="初始化阶段-1"><a href="#初始化阶段-1" class="headerlink" title="初始化阶段"></a>初始化阶段</h1><h2 id="配置项解析"><a href="#配置项解析" class="headerlink" title="配置项解析"></a>配置项解析</h2><p>解析到<code>ssl_certificate_by_lua_block</code>时会调用<code>ngx_stream_lua_ssl_cert_by_lua_block()</code>进行解析，里面会进行配置文件的词法分析，将代码块中的代码都合并到一个buffer之后，插入到参数数组的后面。然后调用<code>ngx_stream_lua_ssl_cert_by_lua()</code>。（如果是<code>by_lua_file</code>的情况会直接调用<code>ngx_stream_lua_ssl_cert_by_lua()</code>）</p>
 <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">char</span> *</span></span><br><span class="line"><span class="function"><span class="title">ngx_stream_lua_ssl_cert_by_lua_block</span><span class="params">(<span class="keyword">ngx_conf_t</span> *cf, <span class="keyword">ngx_command_t</span> *cmd,</span></span></span><br><span class="line"><span class="params"><span class="function">    <span class="keyword">void</span> *conf)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">char</span>        *rv;</span><br><span class="line">    <span class="keyword">ngx_conf_t</span>   save;</span><br><span class="line"></span><br><span class="line">    save = *cf;</span><br><span class="line">    cf-&gt;handler = ngx_stream_lua_ssl_cert_by_lua;</span><br><span class="line">    cf-&gt;handler_conf = conf;</span><br><span class="line"></span><br><span class="line">    rv = ngx_stream_lua_conf_lua_block_parse(cf, cmd);</span><br><span class="line"></span><br><span class="line">    *cf = save;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> rv;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
@@ -482,7 +482,7 @@ translateInitilization();
 <p>最终，<code>SSL_do_handshake</code>返回错误值，结束SSL握手。</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">n = SSL_do_handshake(c-&gt;ssl-&gt;connection);</span><br><span class="line">sslerr = SSL_get_error(c-&gt;ssl-&gt;connection, n);</span><br><span class="line">return NGX_ERROR;</span><br></pre></td></tr></table></figure>
 
-<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>我们本篇是以一个定时器为例子，对于I/O等待其实也是类似的流程。只不过触发事件由定时器超时变成了相应的fd的读写事件，协程的恢复由定时器时的直接恢复变成了完成本次I/O任务（或者出错）之后恢复协程。</p>
+<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>我们本篇是以一个定时器为例子，对于socket I/O等待其实也是类似的流程。只不过触发事件由定时器超时变成了相应的fd的读写事件，协程的恢复由定时器时的直接恢复变成了完成本次I/O任务（或者出错）之后恢复协程。</p>
 
     </div>
 
@@ -969,13 +969,13 @@ if(canvas.getContext){
       <i class="fa fa-chart-area"></i>
     </span>
       <span class="post-meta-item-text">站点总字数：</span>
-    <span title="站点总字数">140k</span>
+    <span title="站点总字数">141k</span>
     <span class="post-meta-divider">|</span>
     <span class="post-meta-item-icon">
       <i class="fa fa-coffee"></i>
     </span>
       <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
-    <span title="站点阅读时长">2:07</span>
+    <span title="站点阅读时长">2:08</span>
 </div>
   <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener external nofollow noreferrer" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener external nofollow noreferrer" target="_blank">NexT.Gemini</a> 强力驱动
   </div>

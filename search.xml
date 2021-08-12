@@ -463,8 +463,8 @@
 <h2 id="初始化阶段"><a href="#初始化阶段" class="headerlink" title="初始化阶段"></a>初始化阶段</h2><p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/30b81f82/openresty-lua-hook-flow-init-phase.svg" alt="openresty-lua-hook-flow-init-phase" loading="lazy"></p>
 <p>初始化阶段的流程比较简单：配置解析阶段会读取配置文件中的代码块进行解析保存，然后创建Lua代码的key，这个key是用于后面将代码cache到注册表的。配置合并阶段，主要是合并配置项，然后设置<code>cert_cb</code>回调。配置后处理阶段，主要工作是初始化Lua VM，包括创建注册表项、创建全局表项<code>ngx</code>、替换coroutine接口。</p>
 <h2 id="连接阶段"><a href="#连接阶段" class="headerlink" title="连接阶段"></a>连接阶段</h2><p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/30b81f82/openresty-lua-hook-flow-connect-phase.svg" alt="openresty-lua-hook-flow-connect-phase" loading="lazy"></p>
-<p>连接阶段因为涉及新连接进入钩子、I/O等待时出去、事件触发时恢复、钩子正常执行结束、钩子内出错等各种情况，相对比较复杂。图中用不同颜色分别表示这几种不同的情况，每种颜色又用数字标识了其流程顺序。读者可以结合这个图，阅读后续每个阶段的代码，应该能够帮助您更好地理解。</p>
-<p>另外提一下，本文没有涉及执行Lua代码执行过程没有碰到YIELD就直接完成或者出错的情况。因为这种情况比较简单，整个流程都是一个同步的过程。执行完成或者出错之后，<code>lua_resume()</code>返回，后续的流程就跟图中I/O等待（棕色）的情况是一样的。</p>
+<p>连接阶段因为涉及新连接进入钩子、I/O等待时出去、事件触发时恢复、钩子正常执行结束（YIELD之后）、钩子内出错（YIELD之后）等各种情况，相对比较复杂。图中用不同颜色分别表示这几种不同的情况，每种颜色又用数字标识了其流程顺序。读者可以结合这个图，阅读后续每个阶段的代码，应该能够帮助您更好地理解。</p>
+<p>另外提一下，本文没有涉及Lua代码执行过程没有碰到YIELD就直接完成或者出错的情况。因为这种情况比较简单，整个流程都是一个同步的过程。执行完成或者出错之后，<code>lua_resume()</code>返回，后续的流程就跟图中I/O等待（棕色）的情况是一样的。</p>
 <h1 id="初始化阶段-1"><a href="#初始化阶段-1" class="headerlink" title="初始化阶段"></a>初始化阶段</h1><h2 id="配置项解析"><a href="#配置项解析" class="headerlink" title="配置项解析"></a>配置项解析</h2><p>解析到<code>ssl_certificate_by_lua_block</code>时会调用<code>ngx_stream_lua_ssl_cert_by_lua_block()</code>进行解析，里面会进行配置文件的词法分析，将代码块中的代码都合并到一个buffer之后，插入到参数数组的后面。然后调用<code>ngx_stream_lua_ssl_cert_by_lua()</code>。（如果是<code>by_lua_file</code>的情况会直接调用<code>ngx_stream_lua_ssl_cert_by_lua()</code>）</p>
 <figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">char</span> *</span></span><br><span class="line"><span class="function"><span class="title">ngx_stream_lua_ssl_cert_by_lua_block</span><span class="params">(<span class="keyword">ngx_conf_t</span> *cf, <span class="keyword">ngx_command_t</span> *cmd,</span></span></span><br><span class="line"><span class="params"><span class="function">    <span class="keyword">void</span> *conf)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">char</span>        *rv;</span><br><span class="line">    <span class="keyword">ngx_conf_t</span>   save;</span><br><span class="line"></span><br><span class="line">    save = *cf;</span><br><span class="line">    cf-&gt;handler = ngx_stream_lua_ssl_cert_by_lua;</span><br><span class="line">    cf-&gt;handler_conf = conf;</span><br><span class="line"></span><br><span class="line">    rv = ngx_stream_lua_conf_lua_block_parse(cf, cmd);</span><br><span class="line"></span><br><span class="line">    *cf = save;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> rv;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
@@ -586,7 +586,7 @@
 <p>最终，<code>SSL_do_handshake</code>返回错误值，结束SSL握手。</p>
 <figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">n = SSL_do_handshake(c-&gt;ssl-&gt;connection);</span><br><span class="line">sslerr = SSL_get_error(c-&gt;ssl-&gt;connection, n);</span><br><span class="line">return NGX_ERROR;</span><br></pre></td></tr></table></figure>
 
-<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>我们本篇是以一个定时器为例子，对于I/O等待其实也是类似的流程。只不过触发事件由定时器超时变成了相应的fd的读写事件，协程的恢复由定时器时的直接恢复变成了完成本次I/O任务（或者出错）之后恢复协程。</p>
+<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>我们本篇是以一个定时器为例子，对于socket I/O等待其实也是类似的流程。只不过触发事件由定时器超时变成了相应的fd的读写事件，协程的恢复由定时器时的直接恢复变成了完成本次I/O任务（或者出错）之后恢复协程。</p>
 ]]></content>
       <categories>
         <category>技术向</category>
@@ -608,18 +608,18 @@
 <span id="more"></span>
 
 <div class="note default">
-            <p>注：<code>lua-nginx</code>模块与<code>stream-lua-nginx</code>模块的主体部分类似，后者实现相对简单一点。下面的讨论将基于<code>stream-lua</code>模块。</p><p>文中用到的一些术语明确一下：</p><ul><li><code>主线程</code>：表示外层调用<code>run_thread()</code>的OS线程</li><li><code>入口线程</code>：每个handler被调用时会创建一个入口线程，用于执行lua代码</li><li><code>用户线程</code>：用户在Lua代码中通过<code>ngx.thread.spawn()</code>创建的线程</li><li><code>用户协程</code>：用户在Lua代码中通过<code>coroutine.create()</code>创建的协程</li><li><code>协程</code>：泛指所有协程，包括入口线程、用户线程和用户协程</li><li><code>vm</code>：表示Lua虚拟机</li><li><code>L</code>：视出现的上下文，一般表示父协程，在创建入口线程的时候表示Lua VM</li><li><code>co</code>：一般表示新创建的协程</li><li><code>L栈： |协程表|新协程|顶|</code>：表示Lua栈结构，最右边是栈顶</li></ul>
+            <p>注：<code>lua-nginx</code>模块与<code>stream-lua-nginx</code>模块的主体部分类似，后者实现相对简单一点。下面的讨论将基于<code>stream-lua</code>模块。</p><p>为了防止歧义，文中用到的一些术语明确一下：</p><ul><li><code>主线程</code>：表示外层调用<code>run_thread()</code>的OS线程</li><li><code>入口线程</code>：每个handler被调用时会创建一个入口线程，用于执行lua代码</li><li><code>用户线程</code>：用户在Lua代码中通过<code>ngx.thread.spawn()</code>创建的线程</li><li><code>用户协程</code>：用户在Lua代码中通过<code>coroutine.create()</code>创建的协程</li><li><code>协程</code>：泛指所有协程，包括入口线程、用户线程和用户协程</li><li><code>vm</code>：表示Lua虚拟机</li><li><code>L</code>：视出现的上下文，一般表示父协程，在创建入口线程的时候表示Lua VM</li><li><code>co</code>：一般表示新创建的协程</li><li><code>L栈： |协程表|新协程|顶|</code>：表示Lua栈结构，最右边是栈顶</li></ul>
           </div>
 
 <h1 id="关键数据结构"><a href="#关键数据结构" class="headerlink" title="关键数据结构"></a>关键数据结构</h1><p>在深入了解协程调度机制之前，我们先来认识一下主要的数据结构：</p>
 <ul>
 <li>协程上下文：<code>ngx_stream_lua_co_ctx_t</code><ul>
-<li>协程内部栈的数据（<code>coctx-&gt;co</code>）</li>
-<li>维护协程状态的数据（<code>coctx-&gt;co_status</code>）</li>
+<li>协程内部栈（<code>coctx-&gt;co</code>）</li>
+<li>协程状态（<code>coctx-&gt;co_status</code>）</li>
 <li>维护协程之间关系的数据（父协程<code>coctx-&gt;parent_co_ctx</code>、僵尸子线程<code>coctx-&gt;zombie_child_threads</code>）</li>
 <li>用户相关数据（<code>coctx-&gt;data</code>）</li>
-<li>在Lua的registry表中对应的该协程指针的引用值（<code>co_ref</code>）</li>
-<li>一些状态标记（是否用户线程<code>is_uthread</code>、是否创建新线程<code>thread_spawn_yielded</code>被yield)</li>
+<li>在Lua的registry表中对应该线程指针的引用值（<code>co_ref</code>）</li>
+<li>一些状态标记（是否是用户线程<code>is_uthread</code>、是否因创建新线程<code>thread_spawn_yielded</code>被yield)</li>
 </ul>
 </li>
 <li>模块上下文：<code>ngx_stream_lua_ctx_t</code><ul>
@@ -631,7 +631,7 @@
 </ul>
 <h1 id="协程调度"><a href="#协程调度" class="headerlink" title="协程调度"></a>协程调度</h1><p>首先你可能很好奇OR为什么要在C引擎层面自己实现协程的调度？或者说这么做的好处是什么？我觉得最主要的原因还是减轻开发者的负担。</p>
 <h2 id="原生Lua-coroutine接口"><a href="#原生Lua-coroutine接口" class="headerlink" title="原生Lua coroutine接口"></a>原生Lua coroutine接口</h2><p>我们知道Lua是个非常轻巧的语言，它不像Go有自己的调度器。Lua原生的对协程的操作无非就是<code>coroutine.resume()</code>和<code>coroutine.yield()</code>。这两者是成对出现的，协程<code>coroutine.yield()</code>之后肯定回到父协程<code>coroutine.resume()</code>的地方，恢复子协程需要显式再次<code>coroutine.resume()</code>。如果要在Lua代码层面实现非阻塞I/O，那么父协程必须处理子协程I/O等待的情况，并在事件发生时恢复子协程的执行。如果需要同时进行多个任务，那么父协程就需要负责多个协程间的调度。因为协程的拓扑可能是一个复杂的树状结构，所以协程的调度管理将变得异常复杂。</p>
-<h2 id="OpenResty实现"><a href="#OpenResty实现" class="headerlink" title="OpenResty实现"></a>OpenResty实现</h2><p>OR在C引擎层帮我们把这些事情都做了，你无须再关心所有这些，只需专心写你的业务逻辑。为了支持同步非阻塞的方式编写应用代码，OR重写了<code>coroutine</code>的接口函数，从而接管了协程的调度，并在<code>coroutine</code>基础上封装抽象出了<code>thread</code>的概念。无论是<code>coroutine</code>还是<code>thread</code>，I/O等待对于用户都是透明的，用户无需关心。两者的主要区别是，<code>coroutine</code>父子之间的协作度更高，<code>coroutine.yield()</code>和<code>coroutine.resume()</code>成对出现。在子协程执行完成（出错）或者显式<code>coroutine.yield()</code>之前，父协程一直处于等待状态。而<code>thread</code>则由调度器进行调度，子<code>thread</code>一旦开始执行就不再受父协程控制了，在需要并发请求时很有用。<code>thread</code>提供了<code>spawn()</code>、<code>wait()</code>等接口，<code>spawn()</code>执行参数中指定的函数，直到执行完毕、出错或者I/O等待时返回。<code>wait()</code>则使父协程可以同步等待子协程执行完毕、获取结果。</p>
+<h2 id="OpenResty实现"><a href="#OpenResty实现" class="headerlink" title="OpenResty实现"></a>OpenResty实现</h2><p>OR在C引擎层帮我们把这些事情都做了，你无须再关心所有这些，只需专心写你的业务逻辑。为了支持同步非阻塞的方式编写应用代码，OR重写了<code>coroutine</code>的接口函数，从而接管了协程的调度，并在<code>coroutine</code>基础上封装抽象出了<code>thread</code>的概念。无论是<code>coroutine</code>还是<code>thread</code>，I/O等待对于用户都是透明的，用户无需关心。两者的主要区别是，<code>coroutine</code>父子之间的协作度更高，<code>coroutine.yield()</code>和<code>coroutine.resume()</code>成对出现。在子协程执行完成（出错）或者显式<code>coroutine.yield()</code>之前，父协程一直处于等待状态。而<code>thread</code>则由调度器进行调度，子<code>thread</code>一旦开始执行就不再受父协程控制了，在需要并发请求时很有用。<code>thread</code>提供了<code>spawn()</code>、<code>wait()</code>等接口，<code>spawn()</code>执行参数中指定的函数，直到执行完毕、出错或者I/O等待时返回。<code>wait()</code>则使父协程可以同步等待子线程执行完毕、获取结果。</p>
 <div class="note primary">
             <p>OR在对协程调度上，最核心的改动是其创建新协程时的行为（<code>coroutine.resume()</code>, <code>ngx.thread.spawn()</code>）。它不会直接调用<code>lua_resume()</code>，而是先<code>lua_yield()</code>回到主线程，然后由主线程再根据情况<code>lua_resume()</code>下一个协程。Lua代码域内从来不会直接调用<code>lua_resume()</code>，理解了这一点你就理解了OpenResty协程调度的精髓。</p>
           </div>
@@ -694,7 +694,7 @@
 <li>栈顶是新创建的协程</li>
 <li>然后是参数和入口函数</li>
 </ul>
-<p>在此之前，先在registry表中保存一个该协程的ref。（到现在还没搞明白这个ref是干嘛用的？除了创建线程和删除线程，貌似只有检查线程是否活着的时候会查一下这个ref，只是检查状态用<code>coctx-&gt;co_status</code>不是也能做到么）</p>
+<p>在此之前，先在registry表中保存一个该协程的ref。（到现在还没搞明白这个ref是干嘛用的？除了创建线程和删除线程，貌似只有检查线程是否活着的时候会查一下这个ref，只是检查状态用<code>coctx-&gt;co_status</code>不是也能做到么？8.12更新，之所以要把线程锚定到注册表上，是为了防止被当成垃圾回收。这也解释了为什么只有线程需要锚定到注册表上，而用户协程不需要。因为用户协程肯定由其父协程保留着一个引用。）</p>
 <figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="comment">/* anchor the newly created coroutine into the Lua registry */</span></span><br><span class="line"><span class="comment">/* 把新创建的协程写入Lua registry表中 */</span></span><br><span class="line"><span class="comment">/* 将ngx_stream_lua_coroutines_key的地址压入栈中 */</span></span><br><span class="line">lua_pushlightuserdata(L, &amp;ngx_stream_lua_coroutines_key);</span><br><span class="line"><span class="comment">/* 从registry表中获取协程表 */</span></span><br><span class="line"><span class="comment">/* L栈: |entry_func|args|新协程|协程表|顶|*/</span></span><br><span class="line">lua_rawget(L, LUA_REGISTRYINDEX);</span><br><span class="line"><span class="comment">/* 将新协程压栈 */</span></span><br><span class="line"><span class="comment">/* L栈: |entry_func|args|新协程|协程表|新协程|顶|*/</span></span><br><span class="line">lua_pushvalue(L, <span class="number">-2</span>);</span><br><span class="line"><span class="comment">/* -2位置是注册表，为新协程创建在报表中的索引 */</span></span><br><span class="line"><span class="comment">/* L栈: |entry_func|args|新协程|协程表|顶| */</span></span><br><span class="line">coctx-&gt;co_ref = luaL_ref(L, <span class="number">-2</span>);    <span class="comment">// </span></span><br><span class="line"><span class="comment">/* 弹出协程表 */</span></span><br><span class="line"><span class="comment">/* L栈: |entry_func|args|新协程|顶| */</span></span><br><span class="line">lua_pop(L, <span class="number">1</span>);</span><br></pre></td></tr></table></figure>
 
 <p>接下来是初始化运行环境：</p>
@@ -999,7 +999,7 @@
     <title>一篇文章搞懂密码学基础及SSL/TLS协议</title>
     <url>/posts/e92ef4b4/</url>
     <content><![CDATA[<div class="note primary">
-            <p>SSL协议是现代网络通信中重要的一环，它提供了传输层上的数据安全。为了方便大家的理解，本文将先从加密学的基础知识入手，然后展开对SSL协议原理、流程以及一些重要的特性的详解，最后会从扩展介绍一下国密SSL协议的差异、安全性以及TLS 1.3的关键新特性。</p><p>限于篇幅以及个人知识水平，本文不会涉及过于细节的内容。特别地，本文将不涉及算法的具体原理，也不涉及实际代码的实现。而是试图以图表等直观的方式来了解基本的原理以及流程。</p>
+            <p>SSL协议是现代网络通信中重要的一环，它提供了传输层上的数据安全。为了方便大家的理解，本文将先从加密学的基础知识入手，然后展开对SSL协议原理、流程以及一些重要的特性的详解，最后会扩展介绍一下国密SSL协议的差异、安全性以及TLS 1.3的关键新特性。</p><p>限于篇幅以及个人知识水平，本文不会涉及过于细节的内容。特别地，本文将不涉及算法的具体原理，也不涉及实际代码的实现。而是试图以图表等直观的方式来了解基本的原理以及流程。</p>
           </div>
 
 <span id="more"></span>
@@ -1184,7 +1184,7 @@
 <p>对于<strong>流加密算法</strong>，没有后面的padding。对于<strong>块加密算法</strong>的记录，根据使用的算法在payload之前有可选的IV字段。</p>
 <p>对于<strong>AEAD算法</strong>，因为认证已经包含在算法里了，所以没有后面的MAC和Padding字段。payload之前有一个外部nonce字段。</p>
 <h2 id="算法套件CipherSuites"><a href="#算法套件CipherSuites" class="headerlink" title="算法套件CipherSuites"></a>算法套件CipherSuites</h2><p>在深入握手流程之前，我们先来了解一下算法套件的概念。前面在密码学基础部分我们已经了解到了各种算法，包括认证算法、密钥交换算法、对称密码算法、完整性认证的算法。</p>
-<h3 id="TLS-1-2"><a href="#TLS-1-2" class="headerlink" title="TLS 1.2-"></a>TLS 1.2-</h3><p>一个算法套件是一个SSL连接中用到的这些算法类型的组合，包含如下几个部分：</p>
+<h3 id="TLS-1-2"><a href="#TLS-1-2" class="headerlink" title="TLS 1.2-"></a>TLS 1.2-</h3><p>一个<strong>算法套件</strong>是一个SSL连接中用到的这些算法类型的组合，包含如下几个部分：</p>
 <ul>
 <li>Key Exchange（Kx）</li>
 <li>Authentication（Au）</li>
@@ -1208,20 +1208,20 @@
 <ul>
 <li><span class="label info">客户端</span>：Hi，服务端，我这边支持这些算法，这是我本次的随机数。</li>
 <li><span class="label success">服务端</span>：好的，我看看，我们就选用这个算法套件吧，这是我本次的随机数，这是我的证书，你用这个证书里的公钥来加密预主密钥。</li>
-<li><span class="label info">客户端</span>：稍等我验下证书，嗯，的确是服务端的证书。这是用证书中公钥加密的预主密钥。（计算会话密钥中。。。）好了，我这边OK了。</li>
-<li><span class="label success">服务端</span>：收到。（用私钥解密出预主密钥，计算会话密钥中。。。）好了，我这边也OK了。</li>
+<li><span class="label info">客户端</span>：稍等我验下证书，嗯，的确是服务端的证书。这是用证书中公钥加密的预主密钥。（使用两个随机数+预主密钥计算主密钥，然后生成会话密钥。。。）好了，我这边OK了。</li>
+<li><span class="label success">服务端</span>：收到。（用私钥解密出预主密钥，使用两个随机数+预主密钥计算主密钥，然后生成会话密钥。。。）好了，我这边也OK了。</li>
 <li><span class="label info">客户端</span>：这是加密的应用数据。。。</li>
 <li><span class="label success">服务端</span>：这是加密的应用数据。。。</li>
 </ul>
-<p>注：上面的流程是单向认证（服务端没有验证客户端的身份），如果服务端也需要验客户端的身份，会在第一次交互中发送<code>Certificate Request</code>消息，客户端相应的在第二次交互中发送自己的证书以及签名给服务端。</p>
+<p>注：上面的流程是单向认证（服务端没有验证客户端的身份），如果服务端也需要验客户端的身份，会在第一次交互中发送<code>Certificate Request</code>消息，客户端相应的在第二次交互中发送自己的<code>Certificate</code>以及<code>CertificateVerify</code>消息给服务端。</p>
 <h3 id="密钥交换流程-DH"><a href="#密钥交换流程-DH" class="headerlink" title="密钥交换流程-DH"></a>密钥交换流程-DH</h3><p>基于DH的密钥交换流程如下：</p>
 <p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/SSL-keyexchange-DH.jpeg" alt="SSL-keyexchange-DH" loading="lazy"></p>
 <p>我们同样来模拟下协商过程：</p>
 <ul>
 <li><span class="label info">客户端</span>：Hi，服务端，我这边支持这些算法，这是我本次的随机数。</li>
 <li><span class="label success">服务端</span>：好的，我看看，我们就选用这个算法套件吧，这是我本次的随机数，给你我的证书。我这边用这个DH参数，这是对应的签名。</li>
-<li><span class="label info">客户端</span>：稍等我验下签名和证书，嗯，的确是服务端的证书对应的签名。这是我这边的DH参数。（推导预主密钥，计算会话密钥中。。。）好了，我这边OK了。</li>
-<li><span class="label success">服务端</span>：收到。（推导预主密钥，计算会话密钥中。。。）好了，我这边也OK了。</li>
+<li><span class="label info">客户端</span>：稍等我验下证书和签名，嗯，的确是服务端的证书，签名也没有问题。这是我这边的DH参数。（使用DH参数推导出预主密钥，再使用两个随机数+预主密钥计算主密钥，然后生成会话密钥。。。）好了，我这边OK了。</li>
+<li><span class="label success">服务端</span>：收到。（使用DH参数推导预主密钥，再使用两个随机数+预主密钥计算主密钥，然后生成会话密钥。。。）好了，我这边也OK了。</li>
 <li><span class="label info">客户端</span>：这是加密的应用数据。。。</li>
 <li><span class="label success">服务端</span>：这是加密的应用数据。。。</li>
 </ul>
@@ -1261,8 +1261,13 @@
 <h2 id="协议号"><a href="#协议号" class="headerlink" title="协议号"></a>协议号</h2><p>TLSv1.0, TSLv1.1, TLSv1.2、TLSv1.3的协议号分别为<code>0x0301</code>、<code>0x0302</code>、<code>0x0303</code>、<code>0x0304</code>。</p>
 <p>而国密的版本号是<code>0x0101</code>。</p>
 <h2 id="算法套件"><a href="#算法套件" class="headerlink" title="算法套件"></a>算法套件</h2><p>新增了国密的SM1/2/3/4等算法，定义了多个算法套件，其中比较常用的如<code>ECC_SM4_SM3</code>和<code>ECDHE_SM4_SM3</code>。<code>ECDHE_SM4_SM3</code>要求必须双向认证。</p>
-<p>其中<code>ECC_SM4_SM3</code>的密钥交换过程类似RSA的密钥交换过程，由客户端用服务端的公钥对预主密钥进行加密后发送给服务端。<code>ECDHE_SM4_SM3</code>的密钥交换过程与普通TLS的ECDHE密钥交换类似，预主密钥由客户端和服务端双方的临时公钥推导得出。<code>ECC_SM4_SM3</code>和<code>ECDHE_SM4_SM3</code>的身份认证是都是通过SM2的签名/验签来完成。</p>
-<h2 id="双证书体系"><a href="#双证书体系" class="headerlink" title="双证书体系"></a>双证书体系</h2><p>国密SSL采用双证书体系：一个签名证书、一个加密证书。其中签名证书用于身份认证、加密证书用于密钥交换。发送证书时需要同时发送两个证书，格式与标准TLS报文格式一样，第一个证书是签名证书、第二个证书是加密证书。（因为采用了双证书体系，在SSL状态机上略微有点不同。<code>ECC_SM4_SM3</code>的密钥交换过程，服务端发送双证书之后，还要发送一个签名，这跟RSA密钥交换有所不同。）</p>
+<p>其中<code>ECC_SM4_SM3</code>的密钥交换过程类似RSA的密钥交换过程，由客户端用服务端的公钥对预主密钥进行加密后发送给服务端。<code>ECDHE_SM4_SM3</code>的密钥交换过程与普通TLS的ECDHE密钥交换类似，预主密钥由客户端和服务端双方推导得出。<code>ECC_SM4_SM3</code>和<code>ECDHE_SM4_SM3</code>的身份认证是都是通过SM2的签名/验签来完成。</p>
+<h2 id="双证书体系"><a href="#双证书体系" class="headerlink" title="双证书体系"></a>双证书体系</h2><h3 id="证书消息"><a href="#证书消息" class="headerlink" title="证书消息"></a>证书消息</h3><p>国密SSL采用双证书体系：一个签名证书、一个加密证书。其中签名证书用于身份认证、加密证书用于密钥交换。发送<code>Certificate</code>消息时需要同时发送两个证书，格式与标准TLS报文格式一样，第一个证书是签名证书、第二个证书是加密证书。</p>
+<h3 id="ECC-SM4-SM3密钥交换"><a href="#ECC-SM4-SM3密钥交换" class="headerlink" title="ECC_SM4_SM3密钥交换"></a>ECC_SM4_SM3密钥交换</h3><p>因为采用了双证书体系，在SSL状态机上略微有点不同。<code>ECC_SM4_SM3</code>的密钥交换过程如下：服务端发送<code>Certificate</code>消息之后，还要发送一个<code>ServerKeyExchange</code>消息（这跟RSA密钥交换有所不同），<code>ServerKeyExchange</code>中包含了一个签名值，签名由服务端签名证书对应的私钥（签名私钥）进行计算，签名的内容包括了ClientHello和ServerHello中的随机数以及加密证书。</p>
+<p>客户端验证证书和签名之后，使用服务端加密证书加密预主密钥，发送给服务端，服务端则由自己的加密私钥进行解密得到预主密钥。</p>
+<h3 id="ECDHE-SM4-SM3密钥交换"><a href="#ECDHE-SM4-SM3密钥交换" class="headerlink" title="ECDHE_SM4_SM3密钥交换"></a>ECDHE_SM4_SM3密钥交换</h3><p><code>ECDHE_SM4_SM3</code>的密钥交换过程如下：服务端发送<code>Certificate</code>消息之后，同样发送一个<code>ServerKeyExchange</code>消息，<code>ServerKeyExchange</code>中包含了一个签名值，签名由服务端签名证书对应的私钥（签名私钥）进行计算。签名的内容跟<code>ECC_SM4_SM3</code>时有所不同，包括了ClientHello和ServerHello中的随机数以及服务端ECDH参数（曲线、公钥）。国密ECDHE的密钥推导计算方式跟TLS也有所不同，TLS只需要对方的临时公钥和自己的临时私钥参与计算，而国密需要对方的临时公钥和固定公钥（即加密证书中的公钥）及自己的临时私钥和固定私钥（即加密私钥）参与计算。所以国密<code>ECDHE</code>必须是双向认证，因为服务端在进行密钥推导的时候也需要用到客户端的加密证书。</p>
+<p>客户端验证证书和签名之后，发送自己的证书给服务端，接着根据<code>ServerKeyExchange</code>中ECDH参数信息生成自己的临时密钥，然后同自己的加密密钥、服务端临时公钥和加密公钥一起进行密钥推导得到预主密钥。并将自己的临时密钥参数通过<code>ClientKeyExchange</code>消息发送给服务端，服务端同样使用自己的临时密钥、加密密钥、客户端的临时公钥和加密公钥一起进行密钥推导得到预主密钥。</p>
+<p>因为是双向认证，客户端在发送<code>ClientKeyExchange</code>消息之后，还需要发送一个<code>CertificateVerify</code>消息，签名的内容为从ClientHello消息开始到目前为止的所有已经交换的握手消息。</p>
 <h1 id="安全性"><a href="#安全性" class="headerlink" title="安全性"></a>安全性</h1><h2 id="常见攻击"><a href="#常见攻击" class="headerlink" title="常见攻击"></a>常见攻击</h2><p>有些是针对协议设计上的漏洞，有些则是针对实现的bug，经常结合降级攻击手段一起使用。因为篇幅原因，这里仅挑选两个有代表性的重协商攻击和Heartbleed着重介绍一下，对于其余攻击感兴趣的可以参考<a href="https://datatracker.ietf.org/doc/html/rfc7457">rfc7457-已知攻击总结</a></p>
 <ul>
 <li>重协商攻击</li>

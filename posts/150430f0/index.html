@@ -32,7 +32,7 @@
 <meta property="og:locale" content="zh_CN">
 <meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/150430f0/openresty-lua-coroutine-schedule.svg">
 <meta property="article:published_time" content="2021-07-03T10:52:24.000Z">
-<meta property="article:modified_time" content="2021-08-08T15:37:28.084Z">
+<meta property="article:modified_time" content="2021-08-12T12:12:11.209Z">
 <meta property="article:author" content="猫猫哥">
 <meta property="article:tag" content="Lua">
 <meta property="article:tag" content="OpenResty">
@@ -265,7 +265,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-08 23:37:28" itemprop="dateModified" datetime="2021-08-08T23:37:28+08:00">2021-08-08</time>
+                <time title="修改时间：2021-08-12 20:12:11" itemprop="dateModified" datetime="2021-08-12T20:12:11+08:00">2021-08-12</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -349,18 +349,18 @@ translateInitilization();
 <span id="more"></span>
 
 <div class="note default">
-            <p>注：<code>lua-nginx</code>模块与<code>stream-lua-nginx</code>模块的主体部分类似，后者实现相对简单一点。下面的讨论将基于<code>stream-lua</code>模块。</p><p>文中用到的一些术语明确一下：</p><ul><li><code>主线程</code>：表示外层调用<code>run_thread()</code>的OS线程</li><li><code>入口线程</code>：每个handler被调用时会创建一个入口线程，用于执行lua代码</li><li><code>用户线程</code>：用户在Lua代码中通过<code>ngx.thread.spawn()</code>创建的线程</li><li><code>用户协程</code>：用户在Lua代码中通过<code>coroutine.create()</code>创建的协程</li><li><code>协程</code>：泛指所有协程，包括入口线程、用户线程和用户协程</li><li><code>vm</code>：表示Lua虚拟机</li><li><code>L</code>：视出现的上下文，一般表示父协程，在创建入口线程的时候表示Lua VM</li><li><code>co</code>：一般表示新创建的协程</li><li><code>L栈： |协程表|新协程|顶|</code>：表示Lua栈结构，最右边是栈顶</li></ul>
+            <p>注：<code>lua-nginx</code>模块与<code>stream-lua-nginx</code>模块的主体部分类似，后者实现相对简单一点。下面的讨论将基于<code>stream-lua</code>模块。</p><p>为了防止歧义，文中用到的一些术语明确一下：</p><ul><li><code>主线程</code>：表示外层调用<code>run_thread()</code>的OS线程</li><li><code>入口线程</code>：每个handler被调用时会创建一个入口线程，用于执行lua代码</li><li><code>用户线程</code>：用户在Lua代码中通过<code>ngx.thread.spawn()</code>创建的线程</li><li><code>用户协程</code>：用户在Lua代码中通过<code>coroutine.create()</code>创建的协程</li><li><code>协程</code>：泛指所有协程，包括入口线程、用户线程和用户协程</li><li><code>vm</code>：表示Lua虚拟机</li><li><code>L</code>：视出现的上下文，一般表示父协程，在创建入口线程的时候表示Lua VM</li><li><code>co</code>：一般表示新创建的协程</li><li><code>L栈： |协程表|新协程|顶|</code>：表示Lua栈结构，最右边是栈顶</li></ul>
           </div>
 
 <h1 id="关键数据结构"><a href="#关键数据结构" class="headerlink" title="关键数据结构"></a>关键数据结构</h1><p>在深入了解协程调度机制之前，我们先来认识一下主要的数据结构：</p>
 <ul>
 <li>协程上下文：<code>ngx_stream_lua_co_ctx_t</code><ul>
-<li>协程内部栈的数据（<code>coctx-&gt;co</code>）</li>
-<li>维护协程状态的数据（<code>coctx-&gt;co_status</code>）</li>
+<li>协程内部栈（<code>coctx-&gt;co</code>）</li>
+<li>协程状态（<code>coctx-&gt;co_status</code>）</li>
 <li>维护协程之间关系的数据（父协程<code>coctx-&gt;parent_co_ctx</code>、僵尸子线程<code>coctx-&gt;zombie_child_threads</code>）</li>
 <li>用户相关数据（<code>coctx-&gt;data</code>）</li>
-<li>在Lua的registry表中对应的该协程指针的引用值（<code>co_ref</code>）</li>
-<li>一些状态标记（是否用户线程<code>is_uthread</code>、是否创建新线程<code>thread_spawn_yielded</code>被yield)</li>
+<li>在Lua的registry表中对应该线程指针的引用值（<code>co_ref</code>）</li>
+<li>一些状态标记（是否是用户线程<code>is_uthread</code>、是否因创建新线程<code>thread_spawn_yielded</code>被yield)</li>
 </ul>
 </li>
 <li>模块上下文：<code>ngx_stream_lua_ctx_t</code><ul>
@@ -372,7 +372,7 @@ translateInitilization();
 </ul>
 <h1 id="协程调度"><a href="#协程调度" class="headerlink" title="协程调度"></a>协程调度</h1><p>首先你可能很好奇OR为什么要在C引擎层面自己实现协程的调度？或者说这么做的好处是什么？我觉得最主要的原因还是减轻开发者的负担。</p>
 <h2 id="原生Lua-coroutine接口"><a href="#原生Lua-coroutine接口" class="headerlink" title="原生Lua coroutine接口"></a>原生Lua coroutine接口</h2><p>我们知道Lua是个非常轻巧的语言，它不像Go有自己的调度器。Lua原生的对协程的操作无非就是<code>coroutine.resume()</code>和<code>coroutine.yield()</code>。这两者是成对出现的，协程<code>coroutine.yield()</code>之后肯定回到父协程<code>coroutine.resume()</code>的地方，恢复子协程需要显式再次<code>coroutine.resume()</code>。如果要在Lua代码层面实现非阻塞I/O，那么父协程必须处理子协程I/O等待的情况，并在事件发生时恢复子协程的执行。如果需要同时进行多个任务，那么父协程就需要负责多个协程间的调度。因为协程的拓扑可能是一个复杂的树状结构，所以协程的调度管理将变得异常复杂。</p>
-<h2 id="OpenResty实现"><a href="#OpenResty实现" class="headerlink" title="OpenResty实现"></a>OpenResty实现</h2><p>OR在C引擎层帮我们把这些事情都做了，你无须再关心所有这些，只需专心写你的业务逻辑。为了支持同步非阻塞的方式编写应用代码，OR重写了<code>coroutine</code>的接口函数，从而接管了协程的调度，并在<code>coroutine</code>基础上封装抽象出了<code>thread</code>的概念。无论是<code>coroutine</code>还是<code>thread</code>，I/O等待对于用户都是透明的，用户无需关心。两者的主要区别是，<code>coroutine</code>父子之间的协作度更高，<code>coroutine.yield()</code>和<code>coroutine.resume()</code>成对出现。在子协程执行完成（出错）或者显式<code>coroutine.yield()</code>之前，父协程一直处于等待状态。而<code>thread</code>则由调度器进行调度，子<code>thread</code>一旦开始执行就不再受父协程控制了，在需要并发请求时很有用。<code>thread</code>提供了<code>spawn()</code>、<code>wait()</code>等接口，<code>spawn()</code>执行参数中指定的函数，直到执行完毕、出错或者I/O等待时返回。<code>wait()</code>则使父协程可以同步等待子协程执行完毕、获取结果。</p>
+<h2 id="OpenResty实现"><a href="#OpenResty实现" class="headerlink" title="OpenResty实现"></a>OpenResty实现</h2><p>OR在C引擎层帮我们把这些事情都做了，你无须再关心所有这些，只需专心写你的业务逻辑。为了支持同步非阻塞的方式编写应用代码，OR重写了<code>coroutine</code>的接口函数，从而接管了协程的调度，并在<code>coroutine</code>基础上封装抽象出了<code>thread</code>的概念。无论是<code>coroutine</code>还是<code>thread</code>，I/O等待对于用户都是透明的，用户无需关心。两者的主要区别是，<code>coroutine</code>父子之间的协作度更高，<code>coroutine.yield()</code>和<code>coroutine.resume()</code>成对出现。在子协程执行完成（出错）或者显式<code>coroutine.yield()</code>之前，父协程一直处于等待状态。而<code>thread</code>则由调度器进行调度，子<code>thread</code>一旦开始执行就不再受父协程控制了，在需要并发请求时很有用。<code>thread</code>提供了<code>spawn()</code>、<code>wait()</code>等接口，<code>spawn()</code>执行参数中指定的函数，直到执行完毕、出错或者I/O等待时返回。<code>wait()</code>则使父协程可以同步等待子线程执行完毕、获取结果。</p>
 <div class="note primary">
             <p>OR在对协程调度上，最核心的改动是其创建新协程时的行为（<code>coroutine.resume()</code>, <code>ngx.thread.spawn()</code>）。它不会直接调用<code>lua_resume()</code>，而是先<code>lua_yield()</code>回到主线程，然后由主线程再根据情况<code>lua_resume()</code>下一个协程。Lua代码域内从来不会直接调用<code>lua_resume()</code>，理解了这一点你就理解了OpenResty协程调度的精髓。</p>
           </div>
@@ -435,7 +435,7 @@ translateInitilization();
 <li>栈顶是新创建的协程</li>
 <li>然后是参数和入口函数</li>
 </ul>
-<p>在此之前，先在registry表中保存一个该协程的ref。（到现在还没搞明白这个ref是干嘛用的？除了创建线程和删除线程，貌似只有检查线程是否活着的时候会查一下这个ref，只是检查状态用<code>coctx-&gt;co_status</code>不是也能做到么）</p>
+<p>在此之前，先在registry表中保存一个该协程的ref。（到现在还没搞明白这个ref是干嘛用的？除了创建线程和删除线程，貌似只有检查线程是否活着的时候会查一下这个ref，只是检查状态用<code>coctx-&gt;co_status</code>不是也能做到么？8.12更新，之所以要把线程锚定到注册表上，是为了防止被当成垃圾回收。这也解释了为什么只有线程需要锚定到注册表上，而用户协程不需要。因为用户协程肯定由其父协程保留着一个引用。）</p>
 <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* anchor the newly created coroutine into the Lua registry */</span></span><br><span class="line"><span class="comment">/* 把新创建的协程写入Lua registry表中 */</span></span><br><span class="line"><span class="comment">/* 将ngx_stream_lua_coroutines_key的地址压入栈中 */</span></span><br><span class="line">lua_pushlightuserdata(L, &amp;ngx_stream_lua_coroutines_key);</span><br><span class="line"><span class="comment">/* 从registry表中获取协程表 */</span></span><br><span class="line"><span class="comment">/* L栈: |entry_func|args|新协程|协程表|顶|*/</span></span><br><span class="line">lua_rawget(L, LUA_REGISTRYINDEX);</span><br><span class="line"><span class="comment">/* 将新协程压栈 */</span></span><br><span class="line"><span class="comment">/* L栈: |entry_func|args|新协程|协程表|新协程|顶|*/</span></span><br><span class="line">lua_pushvalue(L, <span class="number">-2</span>);</span><br><span class="line"><span class="comment">/* -2位置是注册表，为新协程创建在报表中的索引 */</span></span><br><span class="line"><span class="comment">/* L栈: |entry_func|args|新协程|协程表|顶| */</span></span><br><span class="line">coctx-&gt;co_ref = luaL_ref(L, <span class="number">-2</span>);    <span class="comment">// </span></span><br><span class="line"><span class="comment">/* 弹出协程表 */</span></span><br><span class="line"><span class="comment">/* L栈: |entry_func|args|新协程|顶| */</span></span><br><span class="line">lua_pop(L, <span class="number">1</span>);</span><br></pre></td></tr></table></figure>
 
 <p>接下来是初始化运行环境：</p>
@@ -1032,13 +1032,13 @@ if(canvas.getContext){
       <i class="fa fa-chart-area"></i>
     </span>
       <span class="post-meta-item-text">站点总字数：</span>
-    <span title="站点总字数">140k</span>
+    <span title="站点总字数">141k</span>
     <span class="post-meta-divider">|</span>
     <span class="post-meta-item-icon">
       <i class="fa fa-coffee"></i>
     </span>
       <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
-    <span title="站点阅读时长">2:07</span>
+    <span title="站点阅读时长">2:08</span>
 </div>
   <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener external nofollow noreferrer" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener external nofollow noreferrer" target="_blank">NexT.Gemini</a> 强力驱动
   </div>
