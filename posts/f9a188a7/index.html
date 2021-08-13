@@ -23,20 +23,21 @@
     var CONFIG = {"hostname":"catbro666.github.io","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","width":240,"display":"post","padding":18,"offset":42,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":"mac"},"back2top":{"enable":true,"sidebar":true,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
   </script>
 
-  <meta name="description" content="Welcome to Hexo! This is your very first post. Check documentation for more info. If you get any problems when using Hexo, you can find the answer in troubleshooting or you can ask me on GitHub.">
+  <meta name="description" content="说到Lua代码调试，最常用的方法应该就是加一堆print进行打印。print大法虽好，但其缺点也是显而易见的。比如效率低下，需要修改原有函数内部代码，在每个需要的地方添加print语句，运行一次只能获取一次信息，下次换个地方又得重新添加print语句。而且有时候，事先并不知道该去哪打印、或者打印什么内容，需要通过运行中获取的信息才能确定。当print大法无法满足我们的需求">
 <meta property="og:type" content="article">
-<meta property="og:title" content="Hello World">
-<meta property="og:url" content="https://catbro666.github.io/posts/4a17b156/index.html">
+<meta property="og:title" content="Lua中如何实现类似gdb的断点调试--01最小实现">
+<meta property="og:url" content="https://catbro666.github.io/posts/f9a188a7/index.html">
 <meta property="og:site_name" content="CatBro&#39;s Blog">
-<meta property="og:description" content="Welcome to Hexo! This is your very first post. Check documentation for more info. If you get any problems when using Hexo, you can find the answer in troubleshooting or you can ask me on GitHub.">
+<meta property="og:description" content="说到Lua代码调试，最常用的方法应该就是加一堆print进行打印。print大法虽好，但其缺点也是显而易见的。比如效率低下，需要修改原有函数内部代码，在每个需要的地方添加print语句，运行一次只能获取一次信息，下次换个地方又得重新添加print语句。而且有时候，事先并不知道该去哪打印、或者打印什么内容，需要通过运行中获取的信息才能确定。当print大法无法满足我们的需求">
 <meta property="og:locale" content="zh_CN">
-<meta property="article:published_time" content="2019-06-07T08:49:42.000Z">
-<meta property="article:modified_time" content="2021-06-21T14:38:56.931Z">
+<meta property="article:published_time" content="2021-08-12T16:52:46.000Z">
+<meta property="article:modified_time" content="2021-08-13T12:52:02.896Z">
 <meta property="article:author" content="猫猫哥">
-<meta property="article:tag" content="Linux, SSL, Crypto, C&#x2F;C++, Nginx, OpenResty">
+<meta property="article:tag" content="Lua">
+<meta property="article:tag" content="调试">
 <meta name="twitter:card" content="summary">
 
-<link rel="canonical" href="https://catbro666.github.io/posts/4a17b156/">
+<link rel="canonical" href="https://catbro666.github.io/posts/f9a188a7/">
 
 
 <script id="page-configurations">
@@ -53,7 +54,7 @@
 
 
 
-  <title>Hello World | CatBro's Blog</title>
+  <title>Lua中如何实现类似gdb的断点调试--01最小实现 | CatBro's Blog</title>
   
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-6PKG8T836C"></script>
     <script>
@@ -230,7 +231,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://catbro666.github.io/posts/4a17b156/">
+    <link itemprop="mainEntityOfPage" href="https://catbro666.github.io/posts/f9a188a7/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/images/avatar.gif">
@@ -243,7 +244,7 @@
     </span>
       <header class="post-header">
         <h1 class="post-title" itemprop="name headline">
-          Hello World
+          Lua中如何实现类似gdb的断点调试--01最小实现
         </h1>
 
         <div class="post-meta">
@@ -252,19 +253,22 @@
                 <i class="far fa-calendar"></i>
               </span>
               <span class="post-meta-item-text">发表于</span>
+              
 
-              <time title="创建时间：2019-06-07 16:49:42" itemprop="dateCreated datePublished" datetime="2019-06-07T16:49:42+08:00">2019-06-07</time>
+              <time title="创建时间：2021-08-13 00:52:46 / 修改时间：20:52:02" itemprop="dateCreated datePublished" datetime="2021-08-13T00:52:46+08:00">2021-08-13</time>
             </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-21 22:38:56" itemprop="dateModified" datetime="2021-06-21T22:38:56+08:00">2021-06-21</time>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
               </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E6%8A%80%E6%9C%AF%E5%90%91/" itemprop="url" rel="index"><span itemprop="name">技术向</span></a>
+                </span>
+            </span>
 
           
-            <span id="/posts/4a17b156/" class="post-meta-item leancloud_visitors" data-flag-title="Hello World" title="阅读次数">
+            <span id="/posts/f9a188a7/" class="post-meta-item leancloud_visitors" data-flag-title="Lua中如何实现类似gdb的断点调试--01最小实现" title="阅读次数">
               <span class="post-meta-item-icon">
                 <i class="fa fa-eye"></i>
               </span>
@@ -279,8 +283,8 @@
       </span>
       <span class="post-meta-item-text">评论数：</span>
     
-    <a title="valine" href="/posts/4a17b156/#valine-comments" itemprop="discussionUrl">
-      <span class="post-comments-count valine-comment-count" data-xid="/posts/4a17b156/" itemprop="commentCount"></span>
+    <a title="valine" href="/posts/f9a188a7/#valine-comments" itemprop="discussionUrl">
+      <span class="post-comments-count valine-comment-count" data-xid="/posts/f9a188a7/" itemprop="commentCount"></span>
     </a>
   </span>
   
@@ -309,14 +313,14 @@ translateInitilization();
                 <i class="far fa-file-word"></i>
               </span>
                 <span class="post-meta-item-text">本文字数：</span>
-              <span>367</span>
+              <span>3.9k</span>
             </span>
             <span class="post-meta-item" title="阅读时长">
               <span class="post-meta-item-icon">
                 <i class="far fa-clock"></i>
               </span>
                 <span class="post-meta-item-text">阅读时长 &asymp;</span>
-              <span>1 分钟</span>
+              <span>4 分钟</span>
             </span>
 
         </div>
@@ -328,21 +332,71 @@ translateInitilization();
     <div class="post-body" itemprop="articleBody">
 
       
-        <p>Welcome to <a target="_blank" rel="noopener external nofollow noreferrer" href="https://hexo.io/">Hexo</a>! This is your very first post. Check <a target="_blank" rel="noopener external nofollow noreferrer" href="https://hexo.io/docs/">documentation</a> for more info. If you get any problems when using Hexo, you can find the answer in <a target="_blank" rel="noopener external nofollow noreferrer" href="https://hexo.io/docs/troubleshooting.html">troubleshooting</a> or you can ask me on <a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/hexojs/hexo/issues">GitHub</a>.</p>
+        <div class="note primary">
+            <p>说到Lua代码调试，最常用的方法应该就是加一堆print进行打印。print大法虽好，但其缺点也是显而易见的。比如效率低下，需要修改原有函数内部代码，在每个需要的地方添加print语句，运行一次只能获取一次信息，下次换个地方又得重新添加print语句。而且有时候，事先并不知道该去哪打印、或者打印什么内容，需要通过运行中获取的信息才能确定。</p><p>当print大法无法满足我们的需求时，就需要类似断点调试这样更高级的调试功能。本文将从零开始编写一个Lua调试器，实现类似gdb的断点调试功能。</p><p>本文代码已开源至<a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/catbro666/lua-debugger">Github</a>，欢迎watch/star😘。</p>
+          </div>
+
 <span id="more"></span>
 
-<h2 id="Quick-Start"><a href="#Quick-Start" class="headerlink" title="Quick Start"></a>Quick Start</h2><h3 id="Create-a-new-post"><a href="#Create-a-new-post" class="headerlink" title="Create a new post"></a>Create a new post</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo new <span class="string">&quot;My New Post&quot;</span></span><br></pre></td></tr></table></figure>
 
-<p>More info: <a target="_blank" rel="noopener external nofollow noreferrer" href="https://hexo.io/docs/writing.html">Writing</a></p>
-<h3 id="Run-server"><a href="#Run-server" class="headerlink" title="Run server"></a>Run server</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo server</span><br></pre></td></tr></table></figure>
 
-<p>More info: <a target="_blank" rel="noopener external nofollow noreferrer" href="https://hexo.io/docs/server.html">Server</a></p>
-<h3 id="Generate-static-files"><a href="#Generate-static-files" class="headerlink" title="Generate static files"></a>Generate static files</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo generate</span><br></pre></td></tr></table></figure>
+<h2 id="定义模块及接口"><a href="#定义模块及接口" class="headerlink" title="定义模块及接口"></a>定义模块及接口</h2><p>首先，我们来定义模块及接口，创建一个名为<code>mydebug.lua</code>的模块，该模块是基于标准库中的debug库。为了实现最基本的断点调试功能，我们的模块提供了两个接口<code>setbreakpoint</code>和<code>removebreakpoint</code>，分别用于设置断点和删除断点。断点信息通过一个函数和一个行号指定，返回断点的id。后续可以通过这个id来删除相应断点。</p>
+<figure class="highlight lua"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">#!/usr/bin/env lua</span><br><span class="line"></span><br><span class="line"><span class="keyword">local</span> <span class="built_in">debug</span> = <span class="built_in">require</span> <span class="string">&quot;debug&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="comment">-- 省略...</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">local</span> <span class="function"><span class="keyword">function</span> <span class="title">setbreakpoint</span><span class="params">(func, line)</span></span></span><br><span class="line">    <span class="comment">-- 省略...</span></span><br><span class="line"><span class="keyword">end</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">local</span> <span class="function"><span class="keyword">function</span> <span class="title">removebreakpoint</span><span class="params">(id)</span></span></span><br><span class="line">    <span class="comment">-- 省略...</span></span><br><span class="line"><span class="keyword">end</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">return</span> &#123;</span><br><span class="line">    setbreakpoint = setbreakpoint,</span><br><span class="line">    removebreakpoint = removebreakpoint,</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
-<p>More info: <a target="_blank" rel="noopener external nofollow noreferrer" href="https://hexo.io/docs/generating.html">Generating</a></p>
-<h3 id="Deploy-to-remote-sites"><a href="#Deploy-to-remote-sites" class="headerlink" title="Deploy to remote sites"></a>Deploy to remote sites</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo deploy</span><br></pre></td></tr></table></figure>
 
-<p>More info: <a target="_blank" rel="noopener external nofollow noreferrer" href="https://hexo.io/docs/deployment.html">Deployment</a></p>
+
+<h2 id="维护状态的数据结构"><a href="#维护状态的数据结构" class="headerlink" title="维护状态的数据结构"></a>维护状态的数据结构</h2><p>接着，来定义维护状态的数据结构，表<code>status</code>维护了所有断点相关信息，其中的<code>bpnum</code>元素表示当前总共有多少断点，<code>bpid</code>表示当前的断点id，这个值是不断递增的，<code>bptable</code>则是保存所有断点信息的表。表<code>bptable</code>的键是断点的id，值也是一个表，保存了断点的所在的函数和行号。</p>
+<figure class="highlight lua"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">-- 省略...</span></span><br><span class="line"></span><br><span class="line"><span class="comment">-- 记录断点状态</span></span><br><span class="line"><span class="keyword">local</span> <span class="built_in">status</span> = &#123;&#125;</span><br><span class="line"><span class="built_in">status</span>.bpnum = <span class="number">0</span>        <span class="comment">-- 当前总断点数</span></span><br><span class="line"><span class="built_in">status</span>.bpid = <span class="number">0</span>         <span class="comment">-- 当前断点id</span></span><br><span class="line"><span class="built_in">status</span>.bptable = &#123;&#125;     <span class="comment">-- 保存断点信息的表</span></span><br><span class="line"></span><br><span class="line"><span class="comment">-- 省略...</span></span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="设置断点接口"><a href="#设置断点接口" class="headerlink" title="设置断点接口"></a>设置断点接口</h2><p>接下来来定义我们的<code>setbreakpoint</code>接口。设置断点时，首先检查参数有效性，再更新断点id和断点数，然后将参数中传入的函数<code>func</code>和行号<code>line</code>保存到表<code>bptable</code>中下一个断点id的位置。如果只有一个断点（从无到有），那么还需要调用<code>debug.sethook</code>设置钩子。因为是最小实现，简单起见只设置了<code>line</code>事件。</p>
+<figure class="highlight lua"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">-- 设置断点</span></span><br><span class="line"><span class="keyword">local</span> <span class="function"><span class="keyword">function</span> <span class="title">setbreakpoint</span><span class="params">(func, line)</span></span></span><br><span class="line">    <span class="keyword">if</span> <span class="built_in">type</span>(func) ~= <span class="string">&quot;function&quot;</span> <span class="keyword">or</span> <span class="built_in">type</span>(line) ~= <span class="string">&quot;number&quot;</span> <span class="keyword">then</span></span><br><span class="line">        <span class="keyword">return</span> <span class="number">0</span>						<span class="comment">--&gt; 0表示无效断点</span></span><br><span class="line">    <span class="keyword">end</span></span><br><span class="line">    <span class="built_in">status</span>.bpid = <span class="built_in">status</span>.bpid + <span class="number">1</span></span><br><span class="line">    <span class="built_in">status</span>.bpnum = <span class="built_in">status</span>.bpnum + <span class="number">1</span></span><br><span class="line">    <span class="built_in">status</span>.bptable[<span class="built_in">status</span>.bpid] = &#123;func = func, line = line&#125;</span><br><span class="line">    <span class="keyword">if</span> <span class="built_in">status</span>.bpnum == <span class="number">1</span> <span class="keyword">then</span>           <span class="comment">-- 第一个断点</span></span><br><span class="line">        <span class="built_in">debug</span>.<span class="built_in">sethook</span>(linehook, <span class="string">&quot;l&quot;</span>)    <span class="comment">-- 设置钩子</span></span><br><span class="line">    <span class="keyword">end</span></span><br><span class="line">    <span class="keyword">return</span> <span class="built_in">status</span>.bpid					<span class="comment">--&gt; 返回断点id</span></span><br><span class="line"><span class="keyword">end</span></span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="钩子函数"><a href="#钩子函数" class="headerlink" title="钩子函数"></a>钩子函数</h2><p>在钩子函数中，通过<code>debug.getinfo</code>获取到闭包信息，注意这里的层次为2，因为<code>debug.getinfo()</code>函数本身的层次是0，钩子函数层次是1，断点所在的函数层次即为2。然后遍历断点表，与获取的闭包信息进行比较，如果函数和行号都匹配，说明命中断点。我们打印一行提示信息，然后调用<code>debug.debug()</code>进入交互调试模式，用户可以输入任意代码执行。交互调试模式一直持续，直到用户输入<code>cont</code>为止。</p>
+<figure class="highlight lua"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">-- 钩子函数</span></span><br><span class="line"><span class="keyword">local</span> <span class="function"><span class="keyword">function</span> <span class="title">linehook</span> <span class="params">(event, line)</span></span></span><br><span class="line">    <span class="keyword">local</span> info = <span class="built_in">debug</span>.<span class="built_in">getinfo</span>(<span class="number">2</span>, <span class="string">&quot;nfS&quot;</span>)</span><br><span class="line">    <span class="keyword">for</span> _, v <span class="keyword">in</span> <span class="built_in">pairs</span>(<span class="built_in">status</span>.bptable) <span class="keyword">do</span></span><br><span class="line">        <span class="keyword">if</span> v.func == info.func <span class="keyword">and</span> v.line == line <span class="keyword">then</span></span><br><span class="line">            <span class="keyword">local</span> prompt = <span class="built_in">string</span>.<span class="built_in">format</span>(<span class="string">&quot;(%s)%s %s:%d\n&quot;</span>,</span><br><span class="line">                info.namewhat, info.name, info.short_src, line)</span><br><span class="line">            <span class="built_in">io</span>.<span class="built_in">write</span>(prompt)</span><br><span class="line">            <span class="built_in">debug</span>.<span class="built_in">debug</span>()</span><br><span class="line">        <span class="keyword">end</span></span><br><span class="line">    <span class="keyword">end</span></span><br><span class="line"><span class="keyword">end</span></span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="删除断点接口"><a href="#删除断点接口" class="headerlink" title="删除断点接口"></a>删除断点接口</h2><p>删除断点比较简单，首先检查id参数是否有效，如果无效直接返回，如果有效则将断点表中相应id位置的值置为nil即可，然后更新断点数，如果已经没有断点了，则清除钩子。</p>
+<figure class="highlight lua"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">-- 删除断点</span></span><br><span class="line"><span class="keyword">local</span> <span class="function"><span class="keyword">function</span> <span class="title">removebreakpoint</span><span class="params">(id)</span></span></span><br><span class="line">    <span class="keyword">if</span> <span class="built_in">status</span>.bptable[id] == <span class="literal">nil</span> <span class="keyword">then</span></span><br><span class="line">        <span class="keyword">return</span></span><br><span class="line">    <span class="keyword">end</span></span><br><span class="line">    <span class="built_in">status</span>.bptable[id] = <span class="literal">nil</span></span><br><span class="line">    <span class="built_in">status</span>.bpnum = <span class="built_in">status</span>.bpnum - <span class="number">1</span></span><br><span class="line">    <span class="keyword">if</span> <span class="built_in">status</span>.bpnum == <span class="number">0</span> <span class="keyword">then</span></span><br><span class="line">        <span class="built_in">debug</span>.<span class="built_in">sethook</span>()                 <span class="comment">-- 清除钩子</span></span><br><span class="line">    <span class="keyword">end</span></span><br><span class="line"><span class="keyword">end</span></span><br></pre></td></tr></table></figure>
+
+<p>至此我们的模块就编写好了，下面对这个模块进行测试。</p>
+<h2 id="测试脚本"><a href="#测试脚本" class="headerlink" title="测试脚本"></a>测试脚本</h2><p>我们编写一个如下的测试脚本<code>test.lua</code>，定义了两个函数foo和bar，然后分别在两个函数中设置了一个断点（注意：注释和空行不是有效的断点行），然后多次调用函数并先后删除断点：</p>
+<figure class="highlight lua"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">local</span> mydebug = <span class="built_in">require</span> <span class="string">&quot;mydebug&quot;</span></span><br><span class="line"><span class="keyword">local</span> setbp = mydebug.setbreakpoint</span><br><span class="line"><span class="keyword">local</span> rmbp = mydebug.removebreakpoint</span><br><span class="line"></span><br><span class="line">g = <span class="number">1</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">local</span> u = <span class="number">2</span></span><br><span class="line"><span class="keyword">local</span> <span class="function"><span class="keyword">function</span> <span class="title">foo</span> <span class="params">(n)</span></span></span><br><span class="line">    <span class="keyword">local</span> a = <span class="number">3</span></span><br><span class="line">    a = a + <span class="number">1</span></span><br><span class="line">    u = u + <span class="number">1</span></span><br><span class="line">    g = g + <span class="number">1</span></span><br><span class="line"><span class="keyword">end</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">local</span> <span class="function"><span class="keyword">function</span> <span class="title">bar</span> <span class="params">(n)</span></span></span><br><span class="line">    n = n + <span class="number">1</span></span><br><span class="line"><span class="keyword">end</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">local</span> id1 = setbp(foo, <span class="number">11</span>)	<span class="comment">-- 设置断点1</span></span><br><span class="line"><span class="keyword">local</span> id2 = setbp(bar, <span class="number">16</span>)	<span class="comment">-- 设置断点2</span></span><br><span class="line"></span><br><span class="line">foo(<span class="number">10</span>)</span><br><span class="line">bar(<span class="number">10</span>)</span><br><span class="line"></span><br><span class="line">rmbp(id1)					<span class="comment">-- 删除断点1</span></span><br><span class="line"></span><br><span class="line">foo(<span class="number">20</span>)</span><br><span class="line">bar(<span class="number">20</span>)</span><br><span class="line"></span><br><span class="line">rmbp(id2)					<span class="comment">-- 删除断点2</span></span><br><span class="line"></span><br><span class="line">foo(<span class="number">30</span>)</span><br><span class="line">bar(<span class="number">30</span>)</span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="测试验证"><a href="#测试验证" class="headerlink" title="测试验证"></a>测试验证</h2><p>然后我们运行测试脚本，可以看到程序停在了foo函数的断点1处。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ lua test.lua</span><br><span class="line">(<span class="built_in">local</span>)foo test.lua:11</span><br><span class="line">lua_debug&gt; </span><br></pre></td></tr></table></figure>
+
+<p>我们可以在这里打印调用栈信息</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">$ lua test.lua</span><br><span class="line">(<span class="built_in">local</span>)foo test.lua:11</span><br><span class="line">lua_debug&gt; <span class="built_in">print</span>(debug.traceback())</span><br><span class="line">stack traceback:</span><br><span class="line">	(debug <span class="built_in">command</span>):1: <span class="keyword">in</span> main chunk</span><br><span class="line">	[C]: <span class="keyword">in</span> <span class="keyword">function</span> <span class="string">&#x27;debug.debug&#x27;</span></span><br><span class="line">	./mydebug.lua:20: <span class="keyword">in</span> hook <span class="string">&#x27;?&#x27;</span></span><br><span class="line">	test.lua:11: <span class="keyword">in</span> <span class="built_in">local</span> <span class="string">&#x27;foo&#x27;</span></span><br><span class="line">	test.lua:22: <span class="keyword">in</span> main chunk</span><br><span class="line">	[C]: <span class="keyword">in</span> ?</span><br><span class="line">lua_debug&gt; </span><br></pre></td></tr></table></figure>
+
+<p>可以看到foo函数在第4层（第1层是执行我们调试命令的main chunk，第2层是<code>debug.debu</code>g函数，第3层是hook函数）。我们打印foo函数中第一个局部变量（即固定参数n）的值</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">lua_debug&gt; <span class="built_in">print</span>(debug.getlocal(4, 1))</span><br><span class="line">n	10</span><br><span class="line">lua_debug&gt;</span><br></pre></td></tr></table></figure>
+
+<p>然后打印第二个局部变量（即a）的值</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">lua_debug&gt; <span class="built_in">print</span>(debug.getlocal(4, 2))</span><br><span class="line">a	4</span><br><span class="line">lua_debug&gt;</span><br></pre></td></tr></table></figure>
+
+<p>然后我们输入<code>cont</code>继续代码的执行，碰到了bar函数的断点2</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">lua_debug&gt; cont</span><br><span class="line">(<span class="built_in">local</span>)bar test.lua:16</span><br><span class="line">lua_debug&gt;</span><br></pre></td></tr></table></figure>
+
+<p>我们打印bar函数的参数n的值，可以看到也是10</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">lua_debug&gt; <span class="built_in">print</span>(debug.getlocal(4, 1))</span><br><span class="line">n	10</span><br><span class="line">lua_debug&gt;</span><br></pre></td></tr></table></figure>
+
+<p>然后我们输入<code>cont</code>继续执行代码，因为断点1已经被移除，所以再次停在了bar函数的断点2处</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">lua_debug&gt; cont</span><br><span class="line">(<span class="built_in">local</span>)bar test.lua:16</span><br><span class="line">lua_debug&gt;</span><br></pre></td></tr></table></figure>
+
+<p>我们再来打印下参数n的值，此时参数n的值是20</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">lua_debug&gt; <span class="built_in">print</span>(debug.getlocal(4, 1))</span><br><span class="line">n	20</span><br><span class="line">lua_debug&gt;</span><br></pre></td></tr></table></figure>
+
+<p>我们再次输入<code>cont</code>，因为断点2也被移除了，所以第三次调用<code>foo</code>函数和<code>bar</code>函数就没有再碰到断点，程序运行结束</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">lua_debug&gt; cont</span><br><span class="line">$</span><br></pre></td></tr></table></figure>
+
+<p>这样一个最简单的Lua断点调试器就完成了。虽然还比较简陋，但是已经能够应付一些简单的调试了。🎉</p>
 
     </div>
 
@@ -350,6 +404,18 @@ translateInitilization();
     
     
       
+  <div class="popular-posts-header">相关文章推荐</div>
+  <ul class="popular-posts">
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/posts/74970c0e/" rel="bookmark">自己动手实现Lua--实现TAILCALL指令</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/posts/30b81f82/" rel="bookmark">OpenResty Lua钩子调用完整流程</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/posts/150430f0/" rel="bookmark">Openresty Lua协程调度机制</a></div>
+    </li>
+  </ul>
 <div>
     
         <div style="text-align:center;font-size:22px;letter-spacing:10px;user-select:none;color:#bbb;">-------------本文结束<i class="fa fa-paw"></i>感谢您的阅读-------------</div>
@@ -367,7 +433,7 @@ translateInitilization();
   </li>
   <li class="post-copyright-link">
     <strong>本文链接：</strong>
-    <a href="https://catbro666.github.io/posts/4a17b156/" title="Hello World">https://catbro666.github.io/posts/4a17b156/</a>
+    <a href="https://catbro666.github.io/posts/f9a188a7/" title="Lua中如何实现类似gdb的断点调试--01最小实现">https://catbro666.github.io/posts/f9a188a7/</a>
   </li>
   <li class="post-copyright-license">
     <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/zh-CN" rel="noopener external nofollow noreferrer" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！
@@ -396,17 +462,22 @@ translateInitilization();
 
 
       <footer class="post-footer">
+          
+          <div class="post-tags">
+              <a href="/tags/Lua/" rel="tag"><i class="fa fa-tag"></i> Lua</a>
+              <a href="/tags/%E8%B0%83%E8%AF%95/" rel="tag"><i class="fa fa-tag"></i> 调试</a>
+          </div>
 
         
 
 
         
     <div class="post-nav">
-      <div class="post-nav-item"></div>
       <div class="post-nav-item">
-    <a href="/posts/2485f370/" rel="next" title="UNIX环境高级编程APUE练习3.2-不用fcntl实现dup2的功能">
-      UNIX环境高级编程APUE练习3.2-不用fcntl实现dup2的功能 <i class="fa fa-chevron-right"></i>
+    <a href="/posts/e92ef4b4/" rel="prev" title="一篇文章搞懂密码学基础及SSL/TLS协议">
+      <i class="fa fa-chevron-left"></i> 一篇文章搞懂密码学基础及SSL/TLS协议
     </a></div>
+      <div class="post-nav-item"></div>
     </div>
       </footer>
     
@@ -466,7 +537,7 @@ translateInitilization();
 
       <!--noindex-->
       <div class="post-toc-wrap sidebar-panel">
-          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#Quick-Start"><span class="nav-number">1.</span> <span class="nav-text">Quick Start</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Create-a-new-post"><span class="nav-number">1.1.</span> <span class="nav-text">Create a new post</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Run-server"><span class="nav-number">1.2.</span> <span class="nav-text">Run server</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Generate-static-files"><span class="nav-number">1.3.</span> <span class="nav-text">Generate static files</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Deploy-to-remote-sites"><span class="nav-number">1.4.</span> <span class="nav-text">Deploy to remote sites</span></a></li></ol></li></ol></div>
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%9A%E4%B9%89%E6%A8%A1%E5%9D%97%E5%8F%8A%E6%8E%A5%E5%8F%A3"><span class="nav-number">1.</span> <span class="nav-text">定义模块及接口</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%BB%B4%E6%8A%A4%E7%8A%B6%E6%80%81%E7%9A%84%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84"><span class="nav-number">2.</span> <span class="nav-text">维护状态的数据结构</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%AE%BE%E7%BD%AE%E6%96%AD%E7%82%B9%E6%8E%A5%E5%8F%A3"><span class="nav-number">3.</span> <span class="nav-text">设置断点接口</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%92%A9%E5%AD%90%E5%87%BD%E6%95%B0"><span class="nav-number">4.</span> <span class="nav-text">钩子函数</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%88%A0%E9%99%A4%E6%96%AD%E7%82%B9%E6%8E%A5%E5%8F%A3"><span class="nav-number">5.</span> <span class="nav-text">删除断点接口</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%B5%8B%E8%AF%95%E8%84%9A%E6%9C%AC"><span class="nav-number">6.</span> <span class="nav-text">测试脚本</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%B5%8B%E8%AF%95%E9%AA%8C%E8%AF%81"><span class="nav-number">7.</span> <span class="nav-text">测试验证</span></a></li></ol></div>
       </div>
       <!--/noindex-->
 

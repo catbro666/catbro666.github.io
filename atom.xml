@@ -6,7 +6,7 @@
   <link href="https://catbro666.github.io/atom.xml" rel="self"/>
   
   <link href="https://catbro666.github.io/"/>
-  <updated>2021-08-12T12:28:34.315Z</updated>
+  <updated>2021-08-13T12:52:02.896Z</updated>
   <id>https://catbro666.github.io/</id>
   
   <author>
@@ -15,6 +15,29 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Lua中如何实现类似gdb的断点调试--01最小实现</title>
+    <link href="https://catbro666.github.io/posts/f9a188a7/"/>
+    <id>https://catbro666.github.io/posts/f9a188a7/</id>
+    <published>2021-08-12T16:52:46.000Z</published>
+    <updated>2021-08-13T12:52:02.896Z</updated>
+    
+    
+    <summary type="html">&lt;div class=&quot;note primary&quot;&gt;
+            &lt;p&gt;说到Lua代码调试，最常用的方法应该就是加一堆print进行打印。print大法虽好，但其缺点也是显而易见的。比如效率低下，需要修改原有函数内部代码，在每个需要的地方添加print语句，运行一次只能获取一次信息，下次换个地方又得重新添加print语句。而且有时候，事先并不知道该去哪打印、或者打印什么内容，需要通过运行中获取的信息才能确定。&lt;/p&gt;&lt;p&gt;当print大法无法满足我们的需求时，就需要类似断点调试这样更高级的调试功能。本文将从零开始编写一个Lua调试器，实现类似gdb的断点调试功能。&lt;/p&gt;&lt;p&gt;本文代码已开源至&lt;a href=&quot;https://github.com/catbro666/lua-debugger&quot;&gt;Github&lt;/a&gt;，欢迎watch/star😘。&lt;/p&gt;
+          &lt;/div&gt;</summary>
+    
+    
+    
+    <category term="技术向" scheme="https://catbro666.github.io/categories/%E6%8A%80%E6%9C%AF%E5%90%91/"/>
+    
+    
+    <category term="Lua" scheme="https://catbro666.github.io/tags/Lua/"/>
+    
+    <category term="调试" scheme="https://catbro666.github.io/tags/%E8%B0%83%E8%AF%95/"/>
+    
+  </entry>
   
   <entry>
     <title>一篇文章搞懂密码学基础及SSL/TLS协议</title>
