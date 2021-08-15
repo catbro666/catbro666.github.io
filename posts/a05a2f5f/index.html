@@ -23,20 +23,21 @@
     var CONFIG = {"hostname":"catbro666.github.io","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","width":240,"display":"post","padding":18,"offset":42,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":"mac"},"back2top":{"enable":true,"sidebar":true,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
   </script>
 
-  <meta name="description" content="Tag Plugin 是一种使 Hexo 支持特殊样式内容的方法。例如，我们无法在标准 Markdown 中显示具有自定义尺寸的图像。然后我们可以使用标签插件来解决它。 Hexo 有很多可以帮助用户的标签。 Hexo 还具有主题接口，使主题能够创建自己的标签。">
+  <meta name="description" content="在前面两篇01最小实现及02通用变量打印中，我们已经实现了设置断点、删除断点及通用变量打印接口。本篇将继续新增两个辅助的调试接口：调用栈回溯打印接口、通用变量设置接口。前者打印调用栈的回溯信息，后者可以方便地修改变量的值，支持局部变量、upvalue以及全局的_ENV中的变量。">
 <meta property="og:type" content="article">
-<meta property="og:title" content="Hexo-NexT Tag 插件的使用">
-<meta property="og:url" content="https://catbro666.github.io/posts/29bfe8c9/index.html">
+<meta property="og:title" content="Lua中如何实现类似gdb的断点调试--03通用变量修改及调用栈回溯">
+<meta property="og:url" content="https://catbro666.github.io/posts/a05a2f5f/index.html">
 <meta property="og:site_name" content="CatBro&#39;s Blog">
-<meta property="og:description" content="Tag Plugin 是一种使 Hexo 支持特殊样式内容的方法。例如，我们无法在标准 Markdown 中显示具有自定义尺寸的图像。然后我们可以使用标签插件来解决它。 Hexo 有很多可以帮助用户的标签。 Hexo 还具有主题接口，使主题能够创建自己的标签。">
+<meta property="og:description" content="在前面两篇01最小实现及02通用变量打印中，我们已经实现了设置断点、删除断点及通用变量打印接口。本篇将继续新增两个辅助的调试接口：调用栈回溯打印接口、通用变量设置接口。前者打印调用栈的回溯信息，后者可以方便地修改变量的值，支持局部变量、upvalue以及全局的_ENV中的变量。">
 <meta property="og:locale" content="zh_CN">
-<meta property="article:published_time" content="2021-06-22T12:13:58.000Z">
-<meta property="article:modified_time" content="2021-06-26T11:12:07.228Z">
+<meta property="article:published_time" content="2021-08-15T04:41:09.000Z">
+<meta property="article:modified_time" content="2021-08-15T04:56:20.194Z">
 <meta property="article:author" content="猫猫哥">
-<meta property="article:tag" content="Hexo">
+<meta property="article:tag" content="Lua">
+<meta property="article:tag" content="调试">
 <meta name="twitter:card" content="summary">
 
-<link rel="canonical" href="https://catbro666.github.io/posts/29bfe8c9/">
+<link rel="canonical" href="https://catbro666.github.io/posts/a05a2f5f/">
 
 
 <script id="page-configurations">
@@ -53,7 +54,7 @@
 
 
 
-  <title>Hexo-NexT Tag 插件的使用 | CatBro's Blog</title>
+  <title>Lua中如何实现类似gdb的断点调试--03通用变量修改及调用栈回溯 | CatBro's Blog</title>
   
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-6PKG8T836C"></script>
     <script>
@@ -230,7 +231,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://catbro666.github.io/posts/29bfe8c9/">
+    <link itemprop="mainEntityOfPage" href="https://catbro666.github.io/posts/a05a2f5f/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/images/avatar.gif">
@@ -243,7 +244,7 @@
     </span>
       <header class="post-header">
         <h1 class="post-title" itemprop="name headline">
-          Hexo-NexT Tag 插件的使用
+          Lua中如何实现类似gdb的断点调试--03通用变量修改及调用栈回溯
         </h1>
 
         <div class="post-meta">
@@ -252,28 +253,22 @@
                 <i class="far fa-calendar"></i>
               </span>
               <span class="post-meta-item-text">发表于</span>
+              
 
-              <time title="创建时间：2021-06-22 20:13:58" itemprop="dateCreated datePublished" datetime="2021-06-22T20:13:58+08:00">2021-06-22</time>
+              <time title="创建时间：2021-08-15 12:41:09 / 修改时间：12:56:20" itemprop="dateCreated datePublished" datetime="2021-08-15T12:41:09+08:00">2021-08-15</time>
             </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-26 19:12:07" itemprop="dateModified" datetime="2021-06-26T19:12:07+08:00">2021-06-26</time>
-              </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
                 <i class="far fa-folder"></i>
               </span>
               <span class="post-meta-item-text">分类于</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E5%B7%A5%E5%85%B7%E5%90%91/" itemprop="url" rel="index"><span itemprop="name">工具向</span></a>
+                  <a href="/categories/%E6%8A%80%E6%9C%AF%E5%90%91/" itemprop="url" rel="index"><span itemprop="name">技术向</span></a>
                 </span>
             </span>
 
           
-            <span id="/posts/29bfe8c9/" class="post-meta-item leancloud_visitors" data-flag-title="Hexo-NexT Tag 插件的使用" title="阅读次数">
+            <span id="/posts/a05a2f5f/" class="post-meta-item leancloud_visitors" data-flag-title="Lua中如何实现类似gdb的断点调试--03通用变量修改及调用栈回溯" title="阅读次数">
               <span class="post-meta-item-icon">
                 <i class="fa fa-eye"></i>
               </span>
@@ -288,8 +283,8 @@
       </span>
       <span class="post-meta-item-text">评论数：</span>
     
-    <a title="valine" href="/posts/29bfe8c9/#valine-comments" itemprop="discussionUrl">
-      <span class="post-comments-count valine-comment-count" data-xid="/posts/29bfe8c9/" itemprop="commentCount"></span>
+    <a title="valine" href="/posts/a05a2f5f/#valine-comments" itemprop="discussionUrl">
+      <span class="post-comments-count valine-comment-count" data-xid="/posts/a05a2f5f/" itemprop="commentCount"></span>
     </a>
   </span>
   
@@ -318,14 +313,14 @@ translateInitilization();
                 <i class="far fa-file-word"></i>
               </span>
                 <span class="post-meta-item-text">本文字数：</span>
-              <span>2.5k</span>
+              <span>4.1k</span>
             </span>
             <span class="post-meta-item" title="阅读时长">
               <span class="post-meta-item-icon">
                 <i class="far fa-clock"></i>
               </span>
                 <span class="post-meta-item-text">阅读时长 &asymp;</span>
-              <span>2 分钟</span>
+              <span>4 分钟</span>
             </span>
 
         </div>
@@ -337,114 +332,93 @@ translateInitilization();
     <div class="post-body" itemprop="articleBody">
 
       
-        <p><code>Tag Plugin</code> 是一种使 Hexo 支持特殊样式内容的方法。例如，我们无法在标准 Markdown 中显示具有自定义尺寸的图像。然后我们可以使用标签插件来解决它。 Hexo 有很多可以帮助用户的标签。 Hexo 还具有主题接口，使主题能够创建自己的标签。</p>
-<span id="more"></span>
-
-<h2 id="文本居中引用-Centered-Quote"><a href="#文本居中引用-Centered-Quote" class="headerlink" title="文本居中引用 - Centered Quote"></a>文本居中引用 - Centered Quote</h2><p>使用方式：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&#123;% cq %&#125;因为我渺小的心灵里，容不下一个谜，一点悬而未决的东西&#123;% endcq %&#125;</span><br></pre></td></tr></table></figure>
-
-<p>效果展示：</p>
-<blockquote class="blockquote-center">
-            <i class="fa fa-quote-left"></i>
-            <p>因为我渺小的心灵里，容不下一个谜，一点悬而未决的东西</p>
-
-            <i class="fa fa-quote-right"></i>
-          </blockquote>
-
-
-
-<h2 id="提示块-Note"><a href="#提示块-Note" class="headerlink" title="提示块 - Note"></a>提示块 - Note</h2><p>使用方式：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">&#123;% note default %&#125;</span><br><span class="line">default 提示块标签</span><br><span class="line">&#123;% endnote %&#125;</span><br><span class="line"></span><br><span class="line">&#123;% note primary %&#125;</span><br><span class="line">primary 提示块标签</span><br><span class="line">&#123;% endnote %&#125;</span><br><span class="line"></span><br><span class="line">&#123;% note success %&#125;</span><br><span class="line">success 提示块标签</span><br><span class="line">&#123;% endnote %&#125;</span><br><span class="line"></span><br><span class="line">&#123;% note info %&#125;</span><br><span class="line">info 提示块标签</span><br><span class="line">&#123;% endnote %&#125;</span><br><span class="line"></span><br><span class="line">&#123;% note warning %&#125;</span><br><span class="line">warning 提示块标签</span><br><span class="line">&#123;% endnote %&#125;</span><br><span class="line"></span><br><span class="line">&#123;% note danger %&#125;</span><br><span class="line">danger 提示块标签</span><br><span class="line">&#123;% endnote %&#125;</span><br></pre></td></tr></table></figure>
-
-<p>效果展示：</p>
-<div class="note default">
-            <p>default 提示块标签</p>
+        <div class="note primary">
+            <p>在前面两篇<a href="../f9a188a7/">01最小实现</a>及<a href="../f6e9079c">02通用变量打印</a>中，我们已经实现了设置断点、删除断点及通用变量打印接口。</p><p>本篇将继续新增两个辅助的调试接口：调用栈回溯打印接口、通用变量设置接口。前者打印调用栈的回溯信息，后者可以方便地修改变量的值，支持局部变量、upvalue以及全局的<code>_ENV</code>中的变量。</p><span id="more"></span><p>本文代码已开源至<a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/catbro666/lua-debugger">Github</a>，欢迎watch/star😘。</p>
           </div>
 
-<div class="note primary">
-            <p>primary 提示块标签</p>
-          </div>
+<h2 id="调用栈打印函数"><a href="#调用栈打印函数" class="headerlink" title="调用栈打印函数"></a>调用栈打印函数</h2><p>我们首先来实现调用栈回溯打印接口<code>printtraceback()</code>，这个接口比较简单，只是简单地包装了一下<code>debug.traceback()</code>，对层级进行了一个修正，就不多介绍了。</p>
+<figure class="highlight lua"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">-- 打印调用栈的一个回溯</span></span><br><span class="line"><span class="keyword">local</span> <span class="function"><span class="keyword">function</span> <span class="title">printtraceback</span><span class="params">(level)</span></span></span><br><span class="line">    <span class="comment">-- 层次的默认值为1</span></span><br><span class="line">    <span class="comment">-- 加上4是为了修正层次数以包含printtraceback, debug mainchunk, debug.debug, hook</span></span><br><span class="line">    level = (level <span class="keyword">or</span> <span class="number">1</span>) + <span class="number">4</span></span><br><span class="line">    <span class="built_in">print</span>(<span class="built_in">debug</span>.<span class="built_in">traceback</span>(<span class="literal">nil</span>, level))</span><br><span class="line"><span class="keyword">end</span></span><br></pre></td></tr></table></figure>
 
-<div class="note success">
-            <p>success 提示块标签</p>
-          </div>
-
-<div class="note info">
-            <p>info 提示块标签</p>
-          </div>
-
-<div class="note warning">
-            <p>warning 提示块标签</p>
-          </div>
-
-<div class="note danger">
-            <p>danger 提示块标签</p>
-          </div>
+<h2 id="通用变量值修改函数"><a href="#通用变量值修改函数" class="headerlink" title="通用变量值修改函数"></a>通用变量值修改函数</h2><p>接着来实现通用的变量值修改函数<code>_setvarvalue()</code>，这个函数的结构跟<code>_getvarvalue()</code>类似，依次在局部变量、上值和<code>_ENV</code>表中查找，只不过找到之后会修改相应的值。函数有三个参数，<code>name</code>为要修改的变量的名字，<code>value</code>是修改的目标值，<code>level</code>指示在哪个层级的函数中查找，我们同样分成几部分来看。</p>
+<figure class="highlight lua"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">local</span> <span class="function"><span class="keyword">function</span> <span class="title">_setvarvalue</span> <span class="params">(name, value, level)</span></span></span><br><span class="line">    <span class="comment">-- 省略</span></span><br><span class="line"><span class="keyword">end</span></span><br></pre></td></tr></table></figure>
 
 
 
-<p>可在主题配置文件中修改风格：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"># Note tag (bs-callout)</span><br><span class="line">note:</span><br><span class="line">  # Note tag style values:</span><br><span class="line">  #  - simple    bs-callout old alert style. Default.</span><br><span class="line">  #  - modern    bs-callout new (v2-v3) alert style.</span><br><span class="line">  #  - flat      flat callout style with background, like on Mozilla or StackOverflow.</span><br><span class="line">  #  - disabled  disable all CSS styles import of note tag.</span><br><span class="line">  style: flat</span><br><span class="line">  icons: true</span><br><span class="line">  # 圆角</span><br><span class="line">  border_radius: 3</span><br><span class="line">  # Offset lighter of background in % for modern and flat styles (modern: -12 | 12; flat: -18 | 6).</span><br><span class="line">  # Offset also applied to label tag variables. This option can work with disabled note tag.</span><br><span class="line">  light_bg_offset: 0</span><br></pre></td></tr></table></figure>
+<h2 id="局部变量中查找"><a href="#局部变量中查找" class="headerlink" title="局部变量中查找"></a>局部变量中查找</h2><p>同样地，先处理层级，层级的默认值为1， 将层级加上1是为了将层次修正为包含<code>_setvavalue</code>函数自己。</p>
+<p>然后遍历局部变量表，查找是否有名字为<code>name</code>的变量，如果找到的话记录其索引。<span class="label warning">注意</span>我们找到之后并没有立马跳出循环，因为可能具有多个同名的局部变量，我们应该获取索引最大的那个。</p>
+<p>循环结束之后，如果已经在局部变量中找到了<code>name</code>，就修改该变量的值为<code>value</code>，然后返回<code>&quot;local&quot;</code>，指示修改的是局部变量。</p>
+<figure class="highlight lua"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">local</span> <span class="function"><span class="keyword">function</span> <span class="title">_setvarvalue</span> <span class="params">(name, value, level)</span></span></span><br><span class="line">    <span class="keyword">local</span> index</span><br><span class="line"></span><br><span class="line">    <span class="comment">-- 加1是为了将层次修正了包含_setvarvalue自身</span></span><br><span class="line">    level = (level <span class="keyword">or</span> <span class="number">1</span>) + <span class="number">1</span></span><br><span class="line">    <span class="comment">-- 在局部变量中查找</span></span><br><span class="line">    <span class="keyword">for</span> i = <span class="number">1</span>, <span class="built_in">math</span>.<span class="built_in">huge</span> <span class="keyword">do</span></span><br><span class="line">        <span class="keyword">local</span> n, v = <span class="built_in">debug</span>.<span class="built_in">getlocal</span>(level, i)</span><br><span class="line">        <span class="keyword">if</span> <span class="keyword">not</span> n <span class="keyword">then</span> <span class="keyword">break</span> <span class="keyword">end</span></span><br><span class="line">        <span class="keyword">if</span> n == name <span class="keyword">then</span></span><br><span class="line">            index = i</span><br><span class="line">            <span class="comment">-- 只更新索引值，并不退出循环</span></span><br><span class="line">        <span class="keyword">end</span></span><br><span class="line">    <span class="keyword">end</span></span><br><span class="line">    <span class="keyword">if</span> index <span class="keyword">then</span></span><br><span class="line">        <span class="built_in">debug</span>.<span class="built_in">setlocal</span>(level, index, value)</span><br><span class="line">        <span class="keyword">return</span> <span class="string">&quot;local&quot;</span></span><br><span class="line">    <span class="keyword">end</span></span><br><span class="line">    <span class="comment">-- 省略</span></span><br><span class="line"><span class="keyword">end</span></span><br></pre></td></tr></table></figure>
 
 
 
-<h2 id="标签-Label"><a href="#标签-Label" class="headerlink" title="标签 - Label"></a>标签 - Label</h2><p>使用方式：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">&#123;% label default@默认 %&#125; &#123;% label primary@主要 %&#125; &#123;% label info@信息 %&#125; &#123;% label warning@警告 %&#125; &#123;% label danger@危险 %&#125; </span><br><span class="line">&#123;% label success@成功%&#125;</span><br></pre></td></tr></table></figure>
-
-<p>效果展示：</p>
-<span class="label default">默认</span> <span class="label primary">主要</span> <span class="label info">信息</span> <span class="label warning">警告</span> <span class="label danger">危险</span> 
-<span class="label success">成功</span>
-
-<h2 id="选项卡-Tabs"><a href="#选项卡-Tabs" class="headerlink" title="选项卡 - Tabs"></a>选项卡 - Tabs</h2><p>使用方式：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line">&#123;% tabs tab, 2 %&#125; 名字为tab，默认显示第1个选项卡，如果是-1则隐藏</span><br><span class="line">&lt;!-- tab 魏国--&gt;</span><br><span class="line">**曹操**</span><br><span class="line"></span><br><span class="line">司马懿 郭嘉 荀彧 荀攸 程昱 杨修 </span><br><span class="line"></span><br><span class="line">典韦 许褚 夏侯渊 夏侯惇 曹仁 于禁 张辽 徐晃</span><br><span class="line"></span><br><span class="line">&lt;!-- endtab --&gt;</span><br><span class="line">&lt;!-- tab 蜀国--&gt;</span><br><span class="line">**刘备**</span><br><span class="line"></span><br><span class="line">诸葛亮 庞统 徐庶 姜维 法正 马良</span><br><span class="line"></span><br><span class="line">关羽 张飞 赵云 马超 黄忠 魏延 关兴 张苞</span><br><span class="line"></span><br><span class="line">&lt;!-- endtab --&gt;</span><br><span class="line">&lt;!-- tab 吴国 --&gt;</span><br><span class="line">**孙权**</span><br><span class="line"></span><br><span class="line">周瑜 张昭 鲁肃 诸葛瑾 陆逊</span><br><span class="line"></span><br><span class="line">甘宁 太史慈 吕蒙 韩当 黄盖 程普  </span><br><span class="line"></span><br><span class="line">&lt;!-- endtab --&gt;</span><br><span class="line">&#123;% endtabs %&#125;</span><br></pre></td></tr></table></figure>
-
-<p>效果展示：</p>
-<div class="tabs" id="tab"><ul class="nav-tabs"><li class="tab"><a href="#tab-1">魏国</a></li><li class="tab active"><a href="#tab-2">蜀国</a></li><li class="tab"><a href="#tab-3">吴国</a></li></ul><div class="tab-content"><div class="tab-pane" id="tab-1"><p><strong>曹操</strong></p>
-<p>司马懿 郭嘉 荀彧 荀攸 程昱 杨修 </p>
-<p>典韦 许褚 夏侯渊 夏侯惇 曹仁 于禁 张辽 徐晃</p></div><div class="tab-pane active" id="tab-2"><p><strong>刘备</strong></p>
-<p>诸葛亮 庞统 徐庶 姜维 法正 马良</p>
-<p>关羽 张飞 赵云 马超 黄忠 魏延 关兴 张苞</p></div><div class="tab-pane" id="tab-3"><p><strong>孙权</strong></p>
-<p>周瑜 张昭 鲁肃 诸葛瑾 陆逊</p>
-<p>甘宁 太史慈 吕蒙 韩当 黄盖 程普  </p></div></div></div>
+<h2 id="上值中查找"><a href="#上值中查找" class="headerlink" title="上值中查找"></a>上值中查找</h2><p>如果在局部变量中没有找到，我们再尝试到upvalue中进行查找。首先通过<code>getbug.getinfo</code>获取到第level层的函数，然后遍历其上值，如果找到匹配的变量就修改其值为<code>value</code>，然后返回<code>&quot;upvalue&quot;</code>以指示修改的是上值。</p>
+<figure class="highlight lua"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">local</span> <span class="function"><span class="keyword">function</span> <span class="title">_setvarvalue</span> <span class="params">(name, value, level)</span></span></span><br><span class="line">    <span class="comment">-- 省略</span></span><br><span class="line">    <span class="keyword">local</span> func = <span class="built_in">debug</span>.<span class="built_in">getinfo</span>(level, <span class="string">&quot;f&quot;</span>).func</span><br><span class="line">    <span class="keyword">for</span> i = <span class="number">1</span>, <span class="built_in">math</span>.<span class="built_in">huge</span> <span class="keyword">do</span></span><br><span class="line">        <span class="keyword">local</span> n, v = <span class="built_in">debug</span>.<span class="built_in">getupvalue</span>(func, i)</span><br><span class="line">        <span class="keyword">if</span> <span class="keyword">not</span> n <span class="keyword">then</span> <span class="keyword">break</span> <span class="keyword">end</span></span><br><span class="line">        <span class="keyword">if</span> n == name <span class="keyword">then</span></span><br><span class="line">            <span class="built_in">debug</span>.<span class="built_in">setupvalue</span>(func, i, value)</span><br><span class="line">            <span class="keyword">return</span> <span class="string">&quot;upvalue&quot;</span></span><br><span class="line">        <span class="keyword">end</span></span><br><span class="line">    <span class="keyword">end</span></span><br><span class="line">    <span class="comment">-- 省略</span></span><br><span class="line"><span class="keyword">end</span></span><br></pre></td></tr></table></figure>
 
 
 
-<p>可在主题配置文件中修改</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"># Tabs tag</span><br><span class="line">tabs:</span><br><span class="line">  transition:</span><br><span class="line">    tabs: true</span><br><span class="line">    labels: true</span><br><span class="line">  border_radius: 3</span><br></pre></td></tr></table></figure>
+<h2 id="ENV表中查找"><a href="#ENV表中查找" class="headerlink" title="_ENV表中查找"></a>_ENV表中查找</h2><p>如果在普通的上值中还是没有找到，我们就去<code>_ENV</code>表中查找。首先调用<code>_getvarvalue</code>获取到<code>_ENV</code>表，注意这里的<code>isenv</code>标志为<code>true</code>。如果如果找到了<code>_ENV</code>表且表中存在名为<code>name</code>的变量，就修改其值为<code>value</code>，然后返回<code>&quot;global&quot;</code>以指示是修改的<code>_ENV</code>表中的值。如果没有<code>_ENV</code>表或表中不存在要找的变量，就返回<code>nil</code>。</p>
+<figure class="highlight lua"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">local</span> <span class="function"><span class="keyword">function</span> <span class="title">_setvarvalue</span> <span class="params">(name, value, level)</span></span></span><br><span class="line">    <span class="comment">-- 省略</span></span><br><span class="line">    <span class="keyword">local</span> _, env = _getvarvalue(<span class="string">&quot;_ENV&quot;</span>, level, <span class="literal">true</span>)</span><br><span class="line">    <span class="keyword">if</span> env <span class="keyword">and</span> env[name] <span class="keyword">then</span></span><br><span class="line">        env[name] = value</span><br><span class="line">        <span class="keyword">return</span> <span class="string">&quot;global&quot;</span></span><br><span class="line">    <span class="keyword">else</span></span><br><span class="line">        <span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">    <span class="keyword">end</span></span><br><span class="line"><span class="keyword">end</span></span><br></pre></td></tr></table></figure>
 
-<h2 id="按钮-Button"><a href="#按钮-Button" class="headerlink" title="按钮 - Button"></a>按钮 - Button</h2><p>使用方式：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&#123;% button url, text, icon [class], [title] %&#125;</span><br></pre></td></tr></table></figure>
 
-<ul>
-<li><code>url</code>: 本地或外部url</li>
-<li><code>text</code>: 显示的文本，文本和图标至少指定一个</li>
-<li><code>icon</code>: 显示的图标， FontAwesome 图标名称（开头没有’fa-‘）</li>
-<li><code>[class]</code>: FontAwesome 类，可以取如下值<code>fa-fw | fa-lg | fa-2x | fa-3x | fa-4x | fa-5X</code></li>
-<li><code>title</code>: 鼠标悬停时的提示信息</li>
-</ul>
-<p>注意：最好添加 <code>&lt;div&gt;</code> 标签，测试时没加 div，下面显示不完全，加上非常美观。</p>
-<p>一个示例：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&lt;div&gt;&#123;% button https://catbro666.github.io/ ,首页,home fa-fw,这是我的博客首页%&#125;&lt;/div&gt;</span><br></pre></td></tr></table></figure>
 
-<p>效果展示：</p>
-<div><a class="btn" href="https://catbro666.github.io/ " title="这是我的博客首页">
-            <i class="fa fa-home fa-fw"></i>首页
-          </a></div>
+<h2 id="包装函数"><a href="#包装函数" class="headerlink" title="包装函数"></a>包装函数</h2><p>接下来我们同样再定义一个包装函数，对层次数<code>level</code>进行修正以包含<code>setvarvalue</code>函数自身以及其上层的<code>debug mainchunk</code>、<code>debug.debug</code>以及钩子函数。</p>
+<p>然后对返回值进行检查，如果返回值为真，说明修改变量值成功，就打印变量类型，否则提示未找到。</p>
+<figure class="highlight lua"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">local</span> <span class="function"><span class="keyword">function</span> <span class="title">setvarvalue</span> <span class="params">(name, value, level)</span></span></span><br><span class="line">    <span class="comment">-- level 默认值为1</span></span><br><span class="line">    <span class="comment">-- 加4是为了将层次纠正为包含 settvarvalue, debug mainchunk, debug.debug和hook</span></span><br><span class="line">    level = (level <span class="keyword">or</span> <span class="number">1</span>) + <span class="number">4</span></span><br><span class="line">    <span class="keyword">local</span> where = _setvarvalue(name, value, level)</span><br><span class="line">    <span class="keyword">if</span> where <span class="keyword">then</span></span><br><span class="line">        <span class="built_in">print</span>(where, name)</span><br><span class="line">    <span class="keyword">else</span></span><br><span class="line">        <span class="built_in">print</span>(name, <span class="string">&quot;not found&quot;</span>)</span><br><span class="line">    <span class="keyword">end</span></span><br><span class="line"><span class="keyword">end</span></span><br></pre></td></tr></table></figure>
 
-<p>多个按钮的时候可以套两层div。</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&lt;div class=&quot;text-center&quot;&gt;&lt;div&gt;&#123;% button https://catbro666.github.io/ ,首页,home fa-fw,这是我的博客首页%&#125;&#123;% button https://catbro666.github.io/archives ,归档, archive fa-lg&#125;&lt;/div&gt;&lt;/div&gt;</span><br></pre></td></tr></table></figure>
+<p>接口定义好了，让我们把这两个接口也添加到返回到表中。</p>
+<figure class="highlight lua"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">return</span> &#123;</span><br><span class="line">    <span class="comment">-- 省略</span></span><br><span class="line">    printtraceback = printtraceback,</span><br><span class="line">    setvarvalue = setvarvalue,</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
-<div class="text-center"><div><a class="btn" href="https://catbro666.github.io/ " title="这是我的博客首页">
-            <i class="fa fa-home fa-fw"></i>首页
-          </a><a class="btn" href="https://catbro666.github.io/archives ">
-            <i class="fa fa-archive fa-lg}</div></div>"></i>归档
-          </a>
+<h2 id="测试脚本"><a href="#测试脚本" class="headerlink" title="测试脚本"></a>测试脚本</h2><p>接下来编写一个测试脚本<code>test.lua</code>以对我们新添加的接口进行测试。脚本很简单，就不多做解释了。</p>
+<figure class="highlight lua"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">local</span> ldb = <span class="built_in">require</span> <span class="string">&quot;luadebug&quot;</span></span><br><span class="line"><span class="keyword">local</span> setbp = ldb.setbreakpoint</span><br><span class="line"><span class="keyword">local</span> rmbp = ldb.removebreakpoint</span><br><span class="line">pv = ldb.printvarvalue</span><br><span class="line">sv = ldb.setvarvalue</span><br><span class="line">ptb = ldb.printtraceback</span><br><span class="line"></span><br><span class="line">g = <span class="number">1</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">local</span> u = <span class="number">2</span></span><br><span class="line"><span class="keyword">local</span> <span class="function"><span class="keyword">function</span> <span class="title">foo</span> <span class="params">(n)</span></span></span><br><span class="line">    <span class="keyword">local</span> a = <span class="number">3</span></span><br><span class="line">    u = u</span><br><span class="line">    g = g</span><br><span class="line"><span class="keyword">end</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">local</span> id1 = setbp(foo, <span class="number">14</span>)</span><br><span class="line"></span><br><span class="line">foo(<span class="number">10</span>)</span><br><span class="line"></span><br><span class="line">rmbp(id1)</span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="测试验证"><a href="#测试验证" class="headerlink" title="测试验证"></a>测试验证</h2><p>我们运行测试脚本，首先调用堆栈打印函数，默认是打印从断点所在函数开始的堆栈。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">$ lua test.lua</span><br><span class="line">(<span class="built_in">local</span>)foo test.lua:14</span><br><span class="line">lua_debug&gt; ptb()</span><br><span class="line">stack traceback:</span><br><span class="line">	test.lua:14: <span class="keyword">in</span> <span class="built_in">local</span> <span class="string">&#x27;foo&#x27;</span></span><br><span class="line">	test.lua:21: <span class="keyword">in</span> main chunk</span><br><span class="line">	[C]: <span class="keyword">in</span> ?</span><br><span class="line">lua_debug&gt;</span><br></pre></td></tr></table></figure>
+
+<p>我们显式指定层数试一下。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">lua_debug&gt; ptb(2)</span><br><span class="line">stack traceback:</span><br><span class="line">	test.lua:21: <span class="keyword">in</span> main chunk</span><br><span class="line">	[C]: <span class="keyword">in</span> ?</span><br><span class="line">lua_debug&gt; ptb(0)</span><br><span class="line">stack traceback:</span><br><span class="line">	./luadebug.lua:20: <span class="keyword">in</span> hook <span class="string">&#x27;?&#x27;</span></span><br><span class="line">	test.lua:14: <span class="keyword">in</span> <span class="built_in">local</span> <span class="string">&#x27;foo&#x27;</span></span><br><span class="line">	test.lua:21: <span class="keyword">in</span> main chunk</span><br><span class="line">	[C]: <span class="keyword">in</span> ?</span><br><span class="line">lua_debug&gt;</span><br></pre></td></tr></table></figure>
+
+<p>没有问题，层数为2的时候少打印了一层，为0的时候则多打了一层。</p>
+<p>我们再来测试下变量值修改函数，先看来变量原来的值</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">lua_debug&gt; pv(<span class="string">&quot;a&quot;</span>)</span><br><span class="line"><span class="built_in">local</span>	3</span><br><span class="line">lua_debug&gt; pv(<span class="string">&quot;u&quot;</span>)</span><br><span class="line">upvalue	2</span><br><span class="line">lua_debug&gt; pv(<span class="string">&quot;g&quot;</span>)</span><br><span class="line">global	1</span><br><span class="line">lua_debug&gt;</span><br></pre></td></tr></table></figure>
+
+<p>然后修改变量的值，我们把这三个变量值都改成了6</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">lua_debug&gt; sv(<span class="string">&quot;a&quot;</span>, 6)</span><br><span class="line"><span class="built_in">local</span>	a</span><br><span class="line">lua_debug&gt; sv(<span class="string">&quot;u&quot;</span>, 6)</span><br><span class="line">upvalue	u</span><br><span class="line">lua_debug&gt; sv(<span class="string">&quot;g&quot;</span>, 6)</span><br><span class="line">global	g</span><br><span class="line">lua_debug&gt;</span><br></pre></td></tr></table></figure>
+
+<p>然后再打印下值检查下结果，可以看到都修改成功了。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">lua_debug&gt; pv(<span class="string">&quot;a&quot;</span>)</span><br><span class="line"><span class="built_in">local</span>	6</span><br><span class="line">lua_debug&gt; pv(<span class="string">&quot;u&quot;</span>)</span><br><span class="line">upvalue	6</span><br><span class="line">lua_debug&gt; pv(<span class="string">&quot;g&quot;</span>)</span><br><span class="line">global	6</span><br><span class="line">lua_debug&gt;</span><br></pre></td></tr></table></figure>
+
+<p>我们再试试显式指定层级为2，将变量值再改为8</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">lua_debug&gt; sv(<span class="string">&quot;a&quot;</span>, 8, 2)</span><br><span class="line">a	not found</span><br><span class="line">lua_debug&gt; sv(<span class="string">&quot;u&quot;</span>, 8, 2)</span><br><span class="line"><span class="built_in">local</span>	u</span><br><span class="line">lua_debug&gt; sv(<span class="string">&quot;g&quot;</span>, 8, 2)</span><br><span class="line">global	g</span><br><span class="line">lua_debug&gt; pv(<span class="string">&quot;a&quot;</span>)</span><br><span class="line"><span class="built_in">local</span>	6</span><br><span class="line">lua_debug&gt; pv(<span class="string">&quot;u&quot;</span>)</span><br><span class="line">upvalue	8</span><br><span class="line">lua_debug&gt; pv(<span class="string">&quot;g&quot;</span>)</span><br><span class="line">global	8</span><br><span class="line">lua_debug&gt;</span><br></pre></td></tr></table></figure>
+
+<p>变量a因为是函数foo的局部变量，所以外层看不到。变量u在main chunk中是属于局部变量，而变量g则还是全局变量。修改之后变量a的结果没有变，其他两个都改成了8。</p>
+<p>Well done！</p>
+
     </div>
 
     
     
     
       
+  <div class="popular-posts-header">相关文章推荐</div>
+  <ul class="popular-posts">
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/posts/f9a188a7/" rel="bookmark">Lua中如何实现类似gdb的断点调试--01最小实现</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/posts/f6e9079c/" rel="bookmark">Lua中如何实现类似gdb的断点调试--02通用变量打印</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/posts/74970c0e/" rel="bookmark">自己动手实现Lua--实现TAILCALL指令</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/posts/30b81f82/" rel="bookmark">OpenResty Lua钩子调用完整流程</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/posts/150430f0/" rel="bookmark">Openresty Lua协程调度机制</a></div>
+    </li>
+  </ul>
 <div>
     
         <div style="text-align:center;font-size:22px;letter-spacing:10px;user-select:none;color:#bbb;">-------------本文结束<i class="fa fa-paw"></i>感谢您的阅读-------------</div>
@@ -462,7 +436,7 @@ translateInitilization();
   </li>
   <li class="post-copyright-link">
     <strong>本文链接：</strong>
-    <a href="https://catbro666.github.io/posts/29bfe8c9/" title="Hexo-NexT Tag 插件的使用">https://catbro666.github.io/posts/29bfe8c9/</a>
+    <a href="https://catbro666.github.io/posts/a05a2f5f/" title="Lua中如何实现类似gdb的断点调试--03通用变量修改及调用栈回溯">https://catbro666.github.io/posts/a05a2f5f/</a>
   </li>
   <li class="post-copyright-license">
     <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/zh-CN" rel="noopener external nofollow noreferrer" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！
@@ -493,7 +467,8 @@ translateInitilization();
       <footer class="post-footer">
           
           <div class="post-tags">
-              <a href="/tags/Hexo/" rel="tag"><i class="fa fa-tag"></i> Hexo</a>
+              <a href="/tags/Lua/" rel="tag"><i class="fa fa-tag"></i> Lua</a>
+              <a href="/tags/%E8%B0%83%E8%AF%95/" rel="tag"><i class="fa fa-tag"></i> 调试</a>
           </div>
 
         
@@ -502,13 +477,10 @@ translateInitilization();
         
     <div class="post-nav">
       <div class="post-nav-item">
-    <a href="/posts/aa99fc97/" rel="prev" title="UNIX环境高级编程APUE练习4.6-实现类似cp(1)的程序，保留文件中的空洞">
-      <i class="fa fa-chevron-left"></i> UNIX环境高级编程APUE练习4.6-实现类似cp(1)的程序，保留文件中的空洞
+    <a href="/posts/f6e9079c/" rel="prev" title="Lua中如何实现类似gdb的断点调试--02通用变量打印">
+      <i class="fa fa-chevron-left"></i> Lua中如何实现类似gdb的断点调试--02通用变量打印
     </a></div>
-      <div class="post-nav-item">
-    <a href="/posts/e416d910/" rel="next" title="如何编写一个多进程性能测试程序">
-      如何编写一个多进程性能测试程序 <i class="fa fa-chevron-right"></i>
-    </a></div>
+      <div class="post-nav-item"></div>
     </div>
       </footer>
     
@@ -568,7 +540,7 @@ translateInitilization();
 
       <!--noindex-->
       <div class="post-toc-wrap sidebar-panel">
-          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%96%87%E6%9C%AC%E5%B1%85%E4%B8%AD%E5%BC%95%E7%94%A8-Centered-Quote"><span class="nav-number">1.</span> <span class="nav-text">文本居中引用 - Centered Quote</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%8F%90%E7%A4%BA%E5%9D%97-Note"><span class="nav-number">2.</span> <span class="nav-text">提示块 - Note</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%A0%87%E7%AD%BE-Label"><span class="nav-number">3.</span> <span class="nav-text">标签 - Label</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%80%89%E9%A1%B9%E5%8D%A1-Tabs"><span class="nav-number">4.</span> <span class="nav-text">选项卡 - Tabs</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%8C%89%E9%92%AE-Button"><span class="nav-number">5.</span> <span class="nav-text">按钮 - Button</span></a></li></ol></div>
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%B0%83%E7%94%A8%E6%A0%88%E6%89%93%E5%8D%B0%E5%87%BD%E6%95%B0"><span class="nav-number">1.</span> <span class="nav-text">调用栈打印函数</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%80%9A%E7%94%A8%E5%8F%98%E9%87%8F%E5%80%BC%E4%BF%AE%E6%94%B9%E5%87%BD%E6%95%B0"><span class="nav-number">2.</span> <span class="nav-text">通用变量值修改函数</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%B1%80%E9%83%A8%E5%8F%98%E9%87%8F%E4%B8%AD%E6%9F%A5%E6%89%BE"><span class="nav-number">3.</span> <span class="nav-text">局部变量中查找</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%8A%E5%80%BC%E4%B8%AD%E6%9F%A5%E6%89%BE"><span class="nav-number">4.</span> <span class="nav-text">上值中查找</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#ENV%E8%A1%A8%E4%B8%AD%E6%9F%A5%E6%89%BE"><span class="nav-number">5.</span> <span class="nav-text">_ENV表中查找</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8C%85%E8%A3%85%E5%87%BD%E6%95%B0"><span class="nav-number">6.</span> <span class="nav-text">包装函数</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%B5%8B%E8%AF%95%E8%84%9A%E6%9C%AC"><span class="nav-number">7.</span> <span class="nav-text">测试脚本</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%B5%8B%E8%AF%95%E9%AA%8C%E8%AF%81"><span class="nav-number">8.</span> <span class="nav-text">测试验证</span></a></li></ol></div>
       </div>
       <!--/noindex-->
 

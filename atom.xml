@@ -6,7 +6,7 @@
   <link href="https://catbro666.github.io/atom.xml" rel="self"/>
   
   <link href="https://catbro666.github.io/"/>
-  <updated>2021-08-15T04:29:50.188Z</updated>
+  <updated>2021-08-15T04:56:20.194Z</updated>
   <id>https://catbro666.github.io/</id>
   
   <author>
@@ -15,6 +15,28 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Lua中如何实现类似gdb的断点调试--03通用变量修改及调用栈回溯</title>
+    <link href="https://catbro666.github.io/posts/a05a2f5f/"/>
+    <id>https://catbro666.github.io/posts/a05a2f5f/</id>
+    <published>2021-08-15T04:41:09.000Z</published>
+    <updated>2021-08-15T04:56:20.194Z</updated>
+    
+    
+    <summary type="html">&lt;div class=&quot;note primary&quot;&gt;
+            &lt;p&gt;在前面两篇&lt;a href=&quot;../f9a188a7/&quot;&gt;01最小实现&lt;/a&gt;及&lt;a href=&quot;../f6e9079c&quot;&gt;02通用变量打印&lt;/a&gt;中，我们已经实现了设置断点、删除断点及通用变量打印接口。&lt;/p&gt;&lt;p&gt;本篇将继续新增两个辅助的调试接口：调用栈回溯打印接口、通用变量设置接口。前者打印调用栈的回溯信息，后者可以方便地修改变量的值，支持局部变量、upvalue以及全局的&lt;code&gt;_ENV&lt;/code&gt;中的变量。&lt;/p&gt;</summary>
+    
+    
+    
+    <category term="技术向" scheme="https://catbro666.github.io/categories/%E6%8A%80%E6%9C%AF%E5%90%91/"/>
+    
+    
+    <category term="Lua" scheme="https://catbro666.github.io/tags/Lua/"/>
+    
+    <category term="调试" scheme="https://catbro666.github.io/tags/%E8%B0%83%E8%AF%95/"/>
+    
+  </entry>
   
   <entry>
     <title>Lua中如何实现类似gdb的断点调试--02通用变量打印</title>
