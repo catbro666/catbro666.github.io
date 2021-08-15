@@ -23,20 +23,21 @@
     var CONFIG = {"hostname":"catbro666.github.io","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","width":240,"display":"post","padding":18,"offset":42,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":"mac"},"back2top":{"enable":true,"sidebar":true,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
   </script>
 
-  <meta name="description" content="Welcome to Hexo! This is your very first post. Check documentation for more info. If you get any problems when using Hexo, you can find the answer in troubleshooting or you can ask me on GitHub.">
+  <meta name="description" content="在前一篇01最小实现中，我们实现了Lua断点调试的的一个最小实现。我们编写了一个模块，提供了两个基本的接口：设置断点和删除断点。虽然我们已经支持在断点进行变量的打印，但是需要自己指定层数以及变量索引，使用起来不是很方便。要进行upvalue打印的话，操作会更加麻烦。为了提升调试的方便性，我们决定封装一个通用的变量打印函数，可以通过变量名查找到对应变量的值进行打印。支持局部">
 <meta property="og:type" content="article">
-<meta property="og:title" content="Hello World">
-<meta property="og:url" content="https://catbro666.github.io/posts/4a17b156/index.html">
+<meta property="og:title" content="Lua中如何实现类似gdb的断点调试--02通用变量打印">
+<meta property="og:url" content="https://catbro666.github.io/posts/f6e9079c/index.html">
 <meta property="og:site_name" content="CatBro&#39;s Blog">
-<meta property="og:description" content="Welcome to Hexo! This is your very first post. Check documentation for more info. If you get any problems when using Hexo, you can find the answer in troubleshooting or you can ask me on GitHub.">
+<meta property="og:description" content="在前一篇01最小实现中，我们实现了Lua断点调试的的一个最小实现。我们编写了一个模块，提供了两个基本的接口：设置断点和删除断点。虽然我们已经支持在断点进行变量的打印，但是需要自己指定层数以及变量索引，使用起来不是很方便。要进行upvalue打印的话，操作会更加麻烦。为了提升调试的方便性，我们决定封装一个通用的变量打印函数，可以通过变量名查找到对应变量的值进行打印。支持局部">
 <meta property="og:locale" content="zh_CN">
-<meta property="article:published_time" content="2019-06-07T08:49:42.000Z">
-<meta property="article:modified_time" content="2021-06-21T14:38:56.931Z">
+<meta property="article:published_time" content="2021-08-15T04:19:48.000Z">
+<meta property="article:modified_time" content="2021-08-15T04:29:14.375Z">
 <meta property="article:author" content="猫猫哥">
-<meta property="article:tag" content="Linux, SSL, Crypto, C&#x2F;C++, Nginx, OpenResty">
+<meta property="article:tag" content="Lua">
+<meta property="article:tag" content="调试">
 <meta name="twitter:card" content="summary">
 
-<link rel="canonical" href="https://catbro666.github.io/posts/4a17b156/">
+<link rel="canonical" href="https://catbro666.github.io/posts/f6e9079c/">
 
 
 <script id="page-configurations">
@@ -53,7 +54,7 @@
 
 
 
-  <title>Hello World | CatBro's Blog</title>
+  <title>Lua中如何实现类似gdb的断点调试--02通用变量打印 | CatBro's Blog</title>
   
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-6PKG8T836C"></script>
     <script>
@@ -230,7 +231,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://catbro666.github.io/posts/4a17b156/">
+    <link itemprop="mainEntityOfPage" href="https://catbro666.github.io/posts/f6e9079c/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/images/avatar.gif">
@@ -243,7 +244,7 @@
     </span>
       <header class="post-header">
         <h1 class="post-title" itemprop="name headline">
-          Hello World
+          Lua中如何实现类似gdb的断点调试--02通用变量打印
         </h1>
 
         <div class="post-meta">
@@ -252,19 +253,22 @@
                 <i class="far fa-calendar"></i>
               </span>
               <span class="post-meta-item-text">发表于</span>
+              
 
-              <time title="创建时间：2019-06-07 16:49:42" itemprop="dateCreated datePublished" datetime="2019-06-07T16:49:42+08:00">2019-06-07</time>
+              <time title="创建时间：2021-08-15 12:19:48 / 修改时间：12:29:14" itemprop="dateCreated datePublished" datetime="2021-08-15T12:19:48+08:00">2021-08-15</time>
             </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-21 22:38:56" itemprop="dateModified" datetime="2021-06-21T22:38:56+08:00">2021-06-21</time>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
               </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E6%8A%80%E6%9C%AF%E5%90%91/" itemprop="url" rel="index"><span itemprop="name">技术向</span></a>
+                </span>
+            </span>
 
           
-            <span id="/posts/4a17b156/" class="post-meta-item leancloud_visitors" data-flag-title="Hello World" title="阅读次数">
+            <span id="/posts/f6e9079c/" class="post-meta-item leancloud_visitors" data-flag-title="Lua中如何实现类似gdb的断点调试--02通用变量打印" title="阅读次数">
               <span class="post-meta-item-icon">
                 <i class="fa fa-eye"></i>
               </span>
@@ -279,8 +283,8 @@
       </span>
       <span class="post-meta-item-text">评论数：</span>
     
-    <a title="valine" href="/posts/4a17b156/#valine-comments" itemprop="discussionUrl">
-      <span class="post-comments-count valine-comment-count" data-xid="/posts/4a17b156/" itemprop="commentCount"></span>
+    <a title="valine" href="/posts/f6e9079c/#valine-comments" itemprop="discussionUrl">
+      <span class="post-comments-count valine-comment-count" data-xid="/posts/f6e9079c/" itemprop="commentCount"></span>
     </a>
   </span>
   
@@ -309,14 +313,14 @@ translateInitilization();
                 <i class="far fa-file-word"></i>
               </span>
                 <span class="post-meta-item-text">本文字数：</span>
-              <span>367</span>
+              <span>3.9k</span>
             </span>
             <span class="post-meta-item" title="阅读时长">
               <span class="post-meta-item-icon">
                 <i class="far fa-clock"></i>
               </span>
                 <span class="post-meta-item-text">阅读时长 &asymp;</span>
-              <span>1 分钟</span>
+              <span>4 分钟</span>
             </span>
 
         </div>
@@ -328,21 +332,48 @@ translateInitilization();
     <div class="post-body" itemprop="articleBody">
 
       
-        <p>Welcome to <a target="_blank" rel="noopener external nofollow noreferrer" href="https://hexo.io/">Hexo</a>! This is your very first post. Check <a target="_blank" rel="noopener external nofollow noreferrer" href="https://hexo.io/docs/">documentation</a> for more info. If you get any problems when using Hexo, you can find the answer in <a target="_blank" rel="noopener external nofollow noreferrer" href="https://hexo.io/docs/troubleshooting.html">troubleshooting</a> or you can ask me on <a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/hexojs/hexo/issues">GitHub</a>.</p>
-<span id="more"></span>
+        <div class="note primary">
+            <p>在前一篇<a href="../f9a188a7/">01最小实现</a>中，我们实现了Lua断点调试的的一个最小实现。我们编写了一个模块，提供了两个基本的接口：设置断点和删除断点。</p><p>虽然我们已经支持在断点进行变量的打印，但是需要自己指定层数以及变量索引，使用起来不是很方便。要进行upvalue打印的话，操作会更加麻烦。为了提升调试的方便性，我们决定封装一个通用的变量打印函数，可以通过变量名查找到对应变量的值进行打印。支持局部变量、upvalue以及全局的<code>_ENV</code>中的变量。</p><span id="more"></span><p>本文代码已开源至<a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/catbro666/lua-debugger">Github</a>，欢迎watch/star😘。</p>
+          </div>
 
-<h2 id="Quick-Start"><a href="#Quick-Start" class="headerlink" title="Quick Start"></a>Quick Start</h2><h3 id="Create-a-new-post"><a href="#Create-a-new-post" class="headerlink" title="Create a new post"></a>Create a new post</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo new <span class="string">&quot;My New Post&quot;</span></span><br></pre></td></tr></table></figure>
+<h2 id="局部变量中查找"><a href="#局部变量中查找" class="headerlink" title="局部变量中查找"></a>局部变量中查找</h2><p>因为函数比较长，我们分几部分进行说明，该函数有三个参数：<code>name</code>为要查找的变量的名字，<code>level</code>指示在哪个层级的函数中查找，<code>isenv</code>是个标记我们稍后再提。层级的默认值为1， <span class="label warning">注意</span>将层级加上1，是为了将层次修正为包含<code>_getvavalue</code>函数自己。</p>
+<p>然后遍历局部变量表，比较变量名字是不是等于<code>name</code>，如果匹配的话记录其值，并且标记一下我们已经找到。<span class="label warning">注意</span>我们找到之后并没有立马跳出循环，因为可能具有多个同名的局部变量，我们应该获取索引最大的那个。</p>
+<p>循环结束之后，如果已经在局部变量中找到了<code>name</code>，就返回<code>&quot;local&quot;</code>和变量的值。</p>
+<figure class="highlight lua"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">local</span> <span class="function"><span class="keyword">function</span> <span class="title">_getvarvalue</span> <span class="params">(name, level, isenv)</span></span></span><br><span class="line">    <span class="keyword">local</span> value</span><br><span class="line">    <span class="keyword">local</span> found = <span class="literal">false</span></span><br><span class="line">    </span><br><span class="line">    <span class="comment">-- 加1将层次纠正为包括_getvarvalue自己</span></span><br><span class="line">    level = (level <span class="keyword">or</span> <span class="number">1</span>) + <span class="number">1</span></span><br><span class="line">    <span class="comment">-- 尝试局部变量</span></span><br><span class="line">    <span class="keyword">for</span> i = <span class="number">1</span>, <span class="built_in">math</span>.<span class="built_in">huge</span> <span class="keyword">do</span></span><br><span class="line">        <span class="keyword">local</span> n, v = <span class="built_in">debug</span>.<span class="built_in">getlocal</span>(level, i)</span><br><span class="line">        <span class="keyword">if</span> <span class="keyword">not</span> n <span class="keyword">then</span> <span class="keyword">break</span> <span class="keyword">end</span></span><br><span class="line">        <span class="keyword">if</span> n == name <span class="keyword">then</span></span><br><span class="line">            value = v</span><br><span class="line">            found = <span class="literal">true</span></span><br><span class="line">            <span class="comment">-- 这里不跳出，获取具有最大索引的那个局部变量</span></span><br><span class="line">        <span class="keyword">end</span></span><br><span class="line">    <span class="keyword">end</span></span><br><span class="line">    <span class="keyword">if</span> found <span class="keyword">then</span> <span class="keyword">return</span> <span class="string">&quot;local&quot;</span>, value <span class="keyword">end</span></span><br><span class="line">    </span><br><span class="line">    <span class="comment">-- 省略</span></span><br><span class="line"><span class="keyword">end</span></span><br></pre></td></tr></table></figure>
 
-<p>More info: <a target="_blank" rel="noopener external nofollow noreferrer" href="https://hexo.io/docs/writing.html">Writing</a></p>
-<h3 id="Run-server"><a href="#Run-server" class="headerlink" title="Run server"></a>Run server</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo server</span><br></pre></td></tr></table></figure>
+<h2 id="上值中查找"><a href="#上值中查找" class="headerlink" title="上值中查找"></a>上值中查找</h2><p>如果在局部变量中没有找到，我们再尝试到upvalue中进行查找。首先通过<code>getbug.getinfo</code>获取到第level层的函数，然后遍历其上值，如果找到匹配的变量就返回<code>&quot;upvalue&quot;</code>和变量值。</p>
+<figure class="highlight lua"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">local</span> <span class="function"><span class="keyword">function</span> <span class="title">_getvarvalue</span> <span class="params">(name, level, isenv)</span></span></span><br><span class="line">    <span class="comment">-- 省略</span></span><br><span class="line">    </span><br><span class="line">    <span class="comment">-- 尝试非局部变量</span></span><br><span class="line">    <span class="keyword">local</span> func = <span class="built_in">debug</span>.<span class="built_in">getinfo</span>(level, <span class="string">&quot;f&quot;</span>).func</span><br><span class="line">    <span class="keyword">for</span> i = <span class="number">1</span>, <span class="built_in">math</span>.<span class="built_in">huge</span> <span class="keyword">do</span></span><br><span class="line">        <span class="keyword">local</span> n, v = <span class="built_in">debug</span>.<span class="built_in">getupvalue</span>(func, i)</span><br><span class="line">        <span class="keyword">if</span> <span class="keyword">not</span> n <span class="keyword">then</span> <span class="keyword">break</span> <span class="keyword">end</span></span><br><span class="line">        <span class="keyword">if</span> n == name <span class="keyword">then</span> <span class="keyword">return</span> <span class="string">&quot;upvalue&quot;</span>, v <span class="keyword">end</span></span><br><span class="line">    <span class="keyword">end</span></span><br><span class="line">    </span><br><span class="line">    <span class="comment">-- 省略</span></span><br><span class="line"><span class="keyword">end</span></span><br></pre></td></tr></table></figure>
 
-<p>More info: <a target="_blank" rel="noopener external nofollow noreferrer" href="https://hexo.io/docs/server.html">Server</a></p>
-<h3 id="Generate-static-files"><a href="#Generate-static-files" class="headerlink" title="Generate static files"></a>Generate static files</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo generate</span><br></pre></td></tr></table></figure>
+<h2 id="ENV表中查找"><a href="#ENV表中查找" class="headerlink" title="_ENV表中查找"></a>_ENV表中查找</h2><p>如果在普通的上值中还是没有找到，我们就去<code>_ENV</code>表中查找。<code>isenv</code>标志表示当前<code>name</code>是否就是<code>&quot;_ENV&quot;</code>，是用来防止无限循环调用的，第一次调用的时候肯定不是。然后将<code>&quot;_ENV&quot;</code>作为<code>name</code>递归调用<code>_getvarvalue</code>。因为多了一次函数调用，第二次调用的时候level又会自动加1。接下来还是先后在局部变量和上值中查找，找到了就返回类型和变量值。没有找到的话，返回<code>&quot;noenv&quot;</code>。</p>
+<p>然后返回到外层的<code>_getvarvalue</code>，判断第二个返回值是否为真，如果是说明找到了<code>_ENV</code>表，就从<code>_ENV</code>表中获取名为name的值，否则直接返回<code>&quot;noenv&quot;</code>。</p>
+<figure class="highlight lua"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">local</span> <span class="function"><span class="keyword">function</span> <span class="title">_getvarvalue</span> <span class="params">(name, level, isenv)</span></span></span><br><span class="line">	<span class="comment">-- 省略</span></span><br><span class="line">    </span><br><span class="line">    <span class="keyword">if</span> isenv <span class="keyword">then</span> <span class="keyword">return</span> <span class="string">&quot;noenv&quot;</span> <span class="keyword">end</span>	<span class="comment">-- 避免无限循环</span></span><br><span class="line">    </span><br><span class="line">    <span class="comment">-- 没找到，从环境中获取</span></span><br><span class="line">    <span class="keyword">local</span> _, env = _getvarvalue(<span class="string">&quot;_ENV&quot;</span>, level, <span class="literal">true</span>)</span><br><span class="line">    <span class="keyword">if</span> env <span class="keyword">then</span></span><br><span class="line">        <span class="keyword">return</span> <span class="string">&quot;global&quot;</span>, env[name]</span><br><span class="line">    <span class="keyword">else</span></span><br><span class="line">        <span class="keyword">return</span> <span class="string">&quot;noenv&quot;</span></span><br><span class="line">    <span class="keyword">end</span></span><br><span class="line"><span class="keyword">end</span></span><br></pre></td></tr></table></figure>
 
-<p>More info: <a target="_blank" rel="noopener external nofollow noreferrer" href="https://hexo.io/docs/generating.html">Generating</a></p>
-<h3 id="Deploy-to-remote-sites"><a href="#Deploy-to-remote-sites" class="headerlink" title="Deploy to remote sites"></a>Deploy to remote sites</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo deploy</span><br></pre></td></tr></table></figure>
+<h2 id="包装函数"><a href="#包装函数" class="headerlink" title="包装函数"></a>包装函数</h2><p><code>_getvarvalue</code>函数已经定义好了，我们再定义一个包装函数<code>printvarvalue</code>。如果第二个返回值为真，表示找到了变量，就打印变量类型及结果，否则提示未找到。</p>
+<span class="label warning">注意到</span>我们这里将`level`层次数加了4，目的是跟`_getvarvalue`函数中类似，也是为了修正层次数以包含`printvarvalue`函数自身以及其上层的`debug mainchunk`、`debug.debug`以及钩子函数。这样当`level`参数为1时就表示断点所在的函数。同样地，如果level不指定默认为1，即断点所在函数。2表示断点所在函数上一层，以此类推。当然如果你有特殊需求，你也可以指定层次为0，查看hook函数的情况。
 
-<p>More info: <a target="_blank" rel="noopener external nofollow noreferrer" href="https://hexo.io/docs/deployment.html">Deployment</a></p>
+<figure class="highlight lua"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">-- 包装 _getvarvalue, 打印结果</span></span><br><span class="line"><span class="keyword">local</span> <span class="function"><span class="keyword">function</span> <span class="title">printvarvalue</span> <span class="params">(name, level)</span></span></span><br><span class="line">    <span class="comment">-- level默认值1</span></span><br><span class="line">    <span class="comment">-- 加4，将层次纠正为包含 printvarvalue, debug mainchunk, debug.debug和hook</span></span><br><span class="line">    level = (level <span class="keyword">or</span> <span class="number">1</span>) + <span class="number">4</span></span><br><span class="line">    <span class="keyword">local</span> where, value = _getvarvalue(name, level)</span><br><span class="line">    <span class="keyword">if</span> value <span class="keyword">then</span></span><br><span class="line">        <span class="built_in">print</span>(where, value)</span><br><span class="line">    <span class="keyword">else</span></span><br><span class="line">        <span class="built_in">print</span>(name, <span class="string">&quot;not found&quot;</span>)</span><br><span class="line">    <span class="keyword">end</span></span><br><span class="line"><span class="keyword">end</span></span><br></pre></td></tr></table></figure>
+
+<p>最后将<code>printvarvalue</code>函数作为模块的函数输出。</p>
+<figure class="highlight lua"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">return</span> &#123;</span><br><span class="line">    setbreakpoint = setbreakpoint,</span><br><span class="line">    removebreakpoint = removebreakpoint,</span><br><span class="line">    printvarvalue = printvarvalue,</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="测试脚本"><a href="#测试脚本" class="headerlink" title="测试脚本"></a>测试脚本</h2><p>OK，调试库我们已经改好了，接下来将我们之前的测试脚本<code>test.lua</code>稍做修改。在开头添加如下一行：</p>
+<p><code>pv = luadebug.printvarvalue</code></p>
+<p>为了方便在断点内部调用，我们将其写到全局变量里了。然后调整下断点的行号，换一下断点删除的顺序，其他内容保持不变。</p>
+<figure class="highlight lua"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">local</span> luadebug = <span class="built_in">require</span> <span class="string">&quot;luadebug&quot;</span></span><br><span class="line"><span class="keyword">local</span> setbp = luadebug.setbreakpoint</span><br><span class="line"><span class="keyword">local</span> rmbp = luadebug.removebreakpoint</span><br><span class="line">pv = luadebug.printvarvalue		<span class="comment">-- 增加这一行</span></span><br><span class="line"></span><br><span class="line">g = <span class="number">1</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">local</span> u = <span class="number">2</span></span><br><span class="line"><span class="keyword">local</span> <span class="function"><span class="keyword">function</span> <span class="title">foo</span> <span class="params">(n)</span></span></span><br><span class="line">    <span class="keyword">local</span> a = <span class="number">3</span></span><br><span class="line">    a = a + <span class="number">1</span></span><br><span class="line">    u = u + <span class="number">1</span></span><br><span class="line">    g = g + <span class="number">1</span></span><br><span class="line"><span class="keyword">end</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">local</span> <span class="function"><span class="keyword">function</span> <span class="title">bar</span> <span class="params">(n)</span></span></span><br><span class="line">    n = n + <span class="number">1</span></span><br><span class="line"><span class="keyword">end</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">local</span> id1 = setbp(foo, <span class="number">12</span>)		<span class="comment">-- 行号调整</span></span><br><span class="line"><span class="keyword">local</span> id2 = setbp(bar, <span class="number">17</span>)		<span class="comment">-- 行号调整</span></span><br><span class="line"></span><br><span class="line">foo(<span class="number">10</span>)</span><br><span class="line">bar(<span class="number">10</span>)</span><br><span class="line"></span><br><span class="line">rmbp(id2)						<span class="comment">-- 先删除断点2</span></span><br><span class="line"></span><br><span class="line">foo(<span class="number">20</span>)</span><br><span class="line">bar(<span class="number">20</span>)</span><br><span class="line"></span><br><span class="line">rmbp(id1)						<span class="comment">-- 再删除断点1</span></span><br><span class="line"></span><br><span class="line">foo(<span class="number">30</span>)</span><br><span class="line">bar(<span class="number">30</span>)</span><br></pre></td></tr></table></figure>
+
+<h2 id="测试验证"><a href="#测试验证" class="headerlink" title="测试验证"></a>测试验证</h2><p>接下来，让我们来测试一把。可以看到无论是局部变量、upvalue、还是全局<code>_ENV</code>表中的变量，都可以很方便地获取值。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">$ lua test.lua</span><br><span class="line">(<span class="built_in">local</span>)foo test.lua:12</span><br><span class="line">lua_debug&gt; pv(<span class="string">&quot;a&quot;</span>)</span><br><span class="line"><span class="built_in">local</span>	4</span><br><span class="line">lua_debug&gt; pv(<span class="string">&quot;u&quot;</span>)</span><br><span class="line">upvalue	2</span><br><span class="line">lua_debug&gt; pv(<span class="string">&quot;g&quot;</span>)</span><br><span class="line">global	1</span><br><span class="line">lua_debug&gt; pv(<span class="string">&quot;x&quot;</span>)</span><br><span class="line">x	not found</span><br><span class="line">lua_debug&gt;</span><br></pre></td></tr></table></figure>
+
+<p>第二次停到foo函数断点处，<code>u</code>和<code>g</code>都已经加1。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">lua_debug&gt; cont</span><br><span class="line">(<span class="built_in">local</span>)bar test.lua:17</span><br><span class="line">lua_debug&gt; cont</span><br><span class="line">(<span class="built_in">local</span>)foo test.lua:12</span><br><span class="line">lua_debug&gt; pv(<span class="string">&quot;a&quot;</span>)</span><br><span class="line"><span class="built_in">local</span>	4</span><br><span class="line">lua_debug&gt; pv(<span class="string">&quot;u&quot;</span>)</span><br><span class="line">upvalue	3</span><br><span class="line">lua_debug&gt; pv(<span class="string">&quot;g&quot;</span>)</span><br><span class="line">global	2</span><br><span class="line">lua_debug&gt;</span><br></pre></td></tr></table></figure>
+
+<p>我们尝试显式指定层数，结果一样</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">lua_debug&gt; pv(<span class="string">&quot;a&quot;</span>, 1)</span><br><span class="line"><span class="built_in">local</span>	4</span><br><span class="line">lua_debug&gt; pv(<span class="string">&quot;u&quot;</span>, 1)</span><br><span class="line">upvalue	3</span><br><span class="line">lua_debug&gt; pv(<span class="string">&quot;g&quot;</span>, 1)</span><br><span class="line">global	2</span><br><span class="line">lua_debug&gt;</span><br></pre></td></tr></table></figure>
+
+<p>我们再尝试打印上一层的变量（即main chunk），结果都符合预期。变量a是foo里的局部变量应该找不到，变量u在main chunk中是局部变量，全局变量g则没啥区别。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">lua_debug&gt; pv(<span class="string">&quot;a&quot;</span>, 2)</span><br><span class="line">a	not found</span><br><span class="line">lua_debug&gt; pv(<span class="string">&quot;u&quot;</span>, 2)</span><br><span class="line"><span class="built_in">local</span>	3</span><br><span class="line">lua_debug&gt; pv(<span class="string">&quot;g&quot;</span>, 2)</span><br><span class="line">global	2</span><br></pre></td></tr></table></figure>
+
+<p>OK，大功告成！</p>
 
     </div>
 
@@ -350,6 +381,21 @@ translateInitilization();
     
     
       
+  <div class="popular-posts-header">相关文章推荐</div>
+  <ul class="popular-posts">
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/posts/f9a188a7/" rel="bookmark">Lua中如何实现类似gdb的断点调试--01最小实现</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/posts/74970c0e/" rel="bookmark">自己动手实现Lua--实现TAILCALL指令</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/posts/30b81f82/" rel="bookmark">OpenResty Lua钩子调用完整流程</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/posts/150430f0/" rel="bookmark">Openresty Lua协程调度机制</a></div>
+    </li>
+  </ul>
 <div>
     
         <div style="text-align:center;font-size:22px;letter-spacing:10px;user-select:none;color:#bbb;">-------------本文结束<i class="fa fa-paw"></i>感谢您的阅读-------------</div>
@@ -367,7 +413,7 @@ translateInitilization();
   </li>
   <li class="post-copyright-link">
     <strong>本文链接：</strong>
-    <a href="https://catbro666.github.io/posts/4a17b156/" title="Hello World">https://catbro666.github.io/posts/4a17b156/</a>
+    <a href="https://catbro666.github.io/posts/f6e9079c/" title="Lua中如何实现类似gdb的断点调试--02通用变量打印">https://catbro666.github.io/posts/f6e9079c/</a>
   </li>
   <li class="post-copyright-license">
     <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/zh-CN" rel="noopener external nofollow noreferrer" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！
@@ -396,17 +442,22 @@ translateInitilization();
 
 
       <footer class="post-footer">
+          
+          <div class="post-tags">
+              <a href="/tags/Lua/" rel="tag"><i class="fa fa-tag"></i> Lua</a>
+              <a href="/tags/%E8%B0%83%E8%AF%95/" rel="tag"><i class="fa fa-tag"></i> 调试</a>
+          </div>
 
         
 
 
         
     <div class="post-nav">
-      <div class="post-nav-item"></div>
       <div class="post-nav-item">
-    <a href="/posts/2485f370/" rel="next" title="UNIX环境高级编程APUE练习3.2-不用fcntl实现dup2的功能">
-      UNIX环境高级编程APUE练习3.2-不用fcntl实现dup2的功能 <i class="fa fa-chevron-right"></i>
+    <a href="/posts/f9a188a7/" rel="prev" title="Lua中如何实现类似gdb的断点调试--01最小实现">
+      <i class="fa fa-chevron-left"></i> Lua中如何实现类似gdb的断点调试--01最小实现
     </a></div>
+      <div class="post-nav-item"></div>
     </div>
       </footer>
     
@@ -466,7 +517,7 @@ translateInitilization();
 
       <!--noindex-->
       <div class="post-toc-wrap sidebar-panel">
-          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#Quick-Start"><span class="nav-number">1.</span> <span class="nav-text">Quick Start</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Create-a-new-post"><span class="nav-number">1.1.</span> <span class="nav-text">Create a new post</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Run-server"><span class="nav-number">1.2.</span> <span class="nav-text">Run server</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Generate-static-files"><span class="nav-number">1.3.</span> <span class="nav-text">Generate static files</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Deploy-to-remote-sites"><span class="nav-number">1.4.</span> <span class="nav-text">Deploy to remote sites</span></a></li></ol></li></ol></div>
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%B1%80%E9%83%A8%E5%8F%98%E9%87%8F%E4%B8%AD%E6%9F%A5%E6%89%BE"><span class="nav-number">1.</span> <span class="nav-text">局部变量中查找</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%8A%E5%80%BC%E4%B8%AD%E6%9F%A5%E6%89%BE"><span class="nav-number">2.</span> <span class="nav-text">上值中查找</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#ENV%E8%A1%A8%E4%B8%AD%E6%9F%A5%E6%89%BE"><span class="nav-number">3.</span> <span class="nav-text">_ENV表中查找</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8C%85%E8%A3%85%E5%87%BD%E6%95%B0"><span class="nav-number">4.</span> <span class="nav-text">包装函数</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%B5%8B%E8%AF%95%E8%84%9A%E6%9C%AC"><span class="nav-number">5.</span> <span class="nav-text">测试脚本</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%B5%8B%E8%AF%95%E9%AA%8C%E8%AF%81"><span class="nav-number">6.</span> <span class="nav-text">测试验证</span></a></li></ol></div>
       </div>
       <!--/noindex-->
 

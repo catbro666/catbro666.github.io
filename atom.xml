@@ -6,7 +6,7 @@
   <link href="https://catbro666.github.io/atom.xml" rel="self"/>
   
   <link href="https://catbro666.github.io/"/>
-  <updated>2021-08-13T15:39:26.091Z</updated>
+  <updated>2021-08-15T04:29:14.375Z</updated>
   <id>https://catbro666.github.io/</id>
   
   <author>
@@ -17,11 +17,33 @@
   <generator uri="https://hexo.io/">Hexo</generator>
   
   <entry>
+    <title>Lua中如何实现类似gdb的断点调试--02通用变量打印</title>
+    <link href="https://catbro666.github.io/posts/f6e9079c/"/>
+    <id>https://catbro666.github.io/posts/f6e9079c/</id>
+    <published>2021-08-15T04:19:48.000Z</published>
+    <updated>2021-08-15T04:29:14.375Z</updated>
+    
+    
+    <summary type="html">&lt;div class=&quot;note primary&quot;&gt;
+            &lt;p&gt;在前一篇&lt;a href=&quot;../f9a188a7/&quot;&gt;01最小实现&lt;/a&gt;中，我们实现了Lua断点调试的的一个最小实现。我们编写了一个模块，提供了两个基本的接口：设置断点和删除断点。&lt;/p&gt;&lt;p&gt;虽然我们已经支持在断点进行变量的打印，但是需要自己指定层数以及变量索引，使用起来不是很方便。要进行upvalue打印的话，操作会更加麻烦。为了提升调试的方便性，我们决定封装一个通用的变量打印函数，可以通过变量名查找到对应变量的值进行打印。支持局部变量、upvalue以及全局的&lt;code&gt;_ENV&lt;/code&gt;中的变量。&lt;/p&gt;</summary>
+    
+    
+    
+    <category term="技术向" scheme="https://catbro666.github.io/categories/%E6%8A%80%E6%9C%AF%E5%90%91/"/>
+    
+    
+    <category term="Lua" scheme="https://catbro666.github.io/tags/Lua/"/>
+    
+    <category term="调试" scheme="https://catbro666.github.io/tags/%E8%B0%83%E8%AF%95/"/>
+    
+  </entry>
+  
+  <entry>
     <title>Lua中如何实现类似gdb的断点调试--01最小实现</title>
     <link href="https://catbro666.github.io/posts/f9a188a7/"/>
     <id>https://catbro666.github.io/posts/f9a188a7/</id>
     <published>2021-08-12T16:52:46.000Z</published>
-    <updated>2021-08-13T15:39:26.091Z</updated>
+    <updated>2021-08-14T09:58:25.352Z</updated>
     
     
     <summary type="html">&lt;div class=&quot;note primary&quot;&gt;
