@@ -1619,7 +1619,7 @@
       </tags>
   </entry>
   <entry>
-    <title>Lua中如何实现类似gdb的断点调试—03优化钩子事件处理</title>
+    <title>Lua中如何实现类似gdb的断点调试--04优化钩子事件处理</title>
     <url>/posts/c1ecd715/</url>
     <content><![CDATA[<div class="note primary">
             <p>在第一篇的<a href="../f9a188a7/">01最小实现</a>中，我们实现了一个断点调试的最小实现，在设置钩子函数时只加了line事件，显然这会对性能有很大的影响。而后来两篇<a href="../f6e9079c">02通用变量打印</a>和<a href="../a05a2f5f">03通用变量修改及调用栈回溯</a>则是提供了一些辅助的调试接口，并没有对钩子函数进行修改。</p><p>我们本篇将在钩子中引入call和return事件的处理，尝试对性能进行优化。</p><span id="more"></span><p>源码已经上传<a href="https://github.com/catbro666/lua-debugger">Github</a>，欢迎watch/star😘。</p>
