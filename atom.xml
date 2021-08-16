@@ -6,7 +6,7 @@
   <link href="https://catbro666.github.io/atom.xml" rel="self"/>
   
   <link href="https://catbro666.github.io/"/>
-  <updated>2021-08-15T04:56:20.194Z</updated>
+  <updated>2021-08-16T12:43:48.042Z</updated>
   <id>https://catbro666.github.io/</id>
   
   <author>
@@ -17,11 +17,33 @@
   <generator uri="https://hexo.io/">Hexo</generator>
   
   <entry>
+    <title>Lua中如何实现类似gdb的断点调试—03优化钩子事件处理</title>
+    <link href="https://catbro666.github.io/posts/c1ecd715/"/>
+    <id>https://catbro666.github.io/posts/c1ecd715/</id>
+    <published>2021-08-16T11:52:15.000Z</published>
+    <updated>2021-08-16T12:43:48.042Z</updated>
+    
+    
+    <summary type="html">&lt;div class=&quot;note primary&quot;&gt;
+            &lt;p&gt;在第一篇的&lt;a href=&quot;../f9a188a7/&quot;&gt;01最小实现&lt;/a&gt;中，我们实现了一个断点调试的最小实现，在设置钩子函数时只加了line事件，显然这会对性能有很大的影响。而后来两篇&lt;a href=&quot;../f6e9079c&quot;&gt;02通用变量打印&lt;/a&gt;和&lt;a href=&quot;../a05a2f5f&quot;&gt;03通用变量修改及调用栈回溯&lt;/a&gt;则是提供了一些辅助的调试接口，并没有对钩子函数进行修改。&lt;/p&gt;&lt;p&gt;我们本篇将在钩子中引入call和return事件的处理，尝试对性能进行优化。&lt;/p&gt;</summary>
+    
+    
+    
+    <category term="技术向" scheme="https://catbro666.github.io/categories/%E6%8A%80%E6%9C%AF%E5%90%91/"/>
+    
+    
+    <category term="Lua" scheme="https://catbro666.github.io/tags/Lua/"/>
+    
+    <category term="调试" scheme="https://catbro666.github.io/tags/%E8%B0%83%E8%AF%95/"/>
+    
+  </entry>
+  
+  <entry>
     <title>Lua中如何实现类似gdb的断点调试--03通用变量修改及调用栈回溯</title>
     <link href="https://catbro666.github.io/posts/a05a2f5f/"/>
     <id>https://catbro666.github.io/posts/a05a2f5f/</id>
     <published>2021-08-15T04:41:09.000Z</published>
-    <updated>2021-08-15T04:56:20.194Z</updated>
+    <updated>2021-08-15T04:56:36.440Z</updated>
     
     
     <summary type="html">&lt;div class=&quot;note primary&quot;&gt;
