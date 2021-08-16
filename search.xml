@@ -1681,11 +1681,11 @@
 <h3 id="Lua5-1测试"><a href="#Lua5-1测试" class="headerlink" title="Lua5.1测试"></a>Lua5.1测试</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ lua5.1 test2.lua</span><br><span class="line"></span><br></pre></td></tr></table></figure>
 
 <p>用Lua5.1运行上面的测试脚本，内存占用一直在飙升，我只测试了一小会，就已经飙到8G了。</p>
-<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/lua5.1-call.jpg" alt="lua5.1-call" loading="lazy"></p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/c1ecd715/lua5.1-call.jpg" alt="lua5.1-call" loading="lazy"></p>
 <h3 id="Lua5-3测试"><a href="#Lua5-3测试" class="headerlink" title="Lua5.3测试"></a>Lua5.3测试</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ lua5.3 test2.lua</span><br></pre></td></tr></table></figure>
 
 <p>用Lua5.3运行上面的测试脚本，因为有尾调用的优化，内存占用一直保持在720KB。</p>
-<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/lua5.3-tail-call.jpg" alt="lua5.3-tail-call" loading="lazy"></p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/c1ecd715/lua5.3-tail-call.jpg" alt="lua5.3-tail-call" loading="lazy"></p>
 <p>细心的同学可能已经发现了，我们的hook函数中call事件和line都需要对整个断点表进行遍历，这其中其实是存在着一些冗余的。因为篇幅原因，我们放到下回分解。</p>
 ]]></content>
       <categories>
