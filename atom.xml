@@ -6,7 +6,7 @@
   <link href="https://catbro666.github.io/atom.xml" rel="self"/>
   
   <link href="https://catbro666.github.io/"/>
-  <updated>2021-08-16T12:51:04.681Z</updated>
+  <updated>2021-08-17T16:15:45.409Z</updated>
   <id>https://catbro666.github.io/</id>
   
   <author>
@@ -17,11 +17,33 @@
   <generator uri="https://hexo.io/">Hexo</generator>
   
   <entry>
+    <title>Lua中如何实现类似gdb的断点调试--05优化断点信息数据结构</title>
+    <link href="https://catbro666.github.io/posts/2e777dd3/"/>
+    <id>https://catbro666.github.io/posts/2e777dd3/</id>
+    <published>2021-08-17T12:40:09.000Z</published>
+    <updated>2021-08-17T16:15:45.409Z</updated>
+    
+    
+    <summary type="html">&lt;div class=&quot;note primary&quot;&gt;
+            &lt;p&gt;在上一篇&lt;a href=&quot;../c1ecd715/&quot;&gt;04优化钩子事件处理&lt;/a&gt;中，我们在钩子函数中引入了call和return事件的处理，对性能进行了优化。&lt;/p&gt;&lt;p&gt;细心的同学可能已经发现了，我们的hook函数中call事件和line都需要对整个断点表进行遍历，这其中其实是存在着一些冗余的。因为call事件只关心函数是否有断点，而line事件则只关心本函数内有哪些断点。所以我们可以想办法优化一下断点信息的数据结构，进一步提升性能。&lt;/p&gt;</summary>
+    
+    
+    
+    <category term="技术向" scheme="https://catbro666.github.io/categories/%E6%8A%80%E6%9C%AF%E5%90%91/"/>
+    
+    
+    <category term="Lua" scheme="https://catbro666.github.io/tags/Lua/"/>
+    
+    <category term="调试" scheme="https://catbro666.github.io/tags/%E8%B0%83%E8%AF%95/"/>
+    
+  </entry>
+  
+  <entry>
     <title>Lua中如何实现类似gdb的断点调试--04优化钩子事件处理</title>
     <link href="https://catbro666.github.io/posts/c1ecd715/"/>
     <id>https://catbro666.github.io/posts/c1ecd715/</id>
     <published>2021-08-16T11:52:15.000Z</published>
-    <updated>2021-08-16T12:51:04.681Z</updated>
+    <updated>2021-08-17T12:45:36.647Z</updated>
     
     
     <summary type="html">&lt;div class=&quot;note primary&quot;&gt;
