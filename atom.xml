@@ -6,7 +6,7 @@
   <link href="https://catbro666.github.io/atom.xml" rel="self"/>
   
   <link href="https://catbro666.github.io/"/>
-  <updated>2021-08-18T12:49:42.679Z</updated>
+  <updated>2021-08-18T16:46:57.224Z</updated>
   <id>https://catbro666.github.io/</id>
   
   <author>
@@ -15,6 +15,28 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Lua中如何实现类似gdb的断点调试—06断点行号检查与自动修正</title>
+    <link href="https://catbro666.github.io/posts/fa52978d/"/>
+    <id>https://catbro666.github.io/posts/fa52978d/</id>
+    <published>2021-08-18T12:55:57.000Z</published>
+    <updated>2021-08-18T16:46:57.224Z</updated>
+    
+    
+    <summary type="html">&lt;div class=&quot;note primary&quot;&gt;
+            &lt;p&gt;前面两篇我们对性能做了一个优化，接下来继续来丰富调试器的特性。&lt;/p&gt;&lt;p&gt;我们前面提到过，函数内并不是所有行都是有效行，空行和注释行就不是有效行。我们之前在添加断点的时候，并没有对行号进行检查，任何行号都能成功添加断点。所以如果添加的断点行号是无效的，那么永远也不会断到那里。但是钩子里并不知道它是无效的，call事件仍然会以为函数有断点从而启动line事件，造成CPU的浪费。&lt;/p&gt;&lt;p&gt;所以本篇，我们将对断点的行号进行检查，对于不在函数范围内的行号直接添加断点失败；在函数范围内的行号则自动修正为下一个有效的行号；另外支持不指定行号，默认为函数的第一个有效行。&lt;/p&gt;</summary>
+    
+    
+    
+    <category term="技术向" scheme="https://catbro666.github.io/categories/%E6%8A%80%E6%9C%AF%E5%90%91/"/>
+    
+    
+    <category term="Lua" scheme="https://catbro666.github.io/tags/Lua/"/>
+    
+    <category term="调试" scheme="https://catbro666.github.io/tags/%E8%B0%83%E8%AF%95/"/>
+    
+  </entry>
   
   <entry>
     <title>Lua中如何实现类似gdb的断点调试--05优化断点信息数据结构</title>
@@ -132,7 +154,7 @@
     <link href="https://catbro666.github.io/posts/e92ef4b4/"/>
     <id>https://catbro666.github.io/posts/e92ef4b4/</id>
     <published>2021-08-08T15:32:26.000Z</published>
-    <updated>2021-08-12T12:28:34.315Z</updated>
+    <updated>2021-08-18T15:04:18.404Z</updated>
     
     
     <summary type="html">&lt;div class=&quot;note primary&quot;&gt;
