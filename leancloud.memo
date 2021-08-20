@@ -17,4 +17,5 @@
 {"title":"一篇文章搞懂密码学基础及SSL/TLS协议","url":"/posts/e92ef4b4/"},
 {"title":"Lua中如何实现类似gdb的断点调试--02通用变量打印","url":"/posts/f6e9079c/"},
 {"title":"Lua中如何实现类似gdb的断点调试--01最小实现","url":"/posts/f9a188a7/"},
+{"title":"Lua中如何实现类似gdb的断点调试—06断点行号检查与自动修正","url":"/posts/fa52978d/"},
 ]
