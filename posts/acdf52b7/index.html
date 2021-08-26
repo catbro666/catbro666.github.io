@@ -1,0 +1,1098 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.4.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/images/hiking-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/images/hiking-16.png">
+  <link rel="mask-icon" href="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/images/logo.svg" color="#222">
+  <meta name="google-site-verification" content="JT1HKSsLR6ZiapLatX1c6-7k-OcEM8cAMdR5pgCSptk">
+  <meta name="yandex-verification" content="5ab41d9d91227789">
+  <meta name="baidu-site-verification" content="code-9Qi2zUhBf4">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="https://fonts.loli.net/css?family=Noto Serif SC:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="//cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"catbro666.github.io","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","width":240,"display":"post","padding":18,"offset":42,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":"mac"},"back2top":{"enable":true,"sidebar":true,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="我们之前已经支持了通过函数来添加断点，并且已经支持了行号的检查和自动修正。但是通过函数来添加断点有一些限制，如果在当前的位置无法访问目标函数，那我们就无法对其添加断点。于是，本篇我们将扩展断点设置的接口，支持通过函数名称添加断点，以突破这个限制。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Lua中如何实现类似gdb的断点调试—07支持通过函数名称添加断点">
+<meta property="og:url" content="https://catbro666.github.io/posts/acdf52b7/index.html">
+<meta property="og:site_name" content="CatBro&#39;s Blog">
+<meta property="og:description" content="我们之前已经支持了通过函数来添加断点，并且已经支持了行号的检查和自动修正。但是通过函数来添加断点有一些限制，如果在当前的位置无法访问目标函数，那我们就无法对其添加断点。于是，本篇我们将扩展断点设置的接口，支持通过函数名称添加断点，以突破这个限制。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2021-08-26T16:09:50.000Z">
+<meta property="article:modified_time" content="2021-08-26T18:02:52.845Z">
+<meta property="article:author" content="猫猫哥">
+<meta property="article:tag" content="Lua">
+<meta property="article:tag" content="调试">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="https://catbro666.github.io/posts/acdf52b7/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <meta name="360-site-verification" content="e7586a6caf7e44316b4a27dfaf53e858"/>
+
+
+
+  <title>Lua中如何实现类似gdb的断点调试—07支持通过函数名称添加断点 | CatBro's Blog</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-6PKG8T836C"></script>
+    <script>
+      if (CONFIG.hostname === location.hostname) {
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-6PKG8T836C');
+      }
+    </script>
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?43ceb843b17e732b0a5dd658f624cac5";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+<link rel="alternate" href="/atom.xml" title="CatBro's Blog" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">CatBro's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">Volar con el viento</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+        <li class="menu-item menu-item-hot">
+
+    <a href="/hot/" rel="section"><i class="fa fa-thermometer-half fa-fw"></i>热度排行</a>
+
+  </li>
+        <li class="menu-item menu-item-commonweal">
+
+    <a href="/404.html" rel="section"><i class="fa fa-heartbeat fa-fw"></i>公益 404</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="reading-progress-bar"></div>
+
+  <a href="https://github.com/catbro666" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener external nofollow noreferrer" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://catbro666.github.io/posts/acdf52b7/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/images/avatar.gif">
+      <meta itemprop="name" content="猫猫哥">
+      <meta itemprop="description" content="如果说根号二是无理数，那么我就是个无理人">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="CatBro's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Lua中如何实现类似gdb的断点调试—07支持通过函数名称添加断点
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2021-08-27 00:09:50 / 修改时间：02:02:52" itemprop="dateCreated datePublished" datetime="2021-08-27T00:09:50+08:00">2021-08-27</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E6%8A%80%E6%9C%AF%E5%90%91/" itemprop="url" rel="index"><span itemprop="name">技术向</span></a>
+                </span>
+            </span>
+
+          
+            <span id="/posts/acdf52b7/" class="post-meta-item leancloud_visitors" data-flag-title="Lua中如何实现类似gdb的断点调试—07支持通过函数名称添加断点" title="阅读次数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span class="leancloud-visitors-count"></span>
+            </span>
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="far fa-comment"></i>
+      </span>
+      <span class="post-meta-item-text">评论数：</span>
+    
+    <a title="valine" href="/posts/acdf52b7/#valine-comments" itemprop="discussionUrl">
+      <span class="post-comments-count valine-comment-count" data-xid="/posts/acdf52b7/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  <br>
+  <span class="post-meta-item" title="繁/简：">
+    <span class="post-meta-item-icon">
+      <i class="fas fa-yin-yang"></i>
+    </span>
+      <span class="post-meta-item-text">繁/简：</span>
+    <a id="translateLink" href="javascript:translatePage();" rel="external nofollow noreferrer">繁體</a>
+  </span>
+
+<script type="text/javascript" src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/js/tw_cn.js"></script>
+<script type="text/javascript">
+var defaultEncoding = 2; //网站编写字体是否繁体，1-繁体，2-简体
+var translateDelay = 0; //延迟时间,若不在前, 要设定延迟翻译时间, 如100表示100ms,默认为0
+var cookieDomain = "https://catbro666.github.io/"; //Cookie地址, 一定要设定, 通常为你的网址
+var msgToTraditionalChinese = "繁體"; //此处可以更改为你想要显示的文字
+var msgToSimplifiedChinese = "简体"; //同上，但两处均不建议更改
+var translateButtonId = "translateLink"; //默认互换id
+translateInitilization();
+</script>
+<br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>6.8k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>6 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <div class="note primary">
+            <p>我们之前已经支持了通过函数来添加断点，并且已经支持了行号的检查和自动修正。但是通过函数来添加断点有一些限制，如果在当前的位置无法访问目标函数，那我们就无法对其添加断点。</p><p>于是，本篇我们将扩展断点设置的接口，支持通过函数名称添加断点，以突破这个限制。</p><span id="more"></span><p>源码已经上传<a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/catbro666/lua-debugger">Github</a>，欢迎watch/star😘。</p>
+          </div>
+
+
+
+<h2 id="实现分析"><a href="#实现分析" class="headerlink" title="实现分析"></a>实现分析</h2><p>由于Lua是动态类型语言，变量可以是任何值。而函数在Lua语言中又是第一类值，与其他值一样使用，可以被存放在变量中、作为参数或返回值传递。所以一个函数的名字是不确定的，它可能是任意名字，取决于函数调用时候的变量的名称。</p>
+<p>通过下面这个简单的例子，就可以看出来</p>
+<figure class="highlight lua"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">local</span> ldb = <span class="built_in">require</span> <span class="string">&quot;luadebug&quot;</span></span><br><span class="line"><span class="keyword">local</span> setbp = ldb.setbreakpoint</span><br><span class="line"><span class="keyword">local</span> rmbp = ldb.removebreakpoint</span><br><span class="line"></span><br><span class="line"><span class="keyword">local</span> <span class="function"><span class="keyword">function</span> <span class="title">foo</span><span class="params">()</span></span></span><br><span class="line"><span class="keyword">end</span></span><br><span class="line"></span><br><span class="line">setbp(foo, <span class="number">6</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">local</span> bar = foo</span><br><span class="line"></span><br><span class="line">foo()</span><br><span class="line">bar()</span><br></pre></td></tr></table></figure>
+
+<p>我们在foo函数中添加了一个断点，将foo函数赋值给局部变量bar，然后分别用foo和bar调用函数。运行这个脚本结果如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">$ lua namenotstable.lua</span><br><span class="line">Lua (<span class="built_in">local</span>)foo namenotstable.lua:6</span><br><span class="line">lua_debug&gt; cont</span><br><span class="line">Lua (<span class="built_in">local</span>)bar namenotstable.lua:6</span><br><span class="line">lua_debug&gt; cont</span><br></pre></td></tr></table></figure>
+
+<p>调用<code>foo()</code>和<code>bar()</code>都会碰到断点，函数名称分别为<code>foo</code>和<code>bar</code>。</p>
+<p>所以通过函数名称添加的断点并不是确定的，函数名称和函数之间并不是一一映射的关系，而可能是m对n的关系。就算已经匹配到了一个与断点设置的函数名称一致的函数，我们也不能简单地将函数名称断点转换成相应的函数断点，而是仍然需要维护函数名称断点。</p>
+<p>因此，我们需要增加一个维护函数名称断点的数据结构—-新的断点表<code>status.namebpt</code>。类似之前在<a href="../2e777dd3/">05优化断点信息数据结构</a>中添加的<code>status.funcbpt</code>表，只是表的键由之前的函数变成了函数名称。<code>status.namebpt</code>表的值同样是一个表，该表的键是断点行号，值为断点id。同样地，为了快速获取断点个数，我们在表中额外加了一个特殊的<code>num</code>字段保存该函数名称中的断点个数。</p>
+<p>通过下面的例子来直观地看一下，假设我们的<code>bptable</code>表中添加了两个断点如下（<code>name</code>字段用来保存函数名称）：</p>
+<figure class="highlight lua"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">bptable[<span class="number">1</span>] = &#123;name = <span class="string">&quot;foo&quot;</span>, line = <span class="number">10</span>&#125;</span><br><span class="line">bptable[<span class="number">2</span>] = &#123;name = <span class="string">&quot;foo&quot;</span>, line = <span class="number">20</span>&#125;</span><br></pre></td></tr></table></figure>
+
+<p>对应的在<code>namebpt</code>表中的操作如下：</p>
+<figure class="highlight lua"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">namebpt[<span class="string">&quot;foo&quot;</span>] = &#123;&#125;          <span class="comment">-- 构造表</span></span><br><span class="line">namebpt[<span class="string">&quot;foo&quot;</span>][<span class="number">10</span>] = <span class="number">1</span>	     <span class="comment">-- 函数名foo，行号10，断点id为1</span></span><br><span class="line">namebpt[<span class="string">&quot;foo&quot;</span>].num = <span class="number">1</span>       <span class="comment">-- 该函数第一个断点</span></span><br><span class="line">namebpt[<span class="string">&quot;foo&quot;</span>][<span class="number">20</span>] = <span class="number">2</span>       <span class="comment">-- 函数名foo，行号20，断点id为2</span></span><br><span class="line">namebpt[<span class="string">&quot;foo&quot;</span>].num = namebpt[<span class="string">&quot;foo&quot;</span>].num + <span class="number">1</span>	<span class="comment">-- 断点个数+1</span></span><br></pre></td></tr></table></figure>
+
+<p>OK，分析完了，接下来开始修改相应的代码实现。</p>
+<h2 id="添加断点"><a href="#添加断点" class="headerlink" title="添加断点"></a>添加断点</h2><p>按照惯例，我们先修改设置断点函数。因为支持了通过函数名称设置断点，第一个参数需要支持string类型。为了简洁及代码重用，我们将之前通过函数设置断点的操作封装成了<code>setfuncbp</code>函数，另外将通过函数名称设置断点的操作封装成了<code>setnamebp</code>函数。</p>
+<figure class="highlight lua"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">local</span> <span class="function"><span class="keyword">function</span> <span class="title">setbreakpoint</span><span class="params">(where, line)</span></span></span><br><span class="line">    <span class="keyword">if</span> (<span class="built_in">type</span>(where) ~= <span class="string">&quot;function&quot;</span> <span class="keyword">and</span> <span class="built_in">type</span>(where) ~= <span class="string">&quot;string&quot;</span>)</span><br><span class="line">        <span class="keyword">or</span> ( line <span class="keyword">and</span> <span class="built_in">type</span>(line) ~= <span class="string">&quot;number&quot;</span>) <span class="keyword">then</span></span><br><span class="line">        <span class="built_in">io</span>.<span class="built_in">write</span>(<span class="string">&quot;invalid parameter\n&quot;</span>)</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">    <span class="keyword">end</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> <span class="built_in">type</span>(where) == <span class="string">&quot;function&quot;</span> <span class="keyword">then</span></span><br><span class="line">        <span class="keyword">return</span> setfuncbp(where, line)</span><br><span class="line">    <span class="keyword">else</span>            <span class="comment">-- &quot;string&quot;</span></span><br><span class="line">        <span class="keyword">return</span> setnamebp(where, line)</span><br><span class="line">    <span class="keyword">end</span></span><br><span class="line"><span class="keyword">end</span></span><br></pre></td></tr></table></figure>
+
+<p>接下来，来看下<code>setnamebp</code>函数的实现：</p>
+<figure class="highlight lua"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">local</span> <span class="function"><span class="keyword">function</span> <span class="title">setnamebp</span><span class="params">(name, line)</span></span></span><br><span class="line">    <span class="keyword">local</span> s = <span class="built_in">status</span></span><br><span class="line">    <span class="keyword">local</span> namebp = s.namebpt[name]</span><br><span class="line">    <span class="keyword">if</span> <span class="keyword">not</span> line <span class="keyword">then</span>                    <span class="comment">-- 如果没有指定行号</span></span><br><span class="line">        line = <span class="number">0</span>                        <span class="comment">-- 用一个特殊值0来表示第一个有效行</span></span><br><span class="line">    <span class="keyword">end</span></span><br><span class="line">    <span class="comment">-- 是否已经添加了相同的断点</span></span><br><span class="line">    <span class="keyword">if</span> namebp <span class="keyword">and</span> namebp[line] <span class="keyword">then</span></span><br><span class="line">        <span class="keyword">return</span> namebp[line]</span><br><span class="line">    <span class="keyword">end</span></span><br><span class="line"></span><br><span class="line">    s.bpid = s.bpid + <span class="number">1</span></span><br><span class="line">    s.bpnum = s.bpnum + <span class="number">1</span></span><br><span class="line">    s.bptable[s.bpid] = &#123;name = name, line = line&#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> <span class="keyword">not</span> namebp <span class="keyword">then</span>                  <span class="comment">-- 该函数名称的第一个断点</span></span><br><span class="line">        s.namebpt[name] = &#123;&#125;</span><br><span class="line">        namebp = s.namebpt[name]</span><br><span class="line">        namebp.num = <span class="number">0</span></span><br><span class="line">    <span class="keyword">end</span></span><br><span class="line">    namebp.num = namebp.num + <span class="number">1</span></span><br><span class="line">    namebp[line] = s.bpid</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> s.bpnum == <span class="number">1</span> <span class="keyword">then</span>                <span class="comment">-- 第一个全局断点</span></span><br><span class="line">        <span class="built_in">debug</span>.<span class="built_in">sethook</span>(hook, <span class="string">&quot;c&quot;</span>)        <span class="comment">-- 设置钩子函数的&quot;call&quot;事件</span></span><br><span class="line">    <span class="keyword">end</span></span><br><span class="line">    <span class="keyword">return</span> s.bpid                       <span class="comment">--&gt; 返回断点id</span></span><br><span class="line"><span class="keyword">end</span></span><br></pre></td></tr></table></figure>
+
+<p>因为我们支持不指定行号，但我们并不确定函数的第一个有效行是什么。为了方便地记录断点，又不至于与实际的断点行冲突，我们用了一个特殊值0来表示这种情况。</p>
+<p>后续的逻辑与<code>setfuncbp</code>函数基本一致，如果已经添加了相同的断点，则返回之前的断点id。然后分别在<code>bptable</code>表和<code>namebp</code>表中添加断点。这里不再赘述。</p>
+<h2 id="删除断点"><a href="#删除断点" class="headerlink" title="删除断点"></a>删除断点</h2><p>删除断点函数的改动不大。主要是要区分删除的是哪类断点，这个可以通过<code>s.bptable</code>表中<code>id</code>所对应的断点信息来判断。如果有func则说明是通过函数添加的断点，否则则是通过函数名称添加的断点。根据情况删除<code>s.funcbpt</code>或者<code>s.namebpt</code>表中的断点，最后删除<code>s.bptable</code>表中的断点。</p>
+<figure class="highlight lua"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">local</span> <span class="function"><span class="keyword">function</span> <span class="title">removebreakpoint</span><span class="params">(id)</span></span></span><br><span class="line">    <span class="keyword">local</span> s = <span class="built_in">status</span></span><br><span class="line">    <span class="keyword">if</span> s.bptable[id] == <span class="literal">nil</span> <span class="keyword">then</span></span><br><span class="line">        <span class="keyword">return</span></span><br><span class="line">    <span class="keyword">end</span></span><br><span class="line">    <span class="keyword">local</span> func = s.bptable[id].func</span><br><span class="line">    <span class="keyword">local</span> name = s.bptable[id].name</span><br><span class="line">    <span class="keyword">local</span> line = s.bptable[id].line</span><br><span class="line"></span><br><span class="line">    <span class="keyword">local</span> dstbp = <span class="literal">nil</span></span><br><span class="line">    <span class="keyword">if</span> func <span class="keyword">then</span></span><br><span class="line">        dstbp = s.funcbpt[func]</span><br><span class="line">    <span class="keyword">else</span></span><br><span class="line">        dstbp = s.namebpt[name]</span><br><span class="line">    <span class="keyword">end</span></span><br><span class="line">    <span class="keyword">if</span> dstbp <span class="keyword">and</span> dstbp[line] <span class="keyword">then</span></span><br><span class="line">        dstbp.num = dstbp.num - <span class="number">1</span></span><br><span class="line">        dstbp[line] = <span class="literal">nil</span></span><br><span class="line">        <span class="keyword">if</span> dstbp.num == <span class="number">0</span> <span class="keyword">then</span></span><br><span class="line">            dstbp = <span class="literal">nil</span></span><br><span class="line">        <span class="keyword">end</span></span><br><span class="line">    <span class="keyword">end</span></span><br><span class="line"></span><br><span class="line">    s.bptable[id] = <span class="literal">nil</span></span><br><span class="line">    s.bpnum = s.bpnum - <span class="number">1</span></span><br><span class="line">    <span class="keyword">if</span> s.bpnum == <span class="number">0</span> <span class="keyword">then</span></span><br><span class="line">        <span class="built_in">debug</span>.<span class="built_in">sethook</span>()                 <span class="comment">-- 移除钩子</span></span><br><span class="line">    <span class="keyword">end</span></span><br><span class="line"><span class="keyword">end</span></span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="获取函数信息"><a href="#获取函数信息" class="headerlink" title="获取函数信息"></a>获取函数信息</h2><p>正如前面提到过的，因为函数名称信息是不确定的，所以我们修改了<code>getfuncinfo</code>函数实现，不再缓存函数名称信息，而只缓存确定的函数信息。</p>
+<figure class="highlight lua"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">local</span> <span class="function"><span class="keyword">function</span> <span class="title">getfuncinfo</span> <span class="params">(func)</span></span></span><br><span class="line">    <span class="keyword">local</span> s = <span class="built_in">status</span></span><br><span class="line">    <span class="keyword">local</span> info = s.funcinfos[func]</span><br><span class="line">    <span class="keyword">if</span> <span class="keyword">not</span> info <span class="keyword">then</span></span><br><span class="line">        info = <span class="built_in">debug</span>.<span class="built_in">getinfo</span>(func, <span class="string">&quot;SL&quot;</span>)</span><br><span class="line">        <span class="keyword">if</span> (info.activelines) <span class="keyword">then</span></span><br><span class="line">            info.sortedlines = &#123;&#125;</span><br><span class="line">            <span class="keyword">for</span> k, _ <span class="keyword">in</span> <span class="built_in">pairs</span>(info.activelines) <span class="keyword">do</span></span><br><span class="line">               <span class="built_in">table</span>.<span class="built_in">insert</span>(info.sortedlines, k)</span><br><span class="line">            <span class="keyword">end</span></span><br><span class="line">            <span class="built_in">table</span>.<span class="built_in">sort</span>(info.sortedlines)</span><br><span class="line">        <span class="keyword">end</span></span><br><span class="line">        s.funcinfos[func] = info</span><br><span class="line">    <span class="keyword">end</span></span><br><span class="line">    <span class="keyword">return</span> info</span><br><span class="line"><span class="keyword">end</span></span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="钩子函数"><a href="#钩子函数" class="headerlink" title="钩子函数"></a>钩子函数</h2><p>钩子函数的改动主要是在call事件。函数名称每次都根据调用栈实时获取。首先在函数断点表<code>s.funcbpt</code>中查找当前函数是否有断点，如果没有则再去函数名称断点表<code>s.namebpt</code>中查找。需要检查断点行号是否在当前函数的定义范围之内，只有当行号在范围之内才认为匹配。如果没有指定行号的话（默认为第一个有效行），则总是认为匹配。另外，在调用栈信息表中，分别将确定的函数信息<code>funcinfo</code>和调用栈相关信息<code>stackinfo</code>分别保存，以供return事件和line事件时使用。</p>
+<figure class="highlight lua"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">local</span> <span class="function"><span class="keyword">function</span> <span class="title">hook</span> <span class="params">(event, line)</span></span></span><br><span class="line">    <span class="keyword">local</span> s = <span class="built_in">status</span></span><br><span class="line">    <span class="keyword">if</span> event == <span class="string">&quot;call&quot;</span> <span class="keyword">or</span> event == <span class="string">&quot;tail call&quot;</span> <span class="keyword">then</span></span><br><span class="line">        <span class="keyword">local</span> stackinfo = <span class="built_in">debug</span>.<span class="built_in">getinfo</span>(<span class="number">2</span>, <span class="string">&quot;nf&quot;</span>)</span><br><span class="line">        <span class="keyword">local</span> func = stackinfo.func</span><br><span class="line">        <span class="keyword">local</span> name = stackinfo.name</span><br><span class="line">        <span class="keyword">local</span> funcinfo = getfuncinfo(func)</span><br><span class="line">        <span class="keyword">local</span> hasbreak = <span class="literal">false</span></span><br><span class="line">        <span class="keyword">if</span> s.funcbpt[func] <span class="keyword">then</span></span><br><span class="line">            hasbreak = <span class="literal">true</span></span><br><span class="line">        <span class="keyword">end</span></span><br><span class="line">        <span class="keyword">if</span> <span class="keyword">not</span> hasbreak <span class="keyword">and</span> s.namebpt[name] <span class="keyword">then</span></span><br><span class="line">            <span class="keyword">local</span> <span class="built_in">min</span> = funcinfo.linedefined</span><br><span class="line">            <span class="keyword">local</span> <span class="built_in">max</span> = funcinfo.lastlinedefined</span><br><span class="line">            <span class="keyword">for</span> k, _ <span class="keyword">in</span> <span class="built_in">pairs</span>(s.namebpt[name]) <span class="keyword">do</span></span><br><span class="line">                <span class="keyword">if</span> k ~= <span class="string">&quot;num&quot;</span> <span class="keyword">and</span> ((k &gt;= <span class="built_in">min</span> <span class="keyword">and</span> k &lt;= <span class="built_in">max</span>) <span class="keyword">or</span> k == <span class="number">0</span>) <span class="keyword">then</span></span><br><span class="line">                    hasbreak = <span class="literal">true</span></span><br><span class="line">                    <span class="keyword">break</span></span><br><span class="line">                <span class="keyword">end</span></span><br><span class="line">            <span class="keyword">end</span></span><br><span class="line">        <span class="keyword">end</span></span><br><span class="line">        <span class="keyword">if</span> event == <span class="string">&quot;call&quot;</span> <span class="keyword">then</span>     <span class="comment">-- for tail call, just overwrite</span></span><br><span class="line">            s.stackdepth = s.stackdepth + <span class="number">1</span></span><br><span class="line">        <span class="keyword">end</span></span><br><span class="line">        s.stackinfos[s.stackdepth] =</span><br><span class="line">            &#123;stackinfo = stackinfo, funcinfo = funcinfo, hasbreak = hasbreak&#125;</span><br><span class="line">        <span class="comment">-- found breakpoint in current function</span></span><br><span class="line">        <span class="keyword">if</span> hasbreak <span class="keyword">then</span></span><br><span class="line">            <span class="built_in">debug</span>.<span class="built_in">sethook</span>(hook, <span class="string">&quot;crl&quot;</span>)	<span class="comment">-- add &quot;line&quot; event</span></span><br><span class="line">        <span class="keyword">else</span>        <span class="comment">-- no breakpoints found</span></span><br><span class="line">            <span class="built_in">debug</span>.<span class="built_in">sethook</span>(hook, <span class="string">&quot;cr&quot;</span>)   <span class="comment">-- remove &quot;line&quot; event temporarily</span></span><br><span class="line">        <span class="keyword">end</span></span><br><span class="line">    <span class="keyword">elseif</span> event == <span class="string">&quot;return&quot;</span> <span class="keyword">or</span> event == <span class="string">&quot;tail return&quot;</span> <span class="keyword">then</span></span><br><span class="line">            <span class="comment">-- 省略</span></span><br><span class="line"><span class="keyword">end</span></span><br></pre></td></tr></table></figure>
+
+<p>line事件也需要做相应的修改</p>
+<figure class="highlight lua"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">local</span> <span class="function"><span class="keyword">function</span> <span class="title">hook</span> <span class="params">(event, line)</span></span></span><br><span class="line">    <span class="comment">-- 省略</span></span><br><span class="line">    <span class="keyword">elseif</span> event == <span class="string">&quot;line&quot;</span> <span class="keyword">then</span></span><br><span class="line">        <span class="keyword">local</span> sinfo = s.stackinfos[s.stackdepth].stackinfo</span><br><span class="line">        <span class="keyword">local</span> finfo = s.stackinfos[s.stackdepth].funcinfo</span><br><span class="line">        <span class="keyword">local</span> func = sinfo.func</span><br><span class="line">        <span class="keyword">local</span> name = sinfo.name</span><br><span class="line">        <span class="keyword">local</span> funcbp = s.funcbpt[func]</span><br><span class="line">        <span class="keyword">local</span> namebp = s.namebpt[name]</span><br><span class="line">        <span class="keyword">if</span> (funcbp <span class="keyword">and</span> funcbp[line]) <span class="keyword">or</span> (namebp <span class="keyword">and</span> namebp[line])</span><br><span class="line">            <span class="keyword">or</span> (namebp <span class="keyword">and</span> namebp[<span class="number">0</span>] <span class="keyword">and</span> line == finfo.sortedlines[<span class="number">1</span>]) <span class="keyword">then</span></span><br><span class="line">            <span class="keyword">local</span> prompt = <span class="built_in">string</span>.<span class="built_in">format</span>(<span class="string">&quot;%s (%s)%s %s:%d\n&quot;</span>,</span><br><span class="line">                finfo.what, sinfo.namewhat, name, finfo.short_src, line)</span><br><span class="line">            <span class="built_in">io</span>.<span class="built_in">write</span>(prompt)</span><br><span class="line">            <span class="built_in">debug</span>.<span class="built_in">debug</span>()</span><br><span class="line">        <span class="keyword">end</span></span><br><span class="line">    <span class="keyword">end</span></span><br><span class="line"><span class="keyword">end</span></span><br></pre></td></tr></table></figure>
+
+<p>在判断当前行是否有断点时，除了查看<code>funcbpt</code>表，还需要查看<code>namebpt</code>表，对于函数名称断点没有指定行号的情况，判断当前行是不是第一个有效行。打印提示信息时，则从<code>stackinfos</code>表中保存的信息中获取。</p>
+<h2 id="测试"><a href="#测试" class="headerlink" title="测试"></a>测试</h2><p>代码修改好了，我们来测试下通过函数名称添加断点的功能。编写如下测试脚本：</p>
+<figure class="highlight lua"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">local</span> ldb = <span class="built_in">require</span> <span class="string">&quot;luadebug&quot;</span></span><br><span class="line"><span class="keyword">local</span> setbp = ldb.setbreakpoint</span><br><span class="line"><span class="keyword">local</span> rmbp = ldb.removebreakpoint</span><br><span class="line"></span><br><span class="line"><span class="keyword">local</span> <span class="function"><span class="keyword">function</span> <span class="title">foo</span><span class="params">()</span></span></span><br><span class="line">    <span class="keyword">local</span> a = <span class="number">0</span></span><br><span class="line"><span class="keyword">end</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">local</span> <span class="function"><span class="keyword">function</span> <span class="title">bar</span><span class="params">()</span></span></span><br><span class="line">    <span class="keyword">local</span> a = <span class="number">0</span></span><br><span class="line"><span class="keyword">end</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">local</span> <span class="function"><span class="keyword">function</span> <span class="title">pee</span><span class="params">()</span></span></span><br><span class="line">    <span class="keyword">local</span> a = <span class="number">0</span></span><br><span class="line"><span class="keyword">end</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">local</span> id1 = setbp(foo)</span><br><span class="line"><span class="keyword">local</span> id2 = setbp(foo, <span class="number">7</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">local</span> id3 = setbp(<span class="string">&quot;bar&quot;</span>)</span><br><span class="line"><span class="keyword">local</span> id4 = setbp(<span class="string">&quot;bar&quot;</span>, <span class="number">11</span>)</span><br><span class="line"><span class="keyword">local</span> id5 = setbp(<span class="string">&quot;bar&quot;</span>, <span class="number">100</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">local</span> id6 = setbp(pee)</span><br><span class="line"><span class="keyword">local</span> id7 = setbp(<span class="string">&quot;pee&quot;</span>, <span class="number">15</span>)</span><br><span class="line"></span><br><span class="line">foo()</span><br><span class="line">bar()</span><br><span class="line">pee()</span><br><span class="line"></span><br><span class="line">rmbp(id1)</span><br><span class="line">rmbp(id3)</span><br><span class="line">rmbp(id6)</span><br><span class="line"></span><br><span class="line">foo()</span><br><span class="line">bar()</span><br><span class="line">pee()</span><br><span class="line"></span><br><span class="line">rmbp(id2)</span><br><span class="line">rmbp(id4)</span><br><span class="line">rmbp(id7)</span><br><span class="line"></span><br><span class="line">foo()</span><br><span class="line">bar()</span><br><span class="line">pee()</span><br></pre></td></tr></table></figure>
+
+<p>我们添加了三个函数，其中foo函数以函数作为参数添加断点，bar函数以函数名称作为参数添加断点，pee函数分别用函数和函数名添加了一个断点。添加完断点，先分别调用一次，预期每个函数都会碰到两个断点。接着三个函数各删除一个断点，再各调用一次，预期每个函数都会碰到一个断点。最后三个函数再各删除一个断点，再各调用一次，预期不碰到断点。</p>
+<p>运行测试脚本，结果符合预期。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">$ lua test.lua</span><br><span class="line">Lua (<span class="built_in">local</span>)foo test.lua:6</span><br><span class="line">lua_debug&gt; cont</span><br><span class="line">Lua (<span class="built_in">local</span>)foo test.lua:7</span><br><span class="line">lua_debug&gt; cont</span><br><span class="line">Lua (<span class="built_in">local</span>)bar test.lua:10</span><br><span class="line">lua_debug&gt; cont</span><br><span class="line">Lua (<span class="built_in">local</span>)bar test.lua:11</span><br><span class="line">lua_debug&gt; cont</span><br><span class="line">Lua (<span class="built_in">local</span>)pee test.lua:14</span><br><span class="line">lua_debug&gt; cont</span><br><span class="line">Lua (<span class="built_in">local</span>)pee test.lua:15		<span class="comment"># 第一次调用，每个函数碰到两个断点</span></span><br><span class="line">lua_debug&gt; cont					</span><br><span class="line">Lua (<span class="built_in">local</span>)foo test.lua:7</span><br><span class="line">lua_debug&gt; cont</span><br><span class="line">Lua (<span class="built_in">local</span>)bar test.lua:11</span><br><span class="line">lua_debug&gt; cont</span><br><span class="line">Lua (<span class="built_in">local</span>)pee test.lua:15		<span class="comment"># 第二次调用，每个函数碰到一个断点</span></span><br><span class="line">lua_debug&gt; cont</span><br><span class="line">$								<span class="comment"># 第三次调用，不再碰到断点</span></span><br></pre></td></tr></table></figure>
+
+
+    </div>
+
+    
+    
+    
+      
+  <div class="popular-posts-header">相关文章推荐</div>
+  <ul class="popular-posts">
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/posts/f9a188a7/" rel="bookmark">Lua中如何实现类似gdb的断点调试--01最小实现</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/posts/f6e9079c/" rel="bookmark">Lua中如何实现类似gdb的断点调试--02通用变量打印</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/posts/a05a2f5f/" rel="bookmark">Lua中如何实现类似gdb的断点调试--03通用变量修改及调用栈回溯</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/posts/c1ecd715/" rel="bookmark">Lua中如何实现类似gdb的断点调试--04优化钩子事件处理</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/posts/2e777dd3/" rel="bookmark">Lua中如何实现类似gdb的断点调试--05优化断点信息数据结构</a></div>
+    </li>
+  </ul>
+<div>
+    
+        <div style="text-align:center;font-size:22px;letter-spacing:10px;user-select:none;color:#bbb;">-------------本文结束<i class="fa fa-paw"></i>感谢您的阅读-------------</div>
+    
+</div>
+
+
+
+        
+
+<div>
+<ul class="post-copyright">
+  <li class="post-copyright-author">
+    <strong>本文作者： </strong>猫猫哥
+  </li>
+  <li class="post-copyright-link">
+    <strong>本文链接：</strong>
+    <a href="https://catbro666.github.io/posts/acdf52b7/" title="Lua中如何实现类似gdb的断点调试—07支持通过函数名称添加断点">https://catbro666.github.io/posts/acdf52b7/</a>
+  </li>
+  <li class="post-copyright-license">
+    <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/zh-CN" rel="noopener external nofollow noreferrer" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+        
+
+  <div class="followme">
+    <p>欢迎关注我的其它发布渠道</p>
+
+    <div class="social-list">
+
+        <div class="social-item">
+          <a target="_blank" class="social-link" href="/atom.xml">
+            <span class="icon">
+              <i class="fa fa-rss"></i>
+            </span>
+
+            <span class="label">RSS</span>
+          </a>
+        </div>
+    </div>
+  </div>
+
+
+      <footer class="post-footer">
+          
+          <div class="post-tags">
+              <a href="/tags/Lua/" rel="tag"><i class="fa fa-tag"></i> Lua</a>
+              <a href="/tags/%E8%B0%83%E8%AF%95/" rel="tag"><i class="fa fa-tag"></i> 调试</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/posts/fa52978d/" rel="prev" title="Lua中如何实现类似gdb的断点调试—06断点行号检查与自动修正">
+      <i class="fa fa-chevron-left"></i> Lua中如何实现类似gdb的断点调试—06断点行号检查与自动修正
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+    <div class="comments" id="valine-comments"></div>
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%9E%E7%8E%B0%E5%88%86%E6%9E%90"><span class="nav-number">1.</span> <span class="nav-text">实现分析</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%B7%BB%E5%8A%A0%E6%96%AD%E7%82%B9"><span class="nav-number">2.</span> <span class="nav-text">添加断点</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%88%A0%E9%99%A4%E6%96%AD%E7%82%B9"><span class="nav-number">3.</span> <span class="nav-text">删除断点</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%8E%B7%E5%8F%96%E5%87%BD%E6%95%B0%E4%BF%A1%E6%81%AF"><span class="nav-number">4.</span> <span class="nav-text">获取函数信息</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%92%A9%E5%AD%90%E5%87%BD%E6%95%B0"><span class="nav-number">5.</span> <span class="nav-text">钩子函数</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%B5%8B%E8%AF%95"><span class="nav-number">6.</span> <span class="nav-text">测试</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">猫猫哥</p>
+  <div class="site-description" itemprop="description">如果说根号二是无理数，那么我就是个无理人</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">16</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">3</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">13</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/catbro666" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;catbro666" rel="noopener external nofollow noreferrer" target="_blank"><i class="fab fa-github fa-fw"></i></a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:chzf_zju@163.com" title="E-Mail → mailto:chzf_zju@163.com" rel="noopener external nofollow noreferrer" target="_blank"><i class="fa fa-envelope fa-fw"></i></a>
+      </span>
+  </div>
+  <div class="cc-license motion-element" itemprop="license">
+    <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/zh-CN" class="cc-opacity" rel="noopener external nofollow noreferrer" target="_blank"><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/images/cc-by-nc-sa.svg" alt="Creative Commons"></a>
+  </div>
+
+
+<div style="">
+  <canvas id="canvas" style="width:60%;">当前浏览器不支持canvas，请更换浏览器后再试</canvas>
+</div>
+<script>
+(function(){
+
+   var digit=
+    [
+        [
+            [0,0,1,1,1,0,0],
+            [0,1,1,0,1,1,0],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,0,1,1,0],
+            [0,0,1,1,1,0,0]
+        ],//0
+        [
+            [0,0,0,1,1,0,0],
+            [0,1,1,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [1,1,1,1,1,1,1]
+        ],//1
+        [
+            [0,1,1,1,1,1,0],
+            [1,1,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,0,0],
+            [0,0,1,1,0,0,0],
+            [0,1,1,0,0,0,0],
+            [1,1,0,0,0,0,0],
+            [1,1,0,0,0,1,1],
+            [1,1,1,1,1,1,1]
+        ],//2
+        [
+            [1,1,1,1,1,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,0,0,1,1,0],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,1,1,0]
+        ],//3
+        [
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,1,0],
+            [0,0,1,1,1,1,0],
+            [0,1,1,0,1,1,0],
+            [1,1,0,0,1,1,0],
+            [1,1,1,1,1,1,1],
+            [0,0,0,0,1,1,0],
+            [0,0,0,0,1,1,0],
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,1,1]
+        ],//4
+        [
+            [1,1,1,1,1,1,1],
+            [1,1,0,0,0,0,0],
+            [1,1,0,0,0,0,0],
+            [1,1,1,1,1,1,0],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,1,1,0]
+        ],//5
+        [
+            [0,0,0,0,1,1,0],
+            [0,0,1,1,0,0,0],
+            [0,1,1,0,0,0,0],
+            [1,1,0,0,0,0,0],
+            [1,1,0,1,1,1,0],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,1,1,0]
+        ],//6
+        [
+            [1,1,1,1,1,1,1],
+            [1,1,0,0,0,1,1],
+            [0,0,0,0,1,1,0],
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,1,1,0,0,0],
+            [0,0,1,1,0,0,0],
+            [0,0,1,1,0,0,0],
+            [0,0,1,1,0,0,0]
+        ],//7
+        [
+            [0,1,1,1,1,1,0],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,1,1,0],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,1,1,0]
+        ],//8
+        [
+            [0,1,1,1,1,1,0],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,0,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,0,0],
+            [0,1,1,0,0,0,0]
+        ],//9
+        [
+            [0,0,0,0,0,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,0,0,0,0,0]
+        ]//:
+    ];
+
+var canvas = document.getElementById('canvas');
+
+if(canvas.getContext){
+    var cxt = canvas.getContext('2d');
+    //声明canvas的宽高
+    var H = 100,W = 700;
+    canvas.height = H;
+    canvas.width = W;
+    cxt.fillStyle = '#f00';
+    cxt.fillRect(10,10,50,50);
+
+    //存储时间数据
+    var data = [];
+    //存储运动的小球
+    var balls = [];
+    //设置粒子半径
+    var R = canvas.height/20-1;
+    (function(){
+        var temp = /(\d)(\d):(\d)(\d):(\d)(\d)/.exec(new Date());
+        //存储时间数字，由十位小时、个位小时、冒号、十位分钟、个位分钟、冒号、十位秒钟、个位秒钟这7个数字组成
+        data.push(temp[1],temp[2],10,temp[3],temp[4],10,temp[5],temp[6]);
+    })();
+
+    /*生成点阵数字*/
+    function renderDigit(index,num){
+        for(var i = 0; i < digit[num].length; i++){
+            for(var j = 0; j < digit[num][i].length; j++){
+                if(digit[num][i][j] == 1){
+                    cxt.beginPath();
+                    cxt.arc(14*(R+2)*index + j*2*(R+1)+(R+1),i*2*(R+1)+(R+1),R,0,2*Math.PI);
+                    cxt.closePath();
+                    cxt.fill();
+                }
+            }
+        }
+    }
+
+    /*更新时钟*/
+    function updateDigitTime(){
+        var changeNumArray = [];
+        var temp = /(\d)(\d):(\d)(\d):(\d)(\d)/.exec(new Date());
+        var NewData = [];
+        NewData.push(temp[1],temp[2],10,temp[3],temp[4],10,temp[5],temp[6]);
+        for(var i = data.length-1; i >=0 ; i--){
+            //时间发生变化
+            if(NewData[i] !== data[i]){
+                //将变化的数字值和在data数组中的索引存储在changeNumArray数组中
+                changeNumArray.push(i+'_'+(Number(data[i])+1)%10);
+            }
+        }
+        //增加小球
+        for(var i = 0; i< changeNumArray.length; i++){
+            addBalls.apply(this,changeNumArray[i].split('_'));
+        }
+        data = NewData.concat();
+    }
+
+    /*更新小球状态*/
+    function updateBalls(){
+        for(var i = 0; i < balls.length; i++){
+            balls[i].stepY += balls[i].disY;
+            balls[i].x += balls[i].stepX;
+            balls[i].y += balls[i].stepY;
+            if(balls[i].x > W + R || balls[i].y > H + R){
+                balls.splice(i,1);
+                i--;
+            }
+        }
+    }
+
+    /*增加要运动的小球*/
+    function addBalls(index,num){
+        var numArray = [1,2,3];
+        var colorArray =  ["#3BE","#09C","#A6C","#93C","#9C0","#690","#FB3","#F80","#F44","#C00"];
+        for(var i = 0; i < digit[num].length; i++){
+            for(var j = 0; j < digit[num][i].length; j++){
+                if(digit[num][i][j] == 1){
+                    var ball = {
+                        x:14*(R+2)*index + j*2*(R+1)+(R+1),
+                        y:i*2*(R+1)+(R+1),
+                        stepX:Math.floor(Math.random() * 4 -2),
+                        stepY:-2*numArray[Math.floor(Math.random()*numArray.length)],
+                        color:colorArray[Math.floor(Math.random()*colorArray.length)],
+                        disY:1
+                    };
+                    balls.push(ball);
+                }
+            }
+        }
+    }
+
+    /*渲染*/
+    function render(){
+        //重置画布宽度，达到清空画布的效果
+        canvas.height = 100;
+        //渲染时钟
+        for(var i = 0; i < data.length; i++){
+            renderDigit(i,data[i]);
+        }
+        //渲染小球
+        for(var i = 0; i < balls.length; i++){
+            cxt.beginPath();
+            cxt.arc(balls[i].x,balls[i].y,R,0,2*Math.PI);
+            cxt.fillStyle = balls[i].color;
+            cxt.closePath();
+            cxt.fill();
+        }
+    }
+
+    clearInterval(oTimer);
+    var oTimer = setInterval(function(){
+        //更新时钟
+        updateDigitTime();
+        //更新小球状态
+        updateBalls();
+        //渲染
+        render();
+    },50);
+}
+
+})();
+</script>
+
+
+      </div>
+        <div class="back-to-top motion-element">
+          <i class="fa fa-arrow-up"></i>
+          <span>0%</span>
+        </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 2019 – 
+  <span itemprop="copyrightYear">2021</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">猫猫哥</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+      <span class="post-meta-item-text">站点总字数：</span>
+    <span title="站点总字数">177k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+      <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
+    <span title="站点阅读时长">2:41</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener external nofollow noreferrer" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener external nofollow noreferrer" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+<script>
+  (function() {
+    function leancloudSelector(url) {
+      url = encodeURI(url);
+      return document.getElementById(url).querySelector('.leancloud-visitors-count');
+    }
+
+    function addCount(Counter) {
+      var visitors = document.querySelector('.leancloud_visitors');
+      var url = decodeURI(visitors.id);
+      var title = visitors.dataset.flagTitle;
+
+      Counter('get', '/classes/Counter?where=' + encodeURIComponent(JSON.stringify({ url })))
+        .then(response => response.json())
+        .then(({ results }) => {
+          if (results.length > 0) {
+            var counter = results[0];
+            leancloudSelector(url).innerText = counter.time + 1;
+            Counter('put', '/classes/Counter/' + counter.objectId, { time: { '__op': 'Increment', 'amount': 1 } })
+              .catch(error => {
+                console.error('Failed to save visitor count', error);
+              });
+          } else {
+              leancloudSelector(url).innerText = 'Counter not initialized! More info at console err msg.';
+              console.error('ATTENTION! LeanCloud counter has security bug, see how to solve it here: https://github.com/theme-next/hexo-leancloud-counter-security. \n However, you can still use LeanCloud without security, by setting `security` option to `false`.');
+            
+          }
+        })
+        .catch(error => {
+          console.error('LeanCloud Counter Error', error);
+        });
+    }
+
+    function showTime(Counter) {
+      var visitors = document.querySelectorAll('.leancloud_visitors');
+      var entries = [...visitors].map(element => {
+        return decodeURI(element.id);
+      });
+
+      Counter('get', '/classes/Counter?where=' + encodeURIComponent(JSON.stringify({ url: { '$in': entries } })))
+        .then(response => response.json())
+        .then(({ results }) => {
+          for (let url of entries) {
+            let target = results.find(item => item.url === url);
+            leancloudSelector(url).innerText = target ? target.time : 0;
+          }
+        })
+        .catch(error => {
+          console.error('LeanCloud Counter Error', error);
+        });
+    }
+
+    let { app_id, app_key, server_url } = {"enable":true,"app_id":"0Syy5qyXX1qTBOGiD0vUzpHb-MdYXbMMI","app_key":"B3MuN4GIHf7ru1ojTSkjjI9a","server_url":null,"security":true,"betterPerformance":true};
+    function fetchData(api_server) {
+      var Counter = (method, url, data) => {
+        return fetch(`${api_server}/1.1${url}`, {
+          method,
+          headers: {
+            'X-LC-Id'     : app_id,
+            'X-LC-Key'    : app_key,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(data)
+        });
+      };
+      if (CONFIG.page.isPost) {
+        if (CONFIG.hostname !== location.hostname) return;
+        addCount(Counter);
+      } else if (document.querySelectorAll('.post-title-link').length >= 1) {
+        showTime(Counter);
+      }
+    }
+
+    let api_server = app_id.slice(-9) !== '-MdYXbMMI' ? server_url : `https://${app_id.slice(0, 8).toLowerCase()}.api.lncldglobal.com`;
+
+    if (api_server) {
+      fetchData(api_server);
+    } else {
+      fetch('https://app-router.leancloud.cn/2/route?appId=' + app_id)
+        .then(response => response.json())
+        .then(({ api_server }) => {
+          fetchData('https://' + api_server);
+        });
+    }
+  })();
+</script>
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="//cdn.jsdelivr.net/npm/animejs@3.1.0/lib/anime.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/velocity-animate@1/velocity.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/velocity-animate@1/velocity.ui.min.js"></script>
+
+<script src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/js/utils.js"></script>
+
+<script src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/js/motion.js"></script>
+
+
+<script src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/js/schemes/pisces.js"></script>
+
+
+<script src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/js/next-boot.js"></script>
+
+
+
+
+  
+  <script>
+    (function(){
+      var canonicalURL, curProtocol;
+      //Get the <link> tag
+      var x=document.getElementsByTagName("link");
+		//Find the last canonical URL
+		if(x.length > 0){
+			for (i=0;i<x.length;i++){
+				if(x[i].rel.toLowerCase() == 'canonical' && x[i].href){
+					canonicalURL=x[i].href;
+				}
+			}
+		}
+    //Get protocol
+	    if (!canonicalURL){
+	    	curProtocol = window.location.protocol.split(':')[0];
+	    }
+	    else{
+	    	curProtocol = canonicalURL.split(':')[0];
+	    }
+      //Get current URL if the canonical URL does not exist
+	    if (!canonicalURL) canonicalURL = window.location.href;
+	    //Assign script content. Replace current URL with the canonical URL
+      !function(){var e=/([http|https]:\/\/[a-zA-Z0-9\_\.]+\.baidu\.com)/gi,r=canonicalURL,t=document.referrer;if(!e.test(r)){var n=(String(curProtocol).toLowerCase() === 'https')?"https://sp0.baidu.com/9_Q4simg2RQJ8t7jm9iCKT-xh_/s.gif":"//api.share.baidu.com/s.gif";t?(n+="?r="+encodeURIComponent(document.referrer),r&&(n+="&l="+r)):r&&(n+="?l="+r);var i=new Image;i.src=n}}(window);})();
+  </script>
+
+
+
+
+  
+<script src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+
+<script>
+NexT.utils.loadComments(document.querySelector('#valine-comments'), () => {
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/valine@1/dist/Valine.min.js', () => {
+    var GUEST = ['nick', 'mail', 'link'];
+    var guest = 'nick,mail,link';
+    guest = guest.split(',').filter(item => {
+      return GUEST.includes(item);
+    });
+    new Valine({
+      el         : '#valine-comments',
+      verify     : false,
+      notify     : true,
+      appId      : '0Syy5qyXX1qTBOGiD0vUzpHb-MdYXbMMI',
+      appKey     : 'B3MuN4GIHf7ru1ojTSkjjI9a',
+      placeholder: "欢迎留言讨论，记得在上方【邮箱】处填上邮箱地址，可以收到回复通知哦(^。^)",
+      avatar     : 'retro',
+      meta       : guest,
+      pageSize   : '10' || 10,
+      visitor    : false,
+      lang       : '' || 'zh-cn',
+      path       : location.pathname,
+      recordIP   : false,
+      serverURLs : ''
+    });
+  }, window.Valine);
+});
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/jquery/dist/jquery.min.js"></script>
+
+
+
+  <script async src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/js/cursor/fireworks.js"></script>
+
+
+
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/js/fold_action.js"></script>
+
+
+</body>
+</html>
