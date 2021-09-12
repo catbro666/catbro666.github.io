@@ -9,6 +9,7 @@
 {"title":"自己动手实现Lua--实现TAILCALL指令","url":"/posts/74970c0e/"},
 {"title":"Lua中如何实现类似gdb的断点调试--03通用变量修改及调用栈回溯","url":"/posts/a05a2f5f/"},
 {"title":"UNIX环境高级编程APUE练习4.6-实现类似cp(1)的程序，保留文件中的空洞","url":"/posts/aa99fc97/"},
+{"title":"Lua中如何实现类似gdb的断点调试—07支持通过函数名称添加断点","url":"/posts/acdf52b7/"},
 {"title":"Lua中如何实现类似gdb的断点调试--04优化钩子事件处理","url":"/posts/c1ecd715/"},
 {"title":"test-post","url":"/posts/dce1f5ed/"},
 {"title":"多进程性能测试程序demo","url":"/posts/e416d910/"},

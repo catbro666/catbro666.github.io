@@ -6,7 +6,7 @@
   <link href="https://catbro666.github.io/atom.xml" rel="self"/>
   
   <link href="https://catbro666.github.io/"/>
-  <updated>2021-08-26T18:03:15.685Z</updated>
+  <updated>2021-09-12T16:44:51.723Z</updated>
   <id>https://catbro666.github.io/</id>
   
   <author>
@@ -15,6 +15,29 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Lua中如何实现类似gdb的断点调试—07支持通过包名称添加断点</title>
+    <link href="https://catbro666.github.io/posts/5c25711/"/>
+    <id>https://catbro666.github.io/posts/5c25711/</id>
+    <published>2021-09-12T10:38:31.000Z</published>
+    <updated>2021-09-12T16:44:51.723Z</updated>
+    
+    
+    <summary type="html">&lt;div class=&quot;note primary&quot;&gt;
+            &lt;p&gt;在前一篇中我们支持了通过函数名称来添加断点，我们同时也提到了在Lua中一个函数的名称的并不是确定的。准确的说，Lua中的函数并没有名称，所谓名称其实是保存这个函数值的变量的名称。&lt;/p&gt;&lt;p&gt;于是通过函数名称添加断点就造成了一定的不确定性，因为函数被调用时并不一定是以这个名字被调用的。另外，多个不同的函数也可能以相同的名字进行调用。&lt;/p&gt;&lt;p&gt;所以为了解决这个问题，本篇我们将继续扩展断点的设置接口，支持通过包名来添加断点。因为包名相对更具确定性，配合行号可以进行精确定位。&lt;/p&gt;
+          &lt;/div&gt;</summary>
+    
+    
+    
+    <category term="技术向" scheme="https://catbro666.github.io/categories/%E6%8A%80%E6%9C%AF%E5%90%91/"/>
+    
+    
+    <category term="Lua" scheme="https://catbro666.github.io/tags/Lua/"/>
+    
+    <category term="调试" scheme="https://catbro666.github.io/tags/%E8%B0%83%E8%AF%95/"/>
+    
+  </entry>
   
   <entry>
     <title>Lua中如何实现类似gdb的断点调试—07支持通过函数名称添加断点</title>
