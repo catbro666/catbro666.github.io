@@ -263,7 +263,7 @@
 <li><p>parent</p>
 <p>分类器附加到哪个handle上。这个handle必须是一个已经存在的类。必须。</p>
 </li>
-<li><p>prio</p>
+<li><p>prio|perf</p>
 <p>分类器的优先级。<strong>数字越小</strong>的越先进行匹配尝试。</p>
 </li>
 <li><p>handle</p>
@@ -272,10 +272,10 @@
 </ul>
 <h3 id="u32分类器-3"><a href="#u32分类器-3" class="headerlink" title="u32分类器[3]"></a>u32分类器[3]</h3><p>u32过滤器最简单的格式是设置一组选择器对包进行匹配，匹配的包分到特定的子类中，或者执行一个action。u32分类器提供了多种不同的选择器，可以大致分成特殊选择器和通用选择器两类。</p>
 <h3 id="特殊选择器"><a href="#特殊选择器" class="headerlink" title="特殊选择器"></a>特殊选择器</h3><p>常用的有ip选择器和tcp选择器。特殊选择器简化了一些常用字段的设置，可以匹配包头中的各种字段，比如：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">tc filter add dev eth0 parent 1:0 prio 10 u32 \</span><br><span class="line">	match ip src 192.168.8.0/24 flowid 1:4</span><br></pre></td></tr></table></figure>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">tc filter add dev eth0 protocol ip parent 1:0 prio 10 u32 \</span><br><span class="line">	match ip src 192.168.8.0/24 flowid 1:4</span><br></pre></td></tr></table></figure>
 
 <p>上例匹配ip源地址在192.168.8.0/24子网的包。</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">tc filter add dev eth0 parent 1:0 prio 10 u32 \</span><br><span class="line">        match ip protocol 0x6 0xff \</span><br><span class="line">        match tcp dport 53 0xffff \</span><br><span class="line">        flowid 1:2</span><br></pre></td></tr></table></figure>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">tc filter add dev eth0 protocol ip parent 1:0 prio 10 u32 \</span><br><span class="line">        match ip protocol 0x6 0xff \</span><br><span class="line">        match tcp dport 53 0xffff \</span><br><span class="line">        flowid 1:2</span><br></pre></td></tr></table></figure>
 
 <p>上例匹配TCP协议（0x6）、且目的端口为53的包。</p>
 <h3 id="通用选择器"><a href="#通用选择器" class="headerlink" title="通用选择器"></a>通用选择器</h3><p>特殊选择器总是可以改写成对应的通用选择器，通用选择器可以匹配 IP（或上层）头中的几乎任何位，不过相比特殊选择器较难编写和阅读。其语法如下：</p>

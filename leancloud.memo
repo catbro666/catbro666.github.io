@@ -5,6 +5,7 @@
 {"title":"Hexo-NexT Tag 插件的使用","url":"/posts/29bfe8c9/"},
 {"title":"Lua中如何实现类似gdb的断点调试--05优化断点信息数据结构","url":"/posts/2e777dd3/"},
 {"title":"OpenResty Lua钩子调用完整流程","url":"/posts/30b81f82/"},
+{"title":"Linux TC 流量控制介绍","url":"/posts/357ad3ec/"},
 {"title":"Hello World","url":"/posts/4a17b156/"},
 {"title":"Lua中如何实现类似gdb的断点调试—08支持通过包名称添加断点","url":"/posts/5c25711/"},
 {"title":"自己动手实现Lua--实现TAILCALL指令","url":"/posts/74970c0e/"},
