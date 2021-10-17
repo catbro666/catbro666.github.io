@@ -6,7 +6,7 @@
   <link href="https://catbro666.github.io/atom.xml" rel="self"/>
   
   <link href="https://catbro666.github.io/"/>
-  <updated>2021-09-12T17:33:24.560Z</updated>
+  <updated>2021-10-17T15:23:32.012Z</updated>
   <id>https://catbro666.github.io/</id>
   
   <author>
@@ -15,6 +15,31 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Linux TC 流量控制介绍</title>
+    <link href="https://catbro666.github.io/posts/357ad3ec/"/>
+    <id>https://catbro666.github.io/posts/357ad3ec/</id>
+    <published>2021-10-17T08:10:15.000Z</published>
+    <updated>2021-10-17T15:23:32.012Z</updated>
+    
+    
+    <summary type="html">&lt;div class=&quot;note primary&quot;&gt;
+            &lt;p&gt;前段时间在做一些测试的时候接触到了Linux tc，因为需要对数据包添加延迟，用到了tc中的netem。添加简单的延迟非常简单，像这样一条命令就搞定了：&lt;code&gt;$ tc qdisc add dev eth0 root netem delay 1s&lt;/code&gt;，你甚至不需要完全理解命令中参数的含义。但是当你想做一些更加特殊的限制的时候，（比如只对某个特定的ip端口添加延迟、或者只对入站的流量添加延迟），事情就变得有些棘手了，简单的百度貌似已经满足不了要求了。你不得不了解TC中的一些基本概念，以及tc[2]命令中相关参数的含义。&lt;/p&gt;&lt;p&gt;本文正是带你了解这些TC中的基本概念，并通过一个实际例子，将这些概念与tc命令联系起来。&lt;/p&gt;
+          &lt;/div&gt;</summary>
+    
+    
+    
+    <category term="工具向" scheme="https://catbro666.github.io/categories/%E5%B7%A5%E5%85%B7%E5%90%91/"/>
+    
+    
+    <category term="Linux" scheme="https://catbro666.github.io/tags/Linux/"/>
+    
+    <category term="TC" scheme="https://catbro666.github.io/tags/TC/"/>
+    
+    <category term="流量控制" scheme="https://catbro666.github.io/tags/%E6%B5%81%E9%87%8F%E6%8E%A7%E5%88%B6/"/>
+    
+  </entry>
   
   <entry>
     <title>Lua中如何实现类似gdb的断点调试—08支持通过包名称添加断点</title>
