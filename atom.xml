@@ -6,7 +6,7 @@
   <link href="https://catbro666.github.io/atom.xml" rel="self"/>
   
   <link href="https://catbro666.github.io/"/>
-  <updated>2021-10-17T15:48:17.799Z</updated>
+  <updated>2021-11-01T16:52:00.135Z</updated>
   <id>https://catbro666.github.io/</id>
   
   <author>
@@ -15,6 +15,27 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>SSL及GMVPN握手协议详解</title>
+    <link href="https://catbro666.github.io/posts/59c71edb/"/>
+    <id>https://catbro666.github.io/posts/59c71edb/</id>
+    <published>2021-11-01T13:01:32.000Z</published>
+    <updated>2021-11-01T16:52:00.135Z</updated>
+    
+    
+    <summary type="html">&lt;div class=&quot;note primary&quot;&gt;
+            &lt;p&gt;之前写过一篇关于&lt;a href=&quot;../e92ef4b4&quot;&gt;SSL协议的文章&lt;/a&gt;，主要介绍了加密学的基础，并从整体上对SSL协议做了介绍。由于篇幅原因，SSL握手的详细流程没有深入介绍。本文将拆解握手流程，在消息级别对握手进行详细地介绍。还没有加密学基本概念的、或者不清楚SSL协议的基本情况的建议先看一下前面一篇的内容。另外，本文主要是针对TLSv1.2和GMVPN的情况，对于TLSv1.3暂不涉及。&lt;/p&gt;
+          &lt;/div&gt;</summary>
+    
+    
+    
+    <category term="理论向" scheme="https://catbro666.github.io/categories/%E7%90%86%E8%AE%BA%E5%90%91/"/>
+    
+    
+    <category term="SSL/TLS" scheme="https://catbro666.github.io/tags/SSL-TLS/"/>
+    
+  </entry>
   
   <entry>
     <title>Linux TC 流量控制介绍</title>
@@ -224,7 +245,7 @@
     <link href="https://catbro666.github.io/posts/e92ef4b4/"/>
     <id>https://catbro666.github.io/posts/e92ef4b4/</id>
     <published>2021-08-08T15:32:26.000Z</published>
-    <updated>2021-08-18T15:04:18.404Z</updated>
+    <updated>2021-11-01T13:41:43.636Z</updated>
     
     
     <summary type="html">&lt;div class=&quot;note primary&quot;&gt;
