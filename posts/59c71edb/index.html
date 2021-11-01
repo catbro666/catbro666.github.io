@@ -30,29 +30,29 @@
 <meta property="og:site_name" content="CatBro&#39;s Blog">
 <meta property="og:description" content="之前写过一篇关于SSL协议的文章，主要介绍了加密学的基础，并从整体上对SSL协议做了介绍。由于篇幅原因，SSL握手的详细流程没有深入介绍。本文将拆解握手流程，在消息级别对握手进行详细地介绍。还没有加密学基本概念的、或者不清楚SSL协议的基本情况的建议先看一下前面一篇的内容。另外，本文主要是针对TLSv1.2和GMVPN的情况，对于TLSv1.3暂不涉及。">
 <meta property="og:locale" content="zh_CN">
-<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/SSL%E6%8F%A1%E6%89%8B%E9%80%BB%E8%BE%91%E5%9B%BE-%E6%A1%86%E6%9E%B6.png">
-<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/SSL%E5%8D%8F%E8%AE%AE%E6%B5%81%E7%A8%8B%E5%9B%BE%E6%96%B0-%E5%9F%BA%E6%9C%AC.png">
-<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/SSL%E5%8D%8F%E8%AE%AE%E6%B5%81%E7%A8%8B%E5%9B%BE%E6%96%B0-RSA%E5%AF%86%E9%92%A5%E4%BA%A4%E6%8D%A2.png">
-<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/SSL%E5%8D%8F%E8%AE%AE%E6%B5%81%E7%A8%8B%E5%9B%BE-ECDHE%E5%AF%86%E9%92%A5%E4%BA%A4%E6%8D%A2.png">
-<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/SSL%E5%8D%8F%E8%AE%AE%E6%B5%81%E7%A8%8B%E5%9B%BE%E6%96%B0-%E5%9B%BD%E5%AF%86ECC%E5%AF%86%E9%92%A5%E4%BA%A4%E6%8D%A2.png">
-<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/SSL%E5%8D%8F%E8%AE%AE%E6%B5%81%E7%A8%8B%E5%9B%BE%E6%96%B0-%E5%9B%BD%E5%AF%86ECDHE%E5%AF%86%E9%92%A5%E4%BA%A4%E6%8D%A2-5776669.png">
-<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/TLS1.2_KeyCalculation.png">
-<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/SSL%E6%8F%A1%E6%89%8B%E9%80%BB%E8%BE%91%E5%9B%BE-%E8%BA%AB%E4%BB%BD%E8%AE%A4%E8%AF%81.png">
-<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/SSL%E5%8D%8F%E8%AE%AE%E6%B5%81%E7%A8%8B%E5%9B%BE%E6%96%B0-RSA%E5%AF%86%E9%92%A5%E4%BA%A4%E6%8D%A2RSA%E8%AE%A4%E8%AF%81.png">
-<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/SSL%E5%8D%8F%E8%AE%AE%E6%B5%81%E7%A8%8B%E5%9B%BE%E6%96%B0-ECDHE%E5%AF%86%E9%92%A5%E4%BA%A4%E6%8D%A2%E7%9A%84%E8%AE%A4%E8%AF%81.png">
-<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/SSL%E5%8D%8F%E8%AE%AE%E6%B5%81%E7%A8%8B%E5%9B%BE%E6%96%B0-%E5%9B%BD%E5%AF%86ECC%E8%AE%A4%E8%AF%81.png">
-<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/SSL%E5%8D%8F%E8%AE%AE%E6%B5%81%E7%A8%8B%E5%9B%BE%E6%96%B0-%E5%9B%BD%E5%AF%86ECDHE%E8%AE%A4%E8%AF%81.png">
-<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/SSL%E5%8D%8F%E8%AE%AE%E6%B5%81%E7%A8%8B%E5%9B%BE%E6%96%B0-%E5%8D%8F%E5%95%86%E5%8D%8F%E8%AE%AE%E7%AE%97%E6%B3%95.png">
-<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/SSL%E5%8D%8F%E8%AE%AE%E6%B5%81%E7%A8%8B%E5%9B%BE%E6%96%B0-%E4%BC%9A%E8%AF%9D%E9%87%8D%E7%94%A8%E5%9F%BA%E6%9C%AC.png">
-<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/SSL%E5%8D%8F%E8%AE%AE%E6%B5%81%E7%A8%8B%E5%9B%BE%E6%96%B0-%E4%BC%9A%E8%AF%9D%E9%87%8D%E7%94%A8SessionID.png">
-<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/SSL%E5%8D%8F%E8%AE%AE%E6%B5%81%E7%A8%8B%E5%9B%BE%E6%96%B0-%E4%BC%9A%E8%AF%9D%E9%87%8D%E7%94%A8SessionTicket.png">
-<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/SSL%E6%8F%A1%E6%89%8B%E9%80%BB%E8%BE%91%E5%9B%BE-%E4%BF%9D%E8%AF%81%E5%AE%89%E5%85%A8%E6%80%A7.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/59c71edb/SSL%E6%8F%A1%E6%89%8B%E9%80%BB%E8%BE%91%E5%9B%BE-%E6%A1%86%E6%9E%B6.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/59c71edb/SSL%E5%8D%8F%E8%AE%AE%E6%B5%81%E7%A8%8B%E5%9B%BE%E6%96%B0-%E5%9F%BA%E6%9C%AC.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/59c71edb/SSL%E5%8D%8F%E8%AE%AE%E6%B5%81%E7%A8%8B%E5%9B%BE%E6%96%B0-RSA%E5%AF%86%E9%92%A5%E4%BA%A4%E6%8D%A2.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/59c71edb/SSL%E5%8D%8F%E8%AE%AE%E6%B5%81%E7%A8%8B%E5%9B%BE-ECDHE%E5%AF%86%E9%92%A5%E4%BA%A4%E6%8D%A2.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/59c71edb/SSL%E5%8D%8F%E8%AE%AE%E6%B5%81%E7%A8%8B%E5%9B%BE%E6%96%B0-%E5%9B%BD%E5%AF%86ECC%E5%AF%86%E9%92%A5%E4%BA%A4%E6%8D%A2.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/59c71edb/SSL%E5%8D%8F%E8%AE%AE%E6%B5%81%E7%A8%8B%E5%9B%BE%E6%96%B0-%E5%9B%BD%E5%AF%86ECDHE%E5%AF%86%E9%92%A5%E4%BA%A4%E6%8D%A2-5776669.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/59c71edb/TLS1.2_KeyCalculation.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/59c71edb/SSL%E6%8F%A1%E6%89%8B%E9%80%BB%E8%BE%91%E5%9B%BE-%E8%BA%AB%E4%BB%BD%E8%AE%A4%E8%AF%81.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/59c71edb/SSL%E5%8D%8F%E8%AE%AE%E6%B5%81%E7%A8%8B%E5%9B%BE%E6%96%B0-RSA%E5%AF%86%E9%92%A5%E4%BA%A4%E6%8D%A2RSA%E8%AE%A4%E8%AF%81.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/59c71edb/SSL%E5%8D%8F%E8%AE%AE%E6%B5%81%E7%A8%8B%E5%9B%BE%E6%96%B0-ECDHE%E5%AF%86%E9%92%A5%E4%BA%A4%E6%8D%A2%E7%9A%84%E8%AE%A4%E8%AF%81.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/59c71edb/SSL%E5%8D%8F%E8%AE%AE%E6%B5%81%E7%A8%8B%E5%9B%BE%E6%96%B0-%E5%9B%BD%E5%AF%86ECC%E8%AE%A4%E8%AF%81.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/59c71edb/SSL%E5%8D%8F%E8%AE%AE%E6%B5%81%E7%A8%8B%E5%9B%BE%E6%96%B0-%E5%9B%BD%E5%AF%86ECDHE%E8%AE%A4%E8%AF%81.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/59c71edb/SSL%E5%8D%8F%E8%AE%AE%E6%B5%81%E7%A8%8B%E5%9B%BE%E6%96%B0-%E5%8D%8F%E5%95%86%E5%8D%8F%E8%AE%AE%E7%AE%97%E6%B3%95.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/59c71edb/SSL%E5%8D%8F%E8%AE%AE%E6%B5%81%E7%A8%8B%E5%9B%BE%E6%96%B0-%E4%BC%9A%E8%AF%9D%E9%87%8D%E7%94%A8%E5%9F%BA%E6%9C%AC.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/59c71edb/SSL%E5%8D%8F%E8%AE%AE%E6%B5%81%E7%A8%8B%E5%9B%BE%E6%96%B0-%E4%BC%9A%E8%AF%9D%E9%87%8D%E7%94%A8SessionID.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/59c71edb/SSL%E5%8D%8F%E8%AE%AE%E6%B5%81%E7%A8%8B%E5%9B%BE%E6%96%B0-%E4%BC%9A%E8%AF%9D%E9%87%8D%E7%94%A8SessionTicket.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/59c71edb/SSL%E6%8F%A1%E6%89%8B%E9%80%BB%E8%BE%91%E5%9B%BE-%E4%BF%9D%E8%AF%81%E5%AE%89%E5%85%A8%E6%80%A7.png">
 <meta property="article:published_time" content="2021-11-01T13:01:32.000Z">
-<meta property="article:modified_time" content="2021-11-01T16:52:00.135Z">
+<meta property="article:modified_time" content="2021-11-01T16:52:55.642Z">
 <meta property="article:author" content="猫猫哥">
 <meta property="article:tag" content="SSL&#x2F;TLS">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/SSL%E6%8F%A1%E6%89%8B%E9%80%BB%E8%BE%91%E5%9B%BE-%E6%A1%86%E6%9E%B6.png">
+<meta name="twitter:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/59c71edb/SSL%E6%8F%A1%E6%89%8B%E9%80%BB%E8%BE%91%E5%9B%BE-%E6%A1%86%E6%9E%B6.png">
 
 <link rel="canonical" href="https://catbro666.github.io/posts/59c71edb/">
 
@@ -278,7 +278,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-11-02 00:52:00" itemprop="dateModified" datetime="2021-11-02T00:52:00+08:00">2021-11-02</time>
+                <time title="修改时间：2021-11-02 00:52:55" itemprop="dateModified" datetime="2021-11-02T00:52:55+08:00">2021-11-02</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -364,10 +364,10 @@ translateInitilization();
 
 
 <h2 id="概览"><a href="#概览" class="headerlink" title="概览"></a>概览</h2><p>本文将分如下几个部分展开，其中密钥交换和身份认证部分会着重进行讲解。</p>
-<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/SSL%E6%8F%A1%E6%89%8B%E9%80%BB%E8%BE%91%E5%9B%BE-%E6%A1%86%E6%9E%B6.png" alt="SSL握手逻辑图-框架" loading="lazy"></p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/59c71edb/SSL%E6%8F%A1%E6%89%8B%E9%80%BB%E8%BE%91%E5%9B%BE-%E6%A1%86%E6%9E%B6.png" alt="SSL握手逻辑图-框架" loading="lazy"></p>
 <p>我们都知道SSL协议最主要的作用就是用来协商通信双方的安全参数，然后基于协商的安全参数进行安全通信。所以首当其冲地，第一个要解决的问题就是如何进行密钥交换。考虑到对称密码和非对称密码的性能差异显著，在实际使用中往往使用对称密码对数据进行加密，而使用非对称密码来完成重要的密钥交换和身份认证。</p>
 <h3 id="基本握手流程"><a href="#基本握手流程" class="headerlink" title="基本握手流程"></a>基本握手流程</h3><p>下图是一个我们通常看到的SSL握手流程图，SSL协议分为两个阶段：握手阶段和应用阶段。握手阶段主要负责协商安全参数，应用阶段则基于前面协商的安全参数进行数据通信。</p>
-<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/SSL%E5%8D%8F%E8%AE%AE%E6%B5%81%E7%A8%8B%E5%9B%BE%E6%96%B0-%E5%9F%BA%E6%9C%AC.png" alt="SSL协议流程图新-基本" loading="lazy"></p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/59c71edb/SSL%E5%8D%8F%E8%AE%AE%E6%B5%81%E7%A8%8B%E5%9B%BE%E6%96%B0-%E5%9F%BA%E6%9C%AC.png" alt="SSL协议流程图新-基本" loading="lazy"></p>
 <p>这里先不对每个消息进行详细的介绍，后面的内容中会陆续涉及到。其中带*号的表示可选消息或者根据前面消息的情况而定。ChangeCipherSpec作为单独的一类消息只是表明握手协议已经完成，后续使用协商的加密参数进行通信。Finished消息就是一个加密的消息，用于验证握手已经顺利完成。这里稍微提一下ServerHelloDone这个消息，这个消息并没有什么实际的内容，它存在的主要原因就是因为前面的消息CertificateRequest是可选的，所以需要明确地告诉客户端服务端这边的消息发完了，否则客户端无从知道是否该等待CertificateRequest消息。</p>
 <h2 id="如何进行密钥交换"><a href="#如何进行密钥交换" class="headerlink" title="如何进行密钥交换"></a>如何进行密钥交换</h2><p>密钥交换的方法可以分成两大类：一类是基于加密、一类是基于DH。前者有RSA算法、GM的ECC算法；后者则有ECDHE、GM的ECDHE。</p>
 <p>虽然前面一篇已经讲过了，这里还是稍微带一下这两者的基本原理，以方便在后面实际的握手流程中进行对照。</p>
@@ -378,22 +378,22 @@ translateInitilization();
 <p><a target="_blank" rel="noopener external nofollow noreferrer" href="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/Diffie-Hellman_Key_Exchange.svg">Diffie-Hellman_Key_Exchange</a></p>
 <p>首先双方协商一个相同的底色（算法参数），然后各自生成自己私有的颜色（相当于私钥），并通过混合得到对应的公有颜色（相当于公钥）。随后双方交换各自的公有颜色，并与自己的私钥颜色混合，最终协商出一个相同的颜色（即交换的密钥）。窃听者就算得到了双方交换的这些信息，也无法生成相同的密钥，<strong>求解离散对象问题的困难度</strong>保证了DH算法的安全性。</p>
 <h3 id="TLS-RSA密钥交换"><a href="#TLS-RSA密钥交换" class="headerlink" title="TLS RSA密钥交换"></a>TLS RSA密钥交换</h3><p>这种情况的典型算法套件是AES256-SHA。（相关的消息都已经标成蓝色了，连到消息块上的实线箭头表示该消息中带了相应的内容。）</p>
-<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/SSL%E5%8D%8F%E8%AE%AE%E6%B5%81%E7%A8%8B%E5%9B%BE%E6%96%B0-RSA%E5%AF%86%E9%92%A5%E4%BA%A4%E6%8D%A2.png" alt="SSL协议流程图新-RSA密钥交换" loading="lazy"></p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/59c71edb/SSL%E5%8D%8F%E8%AE%AE%E6%B5%81%E7%A8%8B%E5%9B%BE%E6%96%B0-RSA%E5%AF%86%E9%92%A5%E4%BA%A4%E6%8D%A2.png" alt="SSL协议流程图新-RSA密钥交换" loading="lazy"></p>
 <p>这种情况比较简单，首先客户端生成一个随机数在ClientHello消息中带过去，服务端同样也生成一个随机数在ServerHello消息中带过去。然后服务端在Certificate消息中将它的证书发送给客户端，证书中包含了它的公钥。客户端收到之后就用服务端的公钥加密一个随机生成的预主密钥，通过ClientKeyExchange消息发送给服务端，服务端则用自己的私钥进行解密得到预主密钥。这里就是应用了前面提到的公钥加密的原理。</p>
 <p>通过密钥交换之后，双方都得到了预主密钥，再加上前面交换的两个随机数，这3个材料一起进行密钥派生得到主密钥。主密钥再结合两个随机数派生出最终的会话密钥。</p>
 <p>这里先抛出几个问题供大家思考。为什么不直接用预主密钥，而是要跟两个随机数派生出主密钥？为什么不直接用主密钥，而是再跟两个随机数派生出会话密钥？我暂时不做解答，留到后面分解。</p>
 <h3 id="TLS-ECDHE密钥交换"><a href="#TLS-ECDHE密钥交换" class="headerlink" title="TLS ECDHE密钥交换"></a>TLS ECDHE密钥交换</h3><p>这个情况的典型算法套件如ECDHE-RSA-AES256-GCM-SHA384、ECDHE-ECDSA-AES256-GCM-SHA384。这里的EC表示椭圆曲线，DH表示基于DH算法，最后一个E则表示使用临时密钥进行密钥交换，而不是证书相关的非临时密钥。</p>
-<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/SSL%E5%8D%8F%E8%AE%AE%E6%B5%81%E7%A8%8B%E5%9B%BE-ECDHE%E5%AF%86%E9%92%A5%E4%BA%A4%E6%8D%A2.png" alt="SSL协议流程图-ECDHE密钥交换" loading="lazy"></p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/59c71edb/SSL%E5%8D%8F%E8%AE%AE%E6%B5%81%E7%A8%8B%E5%9B%BE-ECDHE%E5%AF%86%E9%92%A5%E4%BA%A4%E6%8D%A2.png" alt="SSL协议流程图-ECDHE密钥交换" loading="lazy"></p>
 <p>我们来比较下跟前一种情况的区别，首先ClientHello和ServerHello消息是一样的，都带了一个随机数。区别在于服务端是通过ServerKeyExchange消息发送了一个临时DH参数给对方（也就是前面将DH原理时的公有颜色），类似地客户端也通过ClientKeyExchange消息把它的临时DH参数发送给服务端。这样双方就交换了彼此的临时DH公钥，然后他们各自利用自己的临时私钥和对方的临时公钥计算出预主密钥。与前一种情况的最大区别就在于此，前者是客户端加密预主密钥发送给服务端，后者是双方交换临时DH公钥，然后各自计算出预主密钥。</p>
 <p>得到预主密钥后，后续的流程就一样了。结合两个随机数派生出主密钥，然后再派生出会话密钥。</p>
 <h3 id="GM-ECC密钥交换"><a href="#GM-ECC密钥交换" class="headerlink" title="GM ECC密钥交换"></a>GM ECC密钥交换</h3><p>接下来我们看GM ECC密钥交换的情况，这种情况的典型算法套件为ECC-SM4-SM3。GMVPN协议一个最大的区别就是它引入了双证书体系，每一方都有两个证书（对应地就有两个私钥），一个加密证书负责进行密钥交换，一个签名证书负责进行身份认证。</p>
-<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/SSL%E5%8D%8F%E8%AE%AE%E6%B5%81%E7%A8%8B%E5%9B%BE%E6%96%B0-%E5%9B%BD%E5%AF%86ECC%E5%AF%86%E9%92%A5%E4%BA%A4%E6%8D%A2.png" alt="SSL协议流程图新-国密ECC密钥交换" loading="lazy"></p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/59c71edb/SSL%E5%8D%8F%E8%AE%AE%E6%B5%81%E7%A8%8B%E5%9B%BE%E6%96%B0-%E5%9B%BD%E5%AF%86ECC%E5%AF%86%E9%92%A5%E4%BA%A4%E6%8D%A2.png" alt="SSL协议流程图新-国密ECC密钥交换" loading="lazy"></p>
 <p>跟TLS RSA密钥交换的主要区别是，这种情况的证书消息中包含了双证书，客户端在加密预主密钥时是用服务端加密证书中的公钥。相应地，服务端在解密时则用自己的加密私钥。后续的密钥派生流程都是一样的，这里就不再赘述了。</p>
 <p>至于GM为什么要引入双证书，是因为这样你的加密私钥就在CA那里有留档，必要时它就可以解密你的消息。Big brother is watching you!</p>
 <h3 id="GM-ECDHE密钥交换"><a href="#GM-ECDHE密钥交换" class="headerlink" title="GM ECDHE密钥交换"></a>GM ECDHE密钥交换</h3><p>这种情况的典型算法套件为ECDHE-SM4-SM3。同样是双证书，ServerKeyExchange消息中带了服务端的临时DH参数，客户端也将双证书以及它的临时DH参数发送给服务端。注意到在计算预主密钥时，有4个材料参与了运算，对方加密证书中的公钥以及临时公钥，自己的加密私钥以及临时私钥，由这4个材料一起计算出预主密钥。作为对比，普通TLS的ECDHE只有自己的临时私钥和对方的临时公钥参与计算。</p>
 <p>GM ECDHE最大的区别就在于此，所以GM ECDHE的算法套件必须是双向认证的，因为在密钥交换时也需要客户端的加密证书参与。从这里也可以看出GM协议在设计上的不严谨，哪有算法套件只允许双向认证的。而且GM ECDHE因为也有临时密钥参与计算预主密钥，所以就算CA有加密私钥也是无法解密的，这又与双证书的最初目的相悖。。。</p>
-<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/SSL%E5%8D%8F%E8%AE%AE%E6%B5%81%E7%A8%8B%E5%9B%BE%E6%96%B0-%E5%9B%BD%E5%AF%86ECDHE%E5%AF%86%E9%92%A5%E4%BA%A4%E6%8D%A2-5776669.png" alt="SSL协议流程图新-国密ECDHE密钥交换" loading="lazy"></p>
-<h3 id="TLS1-2-密钥派生流程"><a href="#TLS1-2-密钥派生流程" class="headerlink" title="TLS1.2 密钥派生流程"></a>TLS1.2 密钥派生流程</h3><p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/TLS1.2_KeyCalculation.png" alt="TLS1.2_KeyCalculation" loading="lazy"></p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/59c71edb/SSL%E5%8D%8F%E8%AE%AE%E6%B5%81%E7%A8%8B%E5%9B%BE%E6%96%B0-%E5%9B%BD%E5%AF%86ECDHE%E5%AF%86%E9%92%A5%E4%BA%A4%E6%8D%A2-5776669.png" alt="SSL协议流程图新-国密ECDHE密钥交换" loading="lazy"></p>
+<h3 id="TLS1-2-密钥派生流程"><a href="#TLS1-2-密钥派生流程" class="headerlink" title="TLS1.2 密钥派生流程"></a>TLS1.2 密钥派生流程</h3><p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/59c71edb/TLS1.2_KeyCalculation.png" alt="TLS1.2_KeyCalculation" loading="lazy"></p>
 <p>密钥派生的流程前面其实已经画出来了，基于加密或者DH双方交换得到预主密钥，预主密钥结合两个随机数派生得到主密钥，TLS1.2中派生是通过PRF进行的，其中secret就是预主密钥，label是一个特定的字符串，seed是前面的两个随机数。</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">master_secret = PRF(pre_master_secret, &quot;master secret&quot;,</span><br><span class="line">                   ClientHello.random + ServerHello.random)</span><br><span class="line">                   [0..47];</span><br></pre></td></tr></table></figure>
 
@@ -409,49 +409,49 @@ translateInitilization();
 <li>确认对方拥有公钥对应的私钥</li>
 <li>确认对方的身份</li>
 </ul>
-<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/SSL%E6%8F%A1%E6%89%8B%E9%80%BB%E8%BE%91%E5%9B%BE-%E8%BA%AB%E4%BB%BD%E8%AE%A4%E8%AF%81.png" alt="SSL握手逻辑图-身份认证" loading="lazy"></p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/59c71edb/SSL%E6%8F%A1%E6%89%8B%E9%80%BB%E8%BE%91%E5%9B%BE-%E8%BA%AB%E4%BB%BD%E8%AE%A4%E8%AF%81.png" alt="SSL握手逻辑图-身份认证" loading="lazy"></p>
 <p>第一个问题，使用单纯的数字签名就可以解决。通过验证对方的数字签名，可以确认对方拥有相应的私钥。</p>
 <p>而第二个问题，则需要引入数字证书和PKI了。数字证书，说白了就是将一个公钥跟身份信息进行绑定，然后由第三方可信机构（CA）给你做个证明（通过CA签名）。那么CA本身的身份又由谁来证明呢，再通过更上级的CA进行证明。最终的根CA只能通过其他手段进行认证，否则就无限循环了。</p>
 <h3 id="数字签名原理"><a href="#数字签名原理" class="headerlink" title="数字签名原理"></a>数字签名原理</h3><p><a target="_blank" rel="noopener external nofollow noreferrer" href="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/Private_key_signing.svg">Private_key_signing</a></p>
 <p>数字签名的基本原理也很简单，与前面的公钥加密相对，这里是使用私钥对数据进行签名，对方则用公钥对签名数据进行验签。</p>
 <h3 id="TLS-RSA密钥交换时的RSA认证"><a href="#TLS-RSA密钥交换时的RSA认证" class="headerlink" title="TLS RSA密钥交换时的RSA认证"></a>TLS RSA密钥交换时的RSA认证</h3><p>典型算法套件仍然是AES256-SHA。</p>
-<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/SSL%E5%8D%8F%E8%AE%AE%E6%B5%81%E7%A8%8B%E5%9B%BE%E6%96%B0-RSA%E5%AF%86%E9%92%A5%E4%BA%A4%E6%8D%A2RSA%E8%AE%A4%E8%AF%81.png" alt="SSL协议流程图新-RSA密钥交换RSA认证" loading="lazy"></p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/59c71edb/SSL%E5%8D%8F%E8%AE%AE%E6%B5%81%E7%A8%8B%E5%9B%BE%E6%96%B0-RSA%E5%AF%86%E9%92%A5%E4%BA%A4%E6%8D%A2RSA%E8%AE%A4%E8%AF%81.png" alt="SSL协议流程图新-RSA密钥交换RSA认证" loading="lazy"></p>
 <p>服务端的认证只涉及Certificate消息，服务端把证书和CA证书链发送给客户端，客户端只需要对证书和证书链进行验证。最终的Root CA需要是本机信任的，否则就存在安全风险，可能受到中间人攻击。</p>
 <p>如果需要双向认证，即服务端也需要认证客户端，还涉及图中橙色的3个消息。服务端会发送CertificateRequest消息，告诉客户端支持的证书类型、签名哈希算法、以及CA的DN项。客户端根据这些信息选择适合的客户端证书，然后在Certificate消息中将证书和CA证书链发送给服务端，另外还需要用自己的私钥做一个签名，以证明自己拥有证书对应的私钥。这里签名的内容是前面所有的握手消息（从ClientHello开始到当前消息之前的所有消息）。然后服务端对客户端的证书链以及签名进行验证。</p>
 <h3 id="TLS-ECDHE密钥交换时的认证"><a href="#TLS-ECDHE密钥交换时的认证" class="headerlink" title="TLS ECDHE密钥交换时的认证"></a>TLS ECDHE密钥交换时的认证</h3><p>典型算法套件如ECDHE-RSA-AES256-GCM-SHA384、ECDHE-ECDSA-AES256-GCM-SHA384。</p>
-<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/SSL%E5%8D%8F%E8%AE%AE%E6%B5%81%E7%A8%8B%E5%9B%BE%E6%96%B0-ECDHE%E5%AF%86%E9%92%A5%E4%BA%A4%E6%8D%A2%E7%9A%84%E8%AE%A4%E8%AF%81.png" alt="SSL协议流程图新-ECDHE密钥交换的认证" loading="lazy"></p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/59c71edb/SSL%E5%8D%8F%E8%AE%AE%E6%B5%81%E7%A8%8B%E5%9B%BE%E6%96%B0-ECDHE%E5%AF%86%E9%92%A5%E4%BA%A4%E6%8D%A2%E7%9A%84%E8%AE%A4%E8%AF%81.png" alt="SSL协议流程图新-ECDHE密钥交换的认证" loading="lazy"></p>
 <p>跟前一种情况下比，服务端多了一个签名。因为这种情况密钥交换是通过临时DH参数完成的，并没有服务端证书对应的私钥参与，所以需要用证书对应的私钥额外做一个签名，以证明自己确实拥有证书对应私钥。这里签名的内容是两个hello随机数以及服务端的临时DH参数，其实就是参与计算预主密钥的三个材料。</p>
 <p>客户端除了验证证书链之外，还需要对这个签名进行验证。</p>
 <p>客户端认证的部分跟前一种情况完全一样，不再进行赘述。</p>
 <h3 id="GM-ECC密钥交换时的认证"><a href="#GM-ECC密钥交换时的认证" class="headerlink" title="GM ECC密钥交换时的认证"></a>GM ECC密钥交换时的认证</h3><p>典型算法套件还是ECC-SM4-SM3。</p>
-<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/SSL%E5%8D%8F%E8%AE%AE%E6%B5%81%E7%A8%8B%E5%9B%BE%E6%96%B0-%E5%9B%BD%E5%AF%86ECC%E8%AE%A4%E8%AF%81.png" alt="SSL协议流程图新-国密ECC认证" loading="lazy"></p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/59c71edb/SSL%E5%8D%8F%E8%AE%AE%E6%B5%81%E7%A8%8B%E5%9B%BE%E6%96%B0-%E5%9B%BD%E5%AF%86ECC%E8%AE%A4%E8%AF%81.png" alt="SSL协议流程图新-国密ECC认证" loading="lazy"></p>
 <p>前面TLS RSA的情况，服务端不需要做一个额外的签名。因为密钥交换和身份认证都是通过同一个证书来进行的，服务端能够完成密钥交换（解密出预主密钥）就已经说明了它有对应的私钥。</p>
 <p>而GM ECC则则不然，因为双证书的关系，密钥交换和身份认证是通过不同证书进行的。所以服务端仍然需要做一个签名证明其私钥持有性。签名是通过签名私钥来进行的，签名的内容有所改变，是两个hello随机数和服务端的加密证书。客户端除了验证证书链，还需要用服务端的签名证书对签名进行验证。</p>
 <p>客户端认证的流程还是类似，只不过发送的也是双证书，然后在签名时也是用的签名私钥。服务端除了验证证书链，还需要用客户端的签名证书对签名进行验证。</p>
 <h3 id="GM-ECDHE密钥交换时的认证"><a href="#GM-ECDHE密钥交换时的认证" class="headerlink" title="GM ECDHE密钥交换时的认证"></a>GM ECDHE密钥交换时的认证</h3><p>典型算法套件还是ECDHE-SM4-SM3。</p>
-<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/SSL%E5%8D%8F%E8%AE%AE%E6%B5%81%E7%A8%8B%E5%9B%BE%E6%96%B0-%E5%9B%BD%E5%AF%86ECDHE%E8%AE%A4%E8%AF%81.png" alt="SSL协议流程图新-国密ECDHE认证" loading="lazy"></p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/59c71edb/SSL%E5%8D%8F%E8%AE%AE%E6%B5%81%E7%A8%8B%E5%9B%BE%E6%96%B0-%E5%9B%BD%E5%AF%86ECDHE%E8%AE%A4%E8%AF%81.png" alt="SSL协议流程图新-国密ECDHE认证" loading="lazy"></p>
 <p>跟前一种情况相比，主要是服务端的签名内容有一点区别，是两个hello随机数+服务端的临时DH参数。我们注意到前面几种情况，服务端签名的内容都是参与计算预主密钥的材料。从这个逻辑上来说，这边在协议设计上也有些问题，因为服务端的加密证书实际上也参与了密钥交换，按照协议设计一致性也应该包含到签名内容中。</p>
 <p>其他部分跟前一种情况完全一样，不再进行赘述。</p>
 <h2 id="如何协商协议算法"><a href="#如何协商协议算法" class="headerlink" title="如何协商协议算法"></a>如何协商协议算法</h2><p>前面讨论了几种不同的情况，可以看到不同的协议版本、不同的算法套件，它们在握手的处理流程上是不一样的，那么双方如何对此达成一致呢？</p>
 <p>于是就需要引入一次Hello交互了。这也是为什么完整的SSL握手需要两次交互的主要原因。通过这次Hello交互对使用的协议版本和算法套件达成一致。另外得益于SSL协议引入的扩展机制，不仅仅是协议版本算法套件，双方还可以协商除此之外的很多东西，甚至是用户自定义的扩展项。</p>
-<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/SSL%E5%8D%8F%E8%AE%AE%E6%B5%81%E7%A8%8B%E5%9B%BE%E6%96%B0-%E5%8D%8F%E5%95%86%E5%8D%8F%E8%AE%AE%E7%AE%97%E6%B3%95.png" alt="SSL协议流程图新-协商协议算法" loading="lazy"></p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/59c71edb/SSL%E5%8D%8F%E8%AE%AE%E6%B5%81%E7%A8%8B%E5%9B%BE%E6%96%B0-%E5%8D%8F%E5%95%86%E5%8D%8F%E8%AE%AE%E7%AE%97%E6%B3%95.png" alt="SSL协议流程图新-协商协议算法" loading="lazy"></p>
 <p>不过最基本的还是协议版本、算法套件之类的。客户端发送它支持的版本、算法套件列表、如果是椭圆曲线还会指定支持的曲线列表、签名算法等，服务端基于客户端的信息，选择最终使用的协议版本、算法套件、EC点格式等。</p>
 <h2 id="如何提升性能"><a href="#如何提升性能" class="headerlink" title="如何提升性能"></a>如何提升性能</h2><p>完整的SSL握手需要两个RTT，而且还需要耗时的非对称运算。协议在设计上也考虑了如何提升性能的问题。在握手流程优化方面，主要就是通过会话重用来简化握手流程。（对于TLSv1.3则有PSK、1-RTT和0-RTT，不过本文将不涉及TLS1.3，）这里主要介绍下会话重用的情况。</p>
-<h3 id="会话重用基本流程"><a href="#会话重用基本流程" class="headerlink" title="会话重用基本流程"></a>会话重用基本流程</h3><p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/SSL%E5%8D%8F%E8%AE%AE%E6%B5%81%E7%A8%8B%E5%9B%BE%E6%96%B0-%E4%BC%9A%E8%AF%9D%E9%87%8D%E7%94%A8%E5%9F%BA%E6%9C%AC.png" alt="SSL协议流程图新-会话重用基本" loading="lazy"></p>
+<h3 id="会话重用基本流程"><a href="#会话重用基本流程" class="headerlink" title="会话重用基本流程"></a>会话重用基本流程</h3><p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/59c71edb/SSL%E5%8D%8F%E8%AE%AE%E6%B5%81%E7%A8%8B%E5%9B%BE%E6%96%B0-%E4%BC%9A%E8%AF%9D%E9%87%8D%E7%94%A8%E5%9F%BA%E6%9C%AC.png" alt="SSL协议流程图新-会话重用基本" loading="lazy"></p>
 <p>会话重用的基本流程如上所示。首先是一个完整的握手，然后客户端如果想重用前面的会话，在ClientHello进行相应的指示告诉服务端，服务端如果同意在ServerHello中进行答复，然后就直接进行简化的握手，不需要再进行密钥交换和身份认证。不但省了一次交互，也省去了费时的非对称运算。</p>
 <h3 id="Session-ID"><a href="#Session-ID" class="headerlink" title="Session ID"></a>Session ID</h3><p>会话重用有两种方式，首先来看下Session ID的流程：</p>
-<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/SSL%E5%8D%8F%E8%AE%AE%E6%B5%81%E7%A8%8B%E5%9B%BE%E6%96%B0-%E4%BC%9A%E8%AF%9D%E9%87%8D%E7%94%A8SessionID.png" alt="SSL协议流程图新-会话重用SessionID" loading="lazy"></p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/59c71edb/SSL%E5%8D%8F%E8%AE%AE%E6%B5%81%E7%A8%8B%E5%9B%BE%E6%96%B0-%E4%BC%9A%E8%AF%9D%E9%87%8D%E7%94%A8SessionID.png" alt="SSL协议流程图新-会话重用SessionID" loading="lazy"></p>
 <p>前一次握手中，服务端在ServerHello消息中将Session ID告诉客户端，握手正常完成之后，服务端会将对应的Session保存，其中就包含了主密钥。</p>
 <p>后续客户端想要重用之前那个Session，可以在ClientHello中带上之前的Session ID，服务端收到之后会根据Session ID进行查找，如果找到了且未过期，那么进行会话重用，服务端将Session ID再原样发送给客户端，进入简化的握手流程；否则，服务端还是随机生成新的Session ID发送给客户端，回退到完整的握手流程。</p>
 <p>会话重用时，使用之前Session的主密钥来推导会话密钥。这里就可以看出其生命周期的不同了，会话重用时主密钥是用的同一个，但是会话密钥每次都是重新生成的。而且注意到，这时也是有两个随机数参与密钥派生的，同样也是出于防重放的考虑。</p>
 <h3 id="Session-Ticket"><a href="#Session-Ticket" class="headerlink" title="Session Ticket"></a>Session Ticket</h3><p>前一种情况服务端需要保存 session cache，会消耗内存资源，如果是集群的话还会带来cache同步的问题。而session ticket的出现正是为了解决这些问题。</p>
-<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/SSL%E5%8D%8F%E8%AE%AE%E6%B5%81%E7%A8%8B%E5%9B%BE%E6%96%B0-%E4%BC%9A%E8%AF%9D%E9%87%8D%E7%94%A8SessionTicket.png" alt="SSL协议流程图新-会话重用SessionTicket" loading="lazy"></p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/59c71edb/SSL%E5%8D%8F%E8%AE%AE%E6%B5%81%E7%A8%8B%E5%9B%BE%E6%96%B0-%E4%BC%9A%E8%AF%9D%E9%87%8D%E7%94%A8SessionTicket.png" alt="SSL协议流程图新-会话重用SessionTicket" loading="lazy"></p>
 <p>我们来看下它的流程，首先客户端在ClientHello的扩展中带上session_ticket扩展表示它想使用session_ticket功能，服务端如果同意则在ServerHello中回复session_ticket扩展项。服务端不用保存session，而是加密之后通过NewSessionTicket消息发送给客户端。这里session ticket key实际上是个对称密钥，它只有服务端自己知道。</p>
 <p>后续客户端想要重用该Session，在ClientHello扩展中把之前那个session_ticket塞进去，服务端成功解密且验证通过之后就进行会话重用，否则回退到完整的握手。然后还是同样地根据主密钥重新派生出会话密钥。</p>
 <p>这样服务端没有了保存session的负担，但是天下没有免费的午餐，session ticket对前向安全性会带来一定的损害。因为session ticket只是单纯使用session ticket key进行加密的，如果session ticket key泄漏了，那么之前基于会话重用的握手就都可以被破解了。</p>
 <p>所以在实际使用时，session ticket key应该经常更换，减小前向安全性方面的风险。</p>
 <h2 id="如何保证安全性"><a href="#如何保证安全性" class="headerlink" title="如何保证安全性"></a>如何保证安全性</h2><p>简单回顾来握手中是如何保证安全性的。</p>
-<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/SSL%E6%8F%A1%E6%89%8B%E9%80%BB%E8%BE%91%E5%9B%BE-%E4%BF%9D%E8%AF%81%E5%AE%89%E5%85%A8%E6%80%A7.png" alt="SSL握手逻辑图-保证安全性" loading="lazy"></p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/59c71edb/SSL%E6%8F%A1%E6%89%8B%E9%80%BB%E8%BE%91%E5%9B%BE-%E4%BF%9D%E8%AF%81%E5%AE%89%E5%85%A8%E6%80%A7.png" alt="SSL握手逻辑图-保证安全性" loading="lazy"></p>
 <p>首先通过两个hello随机数来实现防重放。防止中间人攻击是通过对服务端的认证了完成的。防篡改是通过最后的Finished来完成的，Finished消息中包含了一个verify_data，它也是由PRF计算得到的，其中的seed是前面所有握手消息（ClientHello开始，到当前Finished消息前）的摘要值。</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">verify_data: </span><br><span class="line">PRF(master_secret, finished_label, </span><br><span class="line">    Hash(handshake_messages))</span><br><span class="line">            [0..verify_data_length-1];</span><br></pre></td></tr></table></figure>
 
