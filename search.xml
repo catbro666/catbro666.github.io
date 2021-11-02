@@ -2185,7 +2185,7 @@
 <p>我们都知道SSL协议最主要的作用就是用来协商通信双方的安全参数，然后基于协商的安全参数进行安全通信。所以首当其冲地，第一个要解决的问题就是如何进行密钥交换。考虑到对称密码和非对称密码的性能差异显著，在实际使用中往往使用对称密码对数据进行加密，而使用非对称密码来完成重要的密钥交换和身份认证。</p>
 <h3 id="基本握手流程"><a href="#基本握手流程" class="headerlink" title="基本握手流程"></a>基本握手流程</h3><p>下图是一个我们通常看到的SSL握手流程图，SSL协议分为两个阶段：握手阶段和应用阶段。握手阶段主要负责协商安全参数，应用阶段则基于前面协商的安全参数进行数据通信。</p>
 <p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/59c71edb/SSL%E5%8D%8F%E8%AE%AE%E6%B5%81%E7%A8%8B%E5%9B%BE%E6%96%B0-%E5%9F%BA%E6%9C%AC.png" alt="SSL协议流程图新-基本" loading="lazy"></p>
-<p>这里先不对每个消息进行详细的介绍，后面的内容中会陆续涉及到。其中带*号的表示可选消息或者根据前面消息的情况而定。ChangeCipherSpec作为单独的一类消息只是表明握手协议已经完成，后续使用协商的加密参数进行通信。Finished消息就是一个加密的消息，用于验证握手已经顺利完成。这里稍微提一下ServerHelloDone这个消息，这个消息并没有什么实际的内容，它存在的主要原因就是因为前面的消息CertificateRequest是可选的，所以需要明确地告诉客户端服务端这边的消息发完了，否则客户端无从知道是否该等待CertificateRequest消息。</p>
+<p>这里先不对每个消息进行详细的介绍，后面的内容中会陆续涉及到。其中带*号的表示可选消息或者根据前面消息的情况而定。ChangeCipherSpec作为单独的一类消息只是表明握手协议已经完成，后续使用协商的加密参数进行通信。Finished消息就是第一个加密的消息，用于验证握手已经顺利完成。这里稍微提一下ServerHelloDone这个消息，这个消息并没有什么实际的内容，它存在的主要原因就是因为前面的消息CertificateRequest是可选的，所以需要明确地告诉客户端服务端这边的消息发完了，否则客户端无从知道是否该等待CertificateRequest消息。</p>
 <h2 id="如何进行密钥交换"><a href="#如何进行密钥交换" class="headerlink" title="如何进行密钥交换"></a>如何进行密钥交换</h2><p>密钥交换的方法可以分成两大类：一类是基于加密、一类是基于DH。前者有RSA算法、GM的ECC算法；后者则有ECDHE、GM的ECDHE。</p>
 <p>虽然前面一篇已经讲过了，这里还是稍微带一下这两者的基本原理，以方便在后面实际的握手流程中进行对照。</p>
 <h3 id="密钥交换原理"><a href="#密钥交换原理" class="headerlink" title="密钥交换原理"></a>密钥交换原理</h3><p>公钥加密的基本原理如下：</p>
@@ -2200,7 +2200,7 @@
 <p>通过密钥交换之后，双方都得到了预主密钥，再加上前面交换的两个随机数，这3个材料一起进行密钥派生得到主密钥。主密钥再结合两个随机数派生出最终的会话密钥。</p>
 <p>这里先抛出几个问题供大家思考。为什么不直接用预主密钥，而是要跟两个随机数派生出主密钥？为什么不直接用主密钥，而是再跟两个随机数派生出会话密钥？我暂时不做解答，留到后面分解。</p>
 <h3 id="TLS-ECDHE密钥交换"><a href="#TLS-ECDHE密钥交换" class="headerlink" title="TLS ECDHE密钥交换"></a>TLS ECDHE密钥交换</h3><p>这个情况的典型算法套件如ECDHE-RSA-AES256-GCM-SHA384、ECDHE-ECDSA-AES256-GCM-SHA384。这里的EC表示椭圆曲线，DH表示基于DH算法，最后一个E则表示使用临时密钥进行密钥交换，而不是证书相关的非临时密钥。</p>
-<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/59c71edb/SSL%E5%8D%8F%E8%AE%AE%E6%B5%81%E7%A8%8B%E5%9B%BE-ECDHE%E5%AF%86%E9%92%A5%E4%BA%A4%E6%8D%A2.png" alt="SSL协议流程图-ECDHE密钥交换" loading="lazy"></p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/59c71edb/SSL%E5%8D%8F%E8%AE%AE%E6%B5%81%E7%A8%8B%E5%9B%BE%E6%96%B0-ECDHE%E5%AF%86%E9%92%A5%E4%BA%A4%E6%8D%A2.png" alt="SSL协议流程图新-ECDHE密钥交换" loading="lazy"></p>
 <p>我们来比较下跟前一种情况的区别，首先ClientHello和ServerHello消息是一样的，都带了一个随机数。区别在于服务端是通过ServerKeyExchange消息发送了一个临时DH参数给对方（也就是前面将DH原理时的公有颜色），类似地客户端也通过ClientKeyExchange消息把它的临时DH参数发送给服务端。这样双方就交换了彼此的临时DH公钥，然后他们各自利用自己的临时私钥和对方的临时公钥计算出预主密钥。与前一种情况的最大区别就在于此，前者是客户端加密预主密钥发送给服务端，后者是双方交换临时DH公钥，然后各自计算出预主密钥。</p>
 <p>得到预主密钥后，后续的流程就一样了。结合两个随机数派生出主密钥，然后再派生出会话密钥。</p>
 <h3 id="GM-ECC密钥交换"><a href="#GM-ECC密钥交换" class="headerlink" title="GM ECC密钥交换"></a>GM ECC密钥交换</h3><p>接下来我们看GM ECC密钥交换的情况，这种情况的典型算法套件为ECC-SM4-SM3。GMVPN协议一个最大的区别就是它引入了双证书体系，每一方都有两个证书（对应地就有两个私钥），一个加密证书负责进行密钥交换，一个签名证书负责进行身份认证。</p>
@@ -2229,7 +2229,7 @@
 <p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/59c71edb/SSL%E6%8F%A1%E6%89%8B%E9%80%BB%E8%BE%91%E5%9B%BE-%E8%BA%AB%E4%BB%BD%E8%AE%A4%E8%AF%81.png" alt="SSL握手逻辑图-身份认证" loading="lazy"></p>
 <p>第一个问题，使用单纯的数字签名就可以解决。通过验证对方的数字签名，可以确认对方拥有相应的私钥。</p>
 <p>而第二个问题，则需要引入数字证书和PKI了。数字证书，说白了就是将一个公钥跟身份信息进行绑定，然后由第三方可信机构（CA）给你做个证明（通过CA签名）。那么CA本身的身份又由谁来证明呢，再通过更上级的CA进行证明。最终的根CA只能通过其他手段进行认证，否则就无限循环了。</p>
-<h3 id="数字签名原理"><a href="#数字签名原理" class="headerlink" title="数字签名原理"></a>数字签名原理</h3><p><a href="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/Private_key_signing.svg">Private_key_signing</a></p>
+<h3 id="数字签名原理"><a href="#数字签名原理" class="headerlink" title="数字签名原理"></a>数字签名原理</h3><p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/Private_key_signing.svg" alt="Private_key_signing" loading="lazy"></p>
 <p>数字签名的基本原理也很简单，与前面的公钥加密相对，这里是使用私钥对数据进行签名，对方则用公钥对签名数据进行验签。</p>
 <h3 id="TLS-RSA密钥交换时的RSA认证"><a href="#TLS-RSA密钥交换时的RSA认证" class="headerlink" title="TLS RSA密钥交换时的RSA认证"></a>TLS RSA密钥交换时的RSA认证</h3><p>典型算法套件仍然是AES256-SHA。</p>
 <p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/59c71edb/SSL%E5%8D%8F%E8%AE%AE%E6%B5%81%E7%A8%8B%E5%9B%BE%E6%96%B0-RSA%E5%AF%86%E9%92%A5%E4%BA%A4%E6%8D%A2RSA%E8%AE%A4%E8%AF%81.png" alt="SSL协议流程图新-RSA密钥交换RSA认证" loading="lazy"></p>
