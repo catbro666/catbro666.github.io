@@ -1,0 +1,1265 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.4.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/images/hiking-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/images/hiking-16.png">
+  <link rel="mask-icon" href="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/images/logo.svg" color="#222">
+  <meta name="google-site-verification" content="JT1HKSsLR6ZiapLatX1c6-7k-OcEM8cAMdR5pgCSptk">
+  <meta name="yandex-verification" content="5ab41d9d91227789">
+  <meta name="baidu-site-verification" content="code-9Qi2zUhBf4">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="https://fonts.loli.net/css?family=Noto Serif SC:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="//cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"catbro666.github.io","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","width":240,"display":"post","padding":18,"offset":42,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":"mac"},"back2top":{"enable":true,"sidebar":true,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="Nginx是目前使用最广泛的Web服务器之一，以高性能而著称，得益于其异步事件驱动架构，在高并发下仍然可以保持低消耗高性能，而模块化的设计也使其更易扩展，丰富了其功能。对于Nginx基本的介绍网上已有很多的文章，也有像《深入理解Nginx》这样的书籍讲解Nginx的架构设计与开发方法。本文不会涉及Nginx开发相关内容，而是以一个实际问题的定位过程作为引子，聊一下Ngin">
+<meta property="og:type" content="article">
+<meta property="og:title" content="是谁断了我的连接？—从压测碰到的一个奇怪问题聊聊Nginx的连接管理和性能调测">
+<meta property="og:url" content="https://catbro666.github.io/posts/4198933e/index.html">
+<meta property="og:site_name" content="CatBro&#39;s Blog">
+<meta property="og:description" content="Nginx是目前使用最广泛的Web服务器之一，以高性能而著称，得益于其异步事件驱动架构，在高并发下仍然可以保持低消耗高性能，而模块化的设计也使其更易扩展，丰富了其功能。对于Nginx基本的介绍网上已有很多的文章，也有像《深入理解Nginx》这样的书籍讲解Nginx的架构设计与开发方法。本文不会涉及Nginx开发相关内容，而是以一个实际问题的定位过程作为引子，聊一下Ngin">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/packages-captured-in-client-environment.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/packages-captured-when-recurring-problem-1.jpg">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/packages-captured-when-recurring-problem-2.jpg">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/nginx-connection-life-cycle.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/RSS-RPS-REUSRPORT.jpg">
+<meta property="article:published_time" content="2021-11-07T09:52:11.000Z">
+<meta property="article:modified_time" content="2021-11-07T10:20:22.560Z">
+<meta property="article:author" content="猫猫哥">
+<meta property="article:tag" content="Nginx">
+<meta property="article:tag" content="性能调优">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/packages-captured-in-client-environment.png">
+
+<link rel="canonical" href="https://catbro666.github.io/posts/4198933e/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <meta name="360-site-verification" content="e7586a6caf7e44316b4a27dfaf53e858"/>
+
+
+
+  <title>是谁断了我的连接？—从压测碰到的一个奇怪问题聊聊Nginx的连接管理和性能调测 | CatBro's Blog</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-6PKG8T836C"></script>
+    <script>
+      if (CONFIG.hostname === location.hostname) {
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-6PKG8T836C');
+      }
+    </script>
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?43ceb843b17e732b0a5dd658f624cac5";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+<link rel="alternate" href="/atom.xml" title="CatBro's Blog" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">CatBro's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">Volar con el viento</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+        <li class="menu-item menu-item-hot">
+
+    <a href="/hot/" rel="section"><i class="fa fa-thermometer-half fa-fw"></i>热度排行</a>
+
+  </li>
+        <li class="menu-item menu-item-commonweal">
+
+    <a href="/404.html" rel="section"><i class="fa fa-heartbeat fa-fw"></i>公益 404</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="reading-progress-bar"></div>
+
+  <a href="https://github.com/catbro666" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener external nofollow noreferrer" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://catbro666.github.io/posts/4198933e/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/images/avatar.gif">
+      <meta itemprop="name" content="猫猫哥">
+      <meta itemprop="description" content="如果说根号二是无理数，那么我就是个无理人">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="CatBro's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          是谁断了我的连接？—从压测碰到的一个奇怪问题聊聊Nginx的连接管理和性能调测
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2021-11-07 17:52:11 / 修改时间：18:20:22" itemprop="dateCreated datePublished" datetime="2021-11-07T17:52:11+08:00">2021-11-07</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E6%8A%80%E6%9C%AF%E5%90%91/" itemprop="url" rel="index"><span itemprop="name">技术向</span></a>
+                </span>
+            </span>
+
+          
+            <span id="/posts/4198933e/" class="post-meta-item leancloud_visitors" data-flag-title="是谁断了我的连接？—从压测碰到的一个奇怪问题聊聊Nginx的连接管理和性能调测" title="阅读次数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span class="leancloud-visitors-count"></span>
+            </span>
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="far fa-comment"></i>
+      </span>
+      <span class="post-meta-item-text">评论数：</span>
+    
+    <a title="valine" href="/posts/4198933e/#valine-comments" itemprop="discussionUrl">
+      <span class="post-comments-count valine-comment-count" data-xid="/posts/4198933e/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  <br>
+  <span class="post-meta-item" title="繁/简：">
+    <span class="post-meta-item-icon">
+      <i class="fas fa-yin-yang"></i>
+    </span>
+      <span class="post-meta-item-text">繁/简：</span>
+    <a id="translateLink" href="javascript:translatePage();" rel="external nofollow noreferrer">繁體</a>
+  </span>
+
+<script type="text/javascript" src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/js/tw_cn.js"></script>
+<script type="text/javascript">
+var defaultEncoding = 2; //网站编写字体是否繁体，1-繁体，2-简体
+var translateDelay = 0; //延迟时间,若不在前, 要设定延迟翻译时间, 如100表示100ms,默认为0
+var cookieDomain = "https://catbro666.github.io/"; //Cookie地址, 一定要设定, 通常为你的网址
+var msgToTraditionalChinese = "繁體"; //此处可以更改为你想要显示的文字
+var msgToSimplifiedChinese = "简体"; //同上，但两处均不建议更改
+var translateButtonId = "translateLink"; //默认互换id
+translateInitilization();
+</script>
+<br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>16k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>15 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <div class="note primary">
+            <p>Nginx是目前使用最广泛的Web服务器之一，以高性能而著称，得益于其异步事件驱动架构，在高并发下仍然可以保持低消耗高性能，而模块化的设计也使其更易扩展，丰富了其功能。对于Nginx基本的介绍网上已有很多的文章，也有像《深入理解Nginx》这样的书籍讲解Nginx的架构设计与开发方法。本文不会涉及Nginx开发相关内容，而是以一个实际问题的定位过程作为引子，聊一下Nginx的连接管理和性能调测。如果你并不关心这个实际问题，可以直接跳到<a href="#%E8%BF%9E%E6%8E%A5%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F">连接生命周期</a>。</p>
+          </div>
+
+<span id="more"></span>
+
+<h2 id="问题描述"><a href="#问题描述" class="headerlink" title="问题描述"></a>问题描述</h2><p>问题是这样的，我们的Nginx服务是作为HTTP反向代理，前端是HTTPS，后端是HTTP。在一次压测过程中碰到了连接异常断开的问题，但是Nginx这边没有发现任何的错误日志（已经开了Info级别也没有）。因为是在客户那边进行的测试，而且是同事在对接的项目，我并不了解第一手的情况，包括测试方法、Nginx的配置等，唯一给到我这边的就是一个抓包，只有这个是确凿的信息，其余的就是一些零星的口头转述。同事多次尝试在公司复现这个问题但没有成功。</p>
+<p>抓包的情况是这样的：</p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/packages-captured-in-client-environment.png" alt="packages-captured-in-client-environment.png" loading="lazy"></p>
+<p>抓包文件很大，在一段很短的时间内出现很多连续的这种错误。上面的截图中是跟前端的交互，因为是压测的关系，短时间有大量的包，所以从抓包中无法确定对应的后端连接，不清楚后端连接是否已经建立，是否是后端出错了。</p>
+<h2 id="问题定位"><a href="#问题定位" class="headerlink" title="问题定位"></a>问题定位</h2><p>我们首先分析下上图中抓包的情况，前面是一个GMVPN的握手，因为压测的关系，服务端回复ServerHello消息以及后面的ChangeCipherSpec消息都隔了一两秒的时间。握完手之后客户端发了两个应用数据包（对应HTTP请求头和请求体）。大概两秒之后，服务端发送了一个alert消息，然后紧接着发送了一个reset。</p>
+<p>同事还观察到，抓包中从收到应用数据到连接断开的时间都是2s左右，所以猜测可能跟超时有关。reset的发送原因也是一个关键的线索，另外还有前面提到的Nginx日志（Info级别）中没有任何错误。我们就根据这几个线索来进行问题的定位，首先来分析reset的情况。</p>
+<h3 id="reset原因"><a href="#reset原因" class="headerlink" title="reset原因"></a>reset原因</h3><p>有很多情况都会触发TCP的reset，其中大部分都是内核自身的行为。</p>
+<ul>
+<li><p>端口没有监听</p>
+<p>显然可以排除这种情况，我们的连接都已经开始处理了。</p>
+</li>
+<li><p>防火墙拦截</p>
+<p>服务器并没有配置类似的防火墙策略，这种情况也排除。</p>
+</li>
+<li><p>向已经关闭的socket发送消息</p>
+<p>socket可能是进程主动关闭，也可能是被动关闭，也就是进程崩了的情况。显然从抓包可以看出我们的进程并没有崩，况且进程崩了也会有内核日志。那如果是进程主动关闭socket的情况呢，我们从抓包中可以看到服务端是在发送了一个Encrypted Alert消息之后紧接着就发送了reset，其间并没有收到客户端的消息，所以也可以排除这种情况。</p>
+</li>
+<li><p>接收缓冲区还有数据未接收时关闭该socket</p>
+<p>因为我们并不清楚后端连接的情况，所以抓包中的两个应用数据包是否已经被应用层接收是无法确定的。因此，这种情况是有可能的。</p>
+</li>
+<li><p>SO_LINGER</p>
+<p>前面几种都是内核自发的行为，不需要用户参与。SO_LINGER是一个TCP选项，可以修改close()系统调用的行为。</p>
+<ul>
+<li>默认不开的情况下，close调用会立即返回，发送队列一直保持到发送完成，连接通过正常的四次挥手进行关闭。</li>
+<li>打开且时间设为0的情况下，直接丢弃发送缓冲区的数据，并发送RST给对方（不走4次挥手流程）。</li>
+<li>打开且时间不为0的情况下，进程将阻塞直到1）所有数据发送完毕且收到对方确认，2）超时时间到。对于前者会正常关闭；对于后者，close将返回EWOULDBLOCK，然后跟第二种情况相同处理，即且丢弃发送缓冲区数据然后发送RST。这种情况socket必须是阻塞的，否则close会立即返回。</li>
+</ul>
+<p>了解了SO_LINGER的情况，一看Nginx代码，确实是用到了这个选项，不过只有当连接超时并且打开了reset_timeout_connection配置项时才会去设置。而这个选项默认是关闭的，且我们也没有显式地设置过，所以这种情况也排除了。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (r-&gt;connection-&gt;timedout) &#123;</span><br><span class="line">    clcf = ngx_http_get_module_loc_conf(r, ngx_http_core_module);</span><br><span class="line">  </span><br><span class="line">    <span class="keyword">if</span> (clcf-&gt;reset_timedout_connection) &#123;</span><br><span class="line">        linger.l_onoff = <span class="number">1</span>;</span><br><span class="line">        linger.l_linger = <span class="number">0</span>;</span><br><span class="line">  </span><br><span class="line">        <span class="keyword">if</span> (setsockopt(r-&gt;connection-&gt;fd, SOL_SOCKET, SO_LINGER,</span><br><span class="line">                       (<span class="keyword">const</span> <span class="keyword">void</span> *) &amp;linger, <span class="keyword">sizeof</span>(struct linger)) == <span class="number">-1</span>)</span><br><span class="line">        &#123;</span><br><span class="line">            ngx_log_error(NGX_LOG_ALERT, <span class="built_in">log</span>, ngx_socket_errno,</span><br><span class="line">                          <span class="string">&quot;setsockopt(SO_LINGER) failed&quot;</span>);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></li>
+</ul>
+<p>至此可以得出结论，reset的原因大概率就是因为接收缓冲区还有数据的时候关闭了连接。至于连接为什么被关闭，则还需要进一步定位。</p>
+<h3 id="连接关闭原因"><a href="#连接关闭原因" class="headerlink" title="连接关闭原因"></a>连接关闭原因</h3><p>接着前面的结论我们进一步排查，SSL握手显然是完成了，因为客户端已经发送了应用数据消息，所以在接收缓冲区中数据应该就是Application Data。至于请求头是否已经被读取目前还不好判断。不过从抓包可以看出，服务端是直接关闭的连接，并没有给客户端发送响应，所以可以确认服务端还没有走到应用层处理的环节，要么是还没有接收请求头、要么是还没处理完毕，否则肯定会有应用层的响应。于是问题的范围就缩小到了SSL握手完成之后、请求头处理完毕之前。</p>
+<p>是不是之前提到的超时原因呢？不过同事又指出超时时间已经设置了很大（分钟级别），那会不会遗漏了某些超时呢。但是好像没有两秒这么短的超时时间，Nginx默认的超时基本都是60s级别的。于是开始寻找可能存在的超时，发现SSL阶段并没有单独的超时，在请求头读完之前就只有一个超时时间就是client_header_timeout，但是显然这个超时不是2s。我们合理假设是现场配置错了，但我在确认代码后发现如果是超时也是会有INFO级别，接收到请求前和接收到请求后都是如此。</p>
+<p>所以超时这条路走不通了，大概率不是由于超时导致的连接关闭。没有办法只能继续看源码分析，看看从SSL握手完成到HTTP请求头处理完成之前，Nginx到底干了些什么。在详细看了这部分代码之后，一个在不同handler中多次出现的函数<code>ngx_reusable_connection</code>引起了我的注意。这个函数用于修改连接的reusable标记，并且ngx_cycle维护了一个resuable连接的队列，那么这个队列是干啥的呢？进一步探究发现，<code>ngx_get_connection</code>在获取新连接的时候，如果空闲的连接不足，会尝试重用部分reusable的连接（一次最多32个）。而nginx连接在完成SSL握手之后、接收到HTTP请求之前就是出于reusable状态的。我们再次打开抓包文件一数，发现连续关闭的连接正好是31/32个左右，于是我们已经有八九成的把握就是因为这个原因导致的连接断开，而且正好这种情况下我们使用版本的Nginx是没有日志的（高版本加了有WARN级别日志）。</p>
+<h2 id="复现问题"><a href="#复现问题" class="headerlink" title="复现问题"></a>复现问题</h2><p>为了进一步证明就是这个原因导致的连接断开，我尝试构造场景复现问题，这个问题的关键在于worker进程的总连接数不足，但是只建立前端连接又是够的，有很多连接停留在SSL握手完成又没有开始处理HTTP请求头的阶段。当其他连接的请求尝试建立后端连接时，就会把这些reusable连接踢掉。所以worker最大连接数需要大于前端连接数、小于前端连接数的两倍。</p>
+<p>因为我是用自己虚拟机简单测试，客户端用wrk设置了100个连接，nginx只配了1个worker，最大连接数是120（具体数值可能有点出入，因为已经过去有段时间了记得不太清楚了）。一测试成功复现了这个问题，抓包截图如下：</p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/packages-captured-when-recurring-problem-1.jpg" alt="packages-captured-when-recurring-problem-1" loading="lazy"></p>
+<p>这是跟踪的其中一个流，可以看到也是在SSL握手完成之后，收到了客户端发送的应用数据，然后发送了Alert以及RST。稍微提一下，这里后面还多了一个RST，这是因为连接关闭之后收到了客户端的一个ACK。</p>
+<p>再看下一个截图，可以观察到，在这两个reusable连接被踢掉之后，立马就往后端新建了两个连接。</p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/packages-captured-when-recurring-problem-2.jpg" alt="packages-captured-when-recurring-problem-2" loading="lazy"></p>
+<p>至此，问题的原因基本已经确认。直接原因就是因为worker连接数不足。</p>
+<h2 id="总结回顾"><a href="#总结回顾" class="headerlink" title="总结回顾"></a>总结回顾</h2><p>问题原因已经定位到，再回过头看现场的测试配置。其实按照所有worker的连接总数来算，连接是够的，而单个worker则是不够的。但是因为其他几个配置的间接作用导致了连接集中在了单个worker中。首先，因为系统版本较低不支持reuseport，只能依赖nginx自身进行进程间的连接分配。其次又配置了multi_accept，所以只要有已经就绪的TCP连接，worker进程就一直进行accept，造成单个worker进程的接收了大部分连接。这几个因素结合在一起造成了最终的问题。归根结底，还是因为对Nginx配置理解不够深入导致的。</p>
+<h2 id="连接生命周期"><a href="#连接生命周期" class="headerlink" title="连接生命周期"></a>连接生命周期</h2><p>Nginx中连接的生命周期可以分成连接建立时和连接关闭时两部分。</p>
+<h3 id="连接建立"><a href="#连接建立" class="headerlink" title="连接建立"></a>连接建立</h3><p>下面是连接建立时一个大致的调用关系图，实际情况要比着复杂的多。任何一处都可能超时或出错提前终止连接，碰到NGX_EAGAIN则可能多次调用同一个handler。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line">ngx_event_accept</span><br><span class="line">|-- accept</span><br><span class="line">|-- ngx_get_connection</span><br><span class="line">+-- ngx_http_init_connection</span><br><span class="line">    |-- ngx_reusable_connection(1)</span><br><span class="line">    +-- ngx_http_ssl_handshake</span><br><span class="line">        |-- NGX_EAGAIN: ngx_reusable_connection(1)</span><br><span class="line">        |-- ngx_ssl_create_connection</span><br><span class="line">        |-- ngx_reusable_connection(0)</span><br><span class="line">        |-- ngx_ssl_handshake</span><br><span class="line">        +-- ngx_http_ssl_handshake_handler</span><br><span class="line">            |-- ngx_reusable_connection(1)</span><br><span class="line">            +-- ngx_http_wait_request_handler</span><br><span class="line">                |-- ngx_reusable_connection(0)</span><br><span class="line">                |-- ngx_http_create_request</span><br><span class="line">                +-- ngx_http_process_request_line</span><br><span class="line">                    |-- ngx_http_read_request_header</span><br><span class="line">                    |-- ngx_http_parse_request_line</span><br><span class="line">                    +-- ngx_http_process_request_headers</span><br><span class="line">                        |-- ngx_http_read_request_header</span><br><span class="line">                        |-- ngx_http_parse_header_line</span><br><span class="line">                        |-- ngx_http_process_request_header</span><br><span class="line">                        +-- ngx_http_process_request</span><br><span class="line">                            |-- Switch stat from reading to writing</span><br><span class="line">                            +-- ngx_http_handler</span><br><span class="line">                                |-- HTTP to HTTPS? certificate verify fail?</span><br><span class="line">                                +-- ngx_http_core_run_phases</span><br></pre></td></tr></table></figure>
+
+<p>首先，nginx是从accept才开始接手连接的处理，在此之前则完全是内核的行为。不过在初始化阶段可以通过设置一些socket选项来改变其行为，大家比较熟知的有比如SO_REUSEPORT，TCP_DEFER_ACCEPT。前者允许多个socket绑定到在相同的地址端口对上，由内核在多个进程的socket间进行连接接收的负载均衡，后者则可以推迟连接就绪的时间，只有当收到客户端发来的应用数据时才可以accept。</p>
+<p>accept之后nginx会从空闲的连接中获取一个，这个动作在ngx_get_connection中完成，然后进入HTTP初始化流程。我们这里主要关注连接状态的变化情况，它是通过<strong>ngx_resuable_connection</strong>函数进行修改。最初连接是处于free状态的，进入ngx_http_ssl_handshake完成一些基本的初始化之后，连接设置定时器开始准备接收消息，此时的超时时间是post_accept_timeout，也就是配置项中的client_header_timeout，同步地连接进入reusable状态。等到接收到SSL握手消息之后，会创建SSL连接，同步地nginx连接进入unreusable状态。后续会进入握手流程，等到握手完成之后，连接又变成了reusable状态，开始等待接收HTTP请求，此时的超时时间仍然是post_accept_timeout。直到接收到HTTP请求，连接就此进入unreusable状态。一直到请求结束为止，状态都不再变化。</p>
+<h3 id="连接关闭"><a href="#连接关闭" class="headerlink" title="连接关闭"></a>连接关闭</h3><p>接下来再来看下请求结束时的情况，如果是短连接的情况会进入ngx_http_close_request流程，释放请求之后会关闭连接，连接变为free状态被放入空闲队列中。如果是长连接的情况则会进入ngx_http_set_keepalive流程，此时请求被释放，但是连接进入reusable状态，此时定时器的超时时间就是keepalive_timeout了。如果在超时时间内收到了新的请求，那么连接又变为unreusable状态，进入请求的处理流程；如果直到超时都没有收到新请求，则会调用ngx_http_close_connection关闭连接，连接变为free状态被放入空闲队列中。</p>
+<p>值得注意的是，连接变成reusable状态时，肯定是处于等待什么消息的状态，同步地会有一个定时器存在。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">ngx_http_finalize_request</span><br><span class="line">+-- ngx_http_finalize_connection</span><br><span class="line">    |-- ngx_http_set_keepalive</span><br><span class="line">    |   |-- ngx_http_free_request</span><br><span class="line">    |   |-- ngx_reusable_connection(1)</span><br><span class="line">    |   +-- ngx_http_keepalive_handler</span><br><span class="line">    |       |-- ngx_http_close_connection</span><br><span class="line">    |       |-- ngx_reusable_connection(0)</span><br><span class="line">    |       |-- ngx_http_create_request</span><br><span class="line">    |       +-- ngx_http_process_request_line</span><br><span class="line">    +-- ngx_http_close_request</span><br><span class="line">        |-- ngx_http_free_request</span><br><span class="line">        +-- ngx_http_close_connection</span><br><span class="line">            |-- ngx_ssl_shutdown</span><br><span class="line">            +-- ngx_close_connection</span><br><span class="line">                |-- ngx_reusable_connection(0)</span><br><span class="line">                |-- ngx_free_connection</span><br><span class="line">                +-- ngx_close_socket</span><br></pre></td></tr></table></figure>
+
+<p>为了更清晰地表示连接状态的转移情况，我们用一张图来描述：</p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/nginx-connection-life-cycle.png" alt="nginx-connection-life-cycle" loading="lazy"></p>
+<h2 id="连接超时"><a href="#连接超时" class="headerlink" title="连接超时"></a>连接超时</h2><p>在连接的各个阶段都会伴随着超时的存在，只要不是进程正在处理当前连接，总会有某个定时器管着当前连接。以HTTP为例，主要有以下这些超时：</p>
+<ul>
+<li>client_header_timeout (60s): 在这个时间内，这个请求头必须接收完。</li>
+<li>client_body_timeout (60s)：读请求头的超时时间，只是限制两次连续操作之间的间隔</li>
+<li>send_timeout (60s)：发送响应给客户端的超时时间，同样只是限制两次连续操作之间的间隔</li>
+<li>proxy_connect_timeout (60s)：与后端服务器建立连接的超时</li>
+<li>proxy_send_timeout (60s)：发送请求给代理服务器的超时，只是限制两次连续操作之间的间隔</li>
+<li>proxy_read_timeout (60s)：从代理服务器读响应的超时，只是限制两次连续操作之间的间隔</li>
+<li>keepalive_timeout (75s)：长连接保持打开的时间。</li>
+<li>resolver_timeout (5s): 域名解析的超时时间</li>
+</ul>
+<p>连接的超时控制，当然是为了防止“坏”的连接一直占用系统资源。但是我们注意到，并不是所有超时都是限制总体的时间，很多超时都只是限制两次连续操作之间的间隔。所以一个恶意的连接，其实还是可以做到长时间占用一个连接的。比如客户端发送请求体时，每次只发一个字节，但是赶在服务端超时之前发送第二个字节。对于这种情况，貌似没有太好的避免办法。不过我们可以通过限速等其他手段，限制恶意方占用的连接个数，一定程度缓解了这个问题。</p>
+<h2 id="性能调测"><a href="#性能调测" class="headerlink" title="性能调测"></a>性能调测</h2><p>关于Nginx的性能调优测试，至少有以下三个部分是需要关注的：Nginx配置、网卡队列及irq、内核网络栈参数。另外在测试时应时刻关注CPU、内存、IO等系统负载状况。</p>
+<h3 id="基本原则"><a href="#基本原则" class="headerlink" title="基本原则"></a>基本原则</h3><p>Linux下性能调优其实是一个单独的领域，我在这里不可能详细展开，一没这个时间二没这个能力，只会介绍下一些基本原则和测试的关键步骤。遵循这些建议，貌似增加了工作量，其实最终会提升你的效率，减少出错和绕弯的可能性，而且还方便后续复现与回看，下次再进行类似测试时也可以省去很多重复的工作。</p>
+<p>因为我注意到很多人其实是不注意这些的，不管三七二十一上来就是一顿测试，拿到一个数据就以为万事大吉了。事实上，可能测的根本不是他想的那个东西，测试值跟真实值相去甚远。当然，只要是测试肯定会引入影响，不确定性原理已经把这块拿捏得死死的了，我们能做的就让测试值尽量接近真实值，提供有参考意义的结果。</p>
+<p>废话不多说，下面是一些常用的建议：</p>
+<ul>
+<li>尽可能详细的记录<ul>
+<li>记录软硬件配置</li>
+<li>保存并整理测试结果</li>
+<li>写下命令行调用，避免每次手输</li>
+<li>记录查询和研究的文档和url等</li>
+</ul>
+</li>
+<li>自动执行重复任务<ul>
+<li>测试任务尽量自动化，既减小出错的可能，也减小了测试负担</li>
+</ul>
+</li>
+<li>尽量选用低开销的工具<ul>
+<li>使我们的测试值更接近真实值</li>
+</ul>
+</li>
+<li>使用多个工具<ul>
+<li>必要时可能需使用多个工具进行相互验证，排除工具本身的问题</li>
+</ul>
+</li>
+<li>确定基线和目标<ul>
+<li>单个值通常没有太大的意义，不知道它是好是坏，没有对比就没有伤害</li>
+</ul>
+</li>
+<li>分离问题、对比、控制变量<ul>
+<li>这是定位问题的基本思路</li>
+</ul>
+</li>
+<li>做了优化之后需要重新进行完整测试<ul>
+<li>因为不确定是否会对其他项目产生负面影响</li>
+</ul>
+</li>
+</ul>
+<h3 id="Nginx配置"><a href="#Nginx配置" class="headerlink" title="Nginx配置"></a>Nginx配置</h3><p>Nginx的配置非常多，这里列的基本都是性能测试相关的，也是我平常比较关注的。注：下面并不是一个完整的配置文件，只是为了方便观看，将这些配置放在了一起。</p>
+<figure class="highlight nginx"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br></pre></td><td class="code"><pre><span class="line"><span class="attribute">worker_processes</span> auto;</span><br><span class="line"><span class="attribute">worker_cpu_affinity</span> auto;</span><br><span class="line"><span class="attribute">worker_rlimit_nofile</span> <span class="number">1000000</span>; </span><br><span class="line"><span class="attribute">worker_priority</span> -<span class="number">10</span>;</span><br><span class="line"><span class="attribute">error_log</span> logs/error.log  <span class="literal">error</span>;</span><br><span class="line"><span class="attribute">master_process</span> <span class="literal">on</span>;</span><br><span class="line"></span><br><span class="line"><span class="section">events</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="attribute">use</span> <span class="literal">epoll</span>;</span><br><span class="line">    <span class="attribute">worker_connections</span> <span class="number">8192</span>;</span><br><span class="line">    <span class="attribute">multi_accept</span> <span class="literal">off</span>;</span><br><span class="line">    <span class="attribute">accept_mutex</span> <span class="literal">off</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="section">http</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="attribute">access_log</span> <span class="literal">off</span>;</span><br><span class="line">    <span class="section">server</span> &#123;</span><br><span class="line">        <span class="attribute">listen</span> <span class="number">443</span> ssl reuseport backlog=<span class="number">131072</span> deferred so_keepalive=<span class="literal">off</span>; </span><br><span class="line"></span><br><span class="line">        <span class="attribute">keepalive_requests</span>  <span class="number">0</span>;</span><br><span class="line">        <span class="attribute">keepalive_timeout</span>  <span class="number">0s</span>;</span><br><span class="line">        <span class="attribute">sendfile</span> <span class="literal">on</span>;</span><br><span class="line">        <span class="attribute">tcp_nopush</span> <span class="literal">on</span>;</span><br><span class="line">        <span class="attribute">tcp_nodelay</span> <span class="literal">on</span>;</span><br><span class="line"></span><br><span class="line">        <span class="attribute">lingering_close</span> <span class="literal">off</span>;</span><br><span class="line">        <span class="attribute">lingering_time</span> <span class="number">1</span>;</span><br><span class="line">        <span class="attribute">lingering_timeout</span> <span class="number">1</span>;</span><br><span class="line"></span><br><span class="line">        <span class="attribute">ssl_session_cache</span>   <span class="literal">off</span>;</span><br><span class="line">        <span class="comment">#ssl_session_cache    shared:SSL:1m;</span></span><br><span class="line">        <span class="attribute">ssl_session_timeout</span>  <span class="number">5m</span>;</span><br><span class="line">        <span class="attribute">ssl_session_tickets</span> <span class="literal">off</span>;</span><br><span class="line">        <span class="comment">#ssl_verify_client on;</span></span><br><span class="line">        <span class="attribute">ssl_verify_client</span> <span class="literal">off</span>;</span><br><span class="line">        <span class="attribute">ssl_client_certificate</span> ca;</span><br><span class="line"></span><br><span class="line">        <span class="attribute">ssl_prefer_server_ciphers</span> <span class="literal">on</span>;</span><br><span class="line">        <span class="attribute">ssl_buffer_size</span> <span class="number">65536</span>;</span><br><span class="line"></span><br><span class="line">        <span class="attribute">proxy_cache</span> cache_zone | <span class="literal">off</span>;</span><br><span class="line">        <span class="attribute">proxy_cache_path</span> /data/nginx/cache levels=<span class="number">1</span>:<span class="number">2</span> keys_zone=cache_zone:<span class="number">10m</span>;</span><br><span class="line">        <span class="comment"># client/proxy buffer相关</span></span><br><span class="line">        <span class="attribute">location</span> / &#123;</span><br><span class="line">            <span class="attribute">root</span>   html;</span><br><span class="line">            <span class="attribute">index</span>  index.html index.htm;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<div><div class="fold_hider"><div class="close hider_title">点击展开配置详解</div></div><div class="fold">
+<h4 id="main"><a href="#main" class="headerlink" title="main"></a>main</h4><ul>
+<li><p>worker_processes</p>
+<p>一般设成auto就可以，会自动根据系统CPU核心数进行设置</p>
+</li>
+<li><p>worker_cpu_affinity</p>
+<p>一般auto就可以，会自动每个进程绑定一个核</p>
+</li>
+<li><p>worker_rlimit_nofile</p>
+<p>设置进程能打开的最大文件数目，底层是设置的RLIMIT_NOFILE，不能超过hard nofile</p>
+</li>
+<li><p>worker_priority</p>
+<p>设置进程的优先级，跟nice命令干的事情差不多，值越小优先级越高。</p>
+</li>
+<li><p>error_log</p>
+<p>把日志配置也列进来注意是为了提醒大家不要忘记修改</p>
+</li>
+</ul>
+<h4 id="event"><a href="#event" class="headerlink" title="event"></a>event</h4><ul>
+<li><p>worker_connections</p>
+<p>进程连接数一定要足够，但是也不要无脑设成超大的一个值，因为这些连接的内存在启动时就会分配，可能会导致内存不足。另外提一下，这是整个worker的连接数，包括了下游和上游。</p>
+</li>
+<li><p>multi_accept</p>
+<p>默认关闭时，进程一次只accept一个连接；打开的时候进程会一次性accept所有已经就绪的连接。这个配置需要根据具体测试场景选择，一般保持默认关闭。</p>
+</li>
+<li><p>accept_mutex</p>
+<p>打开时每个worker轮流接收新连接，关闭时则所有worker都会收到新连接通知（即所谓的惊群效应）。如果新连接数很少，会浪费系统资源。注意当使用reuseport的时候就没有这个配置什么事了，因为内核已经做了负载均衡了。这个配置是否打开，需要根据实际的负载情况实测确定。</p>
+</li>
+</ul>
+<h4 id="http"><a href="#http" class="headerlink" title="http"></a>http</h4><ul>
+<li><p>access_log</p>
+<p>性能测试时日志一般选择关闭</p>
+</li>
+<li><p>listen</p>
+<p>listen有很多附加参数，可以配置一些socket选项</p>
+<ul>
+<li><p>reuseport</p>
+<p>对应<code>SO_REUSEPORT</code>选项，多个worker进程创建独立的监听套接字，允许内核在worker进程间对连接的连接进行负载均衡。</p>
+</li>
+<li><p>deferred</p>
+<p>对应<code>TCP_DEFER_ACCEPT</code>选项，可以推迟连接就绪的时间，只有当收到客户端发来的应用数据时才可以accept，可以稍微减小服务端的开销。</p>
+</li>
+<li><p>backlog</p>
+<p>设置listen全连接队列大小，不能超过系统<code>net.core.somaxconn</code>的限制。这个需要足够大，否则会影响新建连接的速度。</p>
+</li>
+</ul>
+</li>
+<li><p>keepalive_requests/keepalive_time</p>
+<p> 这两个分别设置http长连接的最大请求数和超时时间，根据实际测试指标选择是否启动</p>
+</li>
+<li><p>sendfile</p>
+<p>是否使用sendfile()系统调用，可以直接在内核完成文件的发送，不需要再到用户态转一手</p>
+</li>
+<li><p>tcp_nopush</p>
+<p>只有使用sendfile时才打开这个，对应Linux上的<code>TCP_CORK</code>选项，响应头和文件开头在一个包中发送，文件以满包发送，提升网络效率。</p>
+</li>
+<li><p>tcp_nodelay</p>
+<p>对应<code>TCP_NODELAY</code>选项，该选项是针对Nagle算法（在发出去的数据还未被确认前，把新的小数据先保存起来，等到凑满一个MSS或者收到了对方的确认后再发送）。</p>
+</li>
+<li><p>linger_close/linger_time/linger_timeout</p>
+<p>这几个控制在关闭服务端连接前是否等待和处理额外数据，以及等待的时间。</p>
+</li>
+<li><p>ssl_session_cache/ssl_session_timeout/ssl_session_tickets</p>
+<p>这几个参数控制是否启用SSL会话重用以及超时时间，根据测试指标确定</p>
+</li>
+<li><p>ssl_verify_client/ssl_client_certificate</p>
+<p>是否进行SSL双向认证，根据测试需求而定</p>
+</li>
+<li><p>ssl_buffer_size</p>
+<p>发送数据时的SSL buffer大小，我们知道数据块长度越大，对称加密速度越快，所以这个默认值较大。但是如果你很关心第一个字节到达时间的话，最好将这个配置改小一点。</p>
+</li>
+<li><p>proxy_cache/proxy_cache_path</p>
+<p>静态文件使用cache可以提高性能</p>
+</li>
+<li><p>client和proxy buffer相关配置</p>
+<p>根据应用数据情况以及实际网络情况，client和proxy buffer相关的配置也可能影响性能。</p>
+</li>
+</ul>
+
+</div></div>
+
+
+
+<h3 id="网卡队列及irq"><a href="#网卡队列及irq" class="headerlink" title="网卡队列及irq"></a>网卡队列及irq</h3><p>在实际测试中，你可能会发现某些个CPU上的si特别高，成为了性能瓶颈。这时候就需要将软中断的处理分配到不同CPU核上。</p>
+<h4 id="中断号绑定"><a href="#中断号绑定" class="headerlink" title="中断号绑定"></a>中断号绑定</h4><p>irqbalance服务可以帮你自动绑定中断号，不过它是动态变化的，如果你对irqbalance的效果不满意，或者想静态绑定，也可以自己手动进行绑定。操作步骤如下：</p>
+<ul>
+<li><p><code>cat /proc/interrupts</code>查看对应网卡的中断号</p>
+<p>下面的218到249就是eth11这个网卡对应的中断号，该网卡拥有32个队列。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">218:   17094773          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0         14         22          0          0          0          0      12697          0          0          0          0          0          0          0          0          0  IR-PCI-MSI-edge      eth11-TxRx-0</span><br><span class="line"> 219:       3119   13271410          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0  IR-PCI-MSI-edge      eth11-TxRx-1</span><br><span class="line"> 220:       2385          0   13265837          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0  IR-PCI-MSI-edge      eth11-TxRx-2</span><br><span class="line"> 221:         23          0          0   13290114          0          0          0          0          0          0          0          0       2064          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0  IR-PCI-MSI-edge      eth11-TxRx-3</span><br><span class="line">...</span><br><span class="line">...</span><br><span class="line"> 245:          0         23          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          5       2000    6603326          0          0          0          0          0          0          0     149556          0          0          0          0  IR-PCI-MSI-edge      eth11-TxRx-27</span><br><span class="line"> 246:          0         23          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          5    6869437          0          0       2000  IR-PCI-MSI-edge      eth11-TxRx-28</span><br><span class="line"> 247:          0         23          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          5          0          0    6846871       2000          0  IR-PCI-MSI-edge      eth11-TxRx-29</span><br><span class="line"> 248:          0         23          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          5          0          0          0       2000    6937093          0  IR-PCI-MSI-edge      eth11-TxRx-30</span><br><span class="line"> 249:          0         23          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          5          0          0          0       2000          0          0    6837127  IR-PCI-MSI-edge      eth11-TxRx-31</span><br></pre></td></tr></table></figure></li>
+<li><p>接下来将中断号绑定到CPU核上</p>
+<p>示例中218号中断绑定到1号CPU</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">#!/bin/bash</span><br><span class="line">echo 00000001 &gt; /proc/irq/218/smp_affinity</span><br><span class="line">echo 00000002 &gt; /proc/irq/219/smp_affinity</span><br><span class="line">echo 00000004 &gt; /proc/irq/220/smp_affinity</span><br><span class="line">echo 00000008 &gt; /proc/irq/221/smp_affinity</span><br><span class="line">echo 00000010 &gt; /proc/irq/222/smp_affinity</span><br><span class="line">echo 00000020 &gt; /proc/irq/223/smp_affinity</span><br><span class="line">echo 00000040 &gt; /proc/irq/224/smp_affinity</span><br><span class="line">echo 00000080 &gt; /proc/irq/225/smp_affinity</span><br><span class="line"># ...</span><br><span class="line">echo 01000000 &gt; /proc/irq/242/smp_affinity</span><br><span class="line">echo 02000000 &gt; /proc/irq/243/smp_affinity</span><br><span class="line">echo 04000000 &gt; /proc/irq/244/smp_affinity</span><br><span class="line">echo 08000000 &gt; /proc/irq/245/smp_affinity</span><br><span class="line">echo 10000000 &gt; /proc/irq/246/smp_affinity</span><br><span class="line">echo 20000000 &gt; /proc/irq/247/smp_affinity</span><br><span class="line">echo 40000000 &gt; /proc/irq/248/smp_affinity</span><br><span class="line">echo 80000000 &gt; /proc/irq/249/smp_affinity</span><br></pre></td></tr></table></figure></li>
+</ul>
+<h4 id="RPS"><a href="#RPS" class="headerlink" title="RPS"></a>RPS</h4><p>有时候你的网卡不支持多队列、或者队列数少于CPU核心数、又或是NIC的间接表（Indirection Table）的RX队列数少于CPU核心数，这个时候就需要借助内核的<a target="_blank" rel="noopener external nofollow noreferrer" href="https://www.kernel.org/doc/Documentation/networking/scaling.txt">RPS/RFS机制</a>，在软件层面再次进行分配。比如下面的例子，NIC的间接表最大RX队列数只有16</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># ethtool --show-rxfh-indir enp7s0f0</span></span><br><span class="line">RX flow <span class="built_in">hash</span> indirection table <span class="keyword">for</span> enp7s0f0 with 56 RX ring(s):</span><br><span class="line">    0:      0     1     2     3     4     5     6     7</span><br><span class="line">    8:      8     9    10    11    12    13    14    15</span><br><span class="line">   16:      0     1     2     3     4     5     6     7</span><br><span class="line">   24:      8     9    10    11    12    13    14    15</span><br><span class="line">   32:      0     1     2     3     4     5     6     7</span><br><span class="line">   40:      8     9    10    11    12    13    14    15</span><br><span class="line">   48:      0     1     2     3     4     5     6     7</span><br><span class="line">   56:      8     9    10    11    12    13    14    15</span><br><span class="line">   64:      0     1     2     3     4     5     6     7</span><br><span class="line">   72:      8     9    10    11    12    13    14    15</span><br><span class="line">   80:      0     1     2     3     4     5     6     7</span><br><span class="line">   88:      8     9    10    11    12    13    14    15</span><br><span class="line">   96:      0     1     2     3     4     5     6     7</span><br><span class="line">  104:      8     9    10    11    12    13    14    15</span><br><span class="line">  112:      0     1     2     3     4     5     6     7</span><br><span class="line">  120:      8     9    10    11    12    13    14    15</span><br><span class="line">RSS <span class="built_in">hash</span> key:</span><br><span class="line">fb:db:6a:ad:9d:49:5f:c7:d1:d9:d0:c8:bd:4c:e9:f3:60:c6:34:1e:09:c5:7f:f5:ae:bf:62:38:ca:83:a5:a2:40:c2:59:4b:32:92:6b:5b</span><br><span class="line">RSS <span class="built_in">hash</span> <span class="keyword">function</span>:</span><br><span class="line">    toeplitz: on</span><br><span class="line">    xor: off</span><br><span class="line">    crc32: off</span><br></pre></td></tr></table></figure>
+
+<p>设置成大16的值会失败</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># ethtool --set-rxfh-indir enp7s0f0 equal 56</span></span><br><span class="line">Cannot <span class="built_in">set</span> RX flow <span class="built_in">hash</span> configuration: Invalid argument</span><br></pre></td></tr></table></figure>
+
+<p>使用RPS将16个rx队列再分配到56个核上。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#!/bin/bash</span></span><br><span class="line"><span class="built_in">echo</span> 010001,00010001 &gt; /sys/class/net/enp7s0f0/queues/rx-0/rps_cpus</span><br><span class="line"><span class="built_in">echo</span> 020002,00020002 &gt; /sys/class/net/enp7s0f0/queues/rx-1/rps_cpus</span><br><span class="line"><span class="built_in">echo</span> 040004,00040004 &gt; /sys/class/net/enp7s0f0/queues/rx-2/rps_cpus</span><br><span class="line"><span class="built_in">echo</span> 080008,00080008 &gt; /sys/class/net/enp7s0f0/queues/rx-3/rps_cpus</span><br><span class="line"><span class="built_in">echo</span> 100010,00100010 &gt; /sys/class/net/enp7s0f0/queues/rx-4/rps_cpus</span><br><span class="line"><span class="built_in">echo</span> 200020,00200020 &gt; /sys/class/net/enp7s0f0/queues/rx-5/rps_cpus</span><br><span class="line"><span class="built_in">echo</span> 400040,00400040 &gt; /sys/class/net/enp7s0f0/queues/rx-6/rps_cpus</span><br><span class="line"><span class="built_in">echo</span> 800080,00800080 &gt; /sys/class/net/enp7s0f0/queues/rx-7/rps_cpus</span><br><span class="line"><span class="built_in">echo</span> 000100,01000100 &gt; /sys/class/net/enp7s0f0/queues/rx-8/rps_cpus</span><br><span class="line"><span class="built_in">echo</span> 000200,02000200 &gt; /sys/class/net/enp7s0f0/queues/rx-9/rps_cpus</span><br><span class="line"><span class="built_in">echo</span> 000400,04000400 &gt; /sys/class/net/enp7s0f0/queues/rx-10/rps_cpus</span><br><span class="line"><span class="built_in">echo</span> 000800,08000800 &gt; /sys/class/net/enp7s0f0/queues/rx-11/rps_cpus</span><br><span class="line"><span class="built_in">echo</span> 001000,10001000 &gt; /sys/class/net/enp7s0f0/queues/rx-12/rps_cpus</span><br><span class="line"><span class="built_in">echo</span> 002000,20002000 &gt; /sys/class/net/enp7s0f0/queues/rx-13/rps_cpus</span><br><span class="line"><span class="built_in">echo</span> 004000,40004000 &gt; /sys/class/net/enp7s0f0/queues/rx-14/rps_cpus</span><br><span class="line"><span class="built_in">echo</span> 008000,80008000 &gt; /sys/class/net/enp7s0f0/queues/rx-15/rps_cpus</span><br></pre></td></tr></table></figure>
+
+
+
+<p>下图很好的描述了上面发生的事情：</p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/RSS-RPS-REUSRPORT.jpg" alt="RSS-RPS-REUSRPORT" loading="lazy"></p>
+<p>网卡收到包送到多个队列中，然后将队列的中断号与CPU核心绑定，如果没有充分利用CPU，借助RPS再次分配到其他CPU核心上。每个CPU核上有一个softirq在工作。SO_REUSEPORT解决socket竞争的问题，每个进程有一个独立的socket，默认情况下是对数据流（源和目的的ip端口号）做哈希值来选择送到那个socket。但是这个地方其实还是存在竞争，同一个socket可能被不同的核选择，Linux内核从4.5版本起已经支持SO_ATTACH_REUSEPORT_CBPF/EBPF，可以根据核心号来选择socket以消除softirq这里的竞争，配合上进程的CPU亲和性绑定可以最大程度的提升性能。不过Nginx目前还不支持这个选项。</p>
+<h3 id="Linux内核网络栈参数"><a href="#Linux内核网络栈参数" class="headerlink" title="Linux内核网络栈参数"></a>Linux内核网络栈参数</h3><p>这部分由于内容太多，我不准备再展开，只是贴一个参考配置。建议大家在理解参数含义的基础上进行谨慎参考，不要无脑照搬。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#!/bin/bash</span></span><br><span class="line">ufw <span class="built_in">disable</span>                                                                     <span class="comment">#disable Debian firewall</span></span><br><span class="line">iptables -F                                                                     <span class="comment">#flush the iptables rules</span></span><br><span class="line"><span class="comment">#TCP Memory</span></span><br><span class="line"><span class="built_in">echo</span> 16777216                &gt; /proc/sys/net/core/rmem_max</span><br><span class="line"><span class="built_in">echo</span> 16777216                &gt; /proc/sys/net/core/wmem_max</span><br><span class="line"><span class="built_in">echo</span> 16777216                &gt; /proc/sys/net/core/rmem_default</span><br><span class="line"><span class="built_in">echo</span> 16777216                &gt; /proc/sys/net/core/wmem_default</span><br><span class="line"><span class="built_in">echo</span> 16777216 16777216 16777216  &gt; /proc/sys/net/ipv4/tcp_rmem</span><br><span class="line"><span class="built_in">echo</span> 538750 538750 538750  &gt; /proc/sys/net/ipv4/tcp_wmem</span><br><span class="line"><span class="built_in">echo</span> 16777216            &gt; /proc/sys/net/core/optmem_max</span><br><span class="line"><span class="built_in">echo</span> 16777216 16777216  16777216 &gt; /proc/sys/net/ipv4/tcp_mem</span><br><span class="line"><span class="built_in">echo</span> 65536       &gt; /proc/sys/vm/min_free_kbytes                                  <span class="comment">#ensure there will always be free</span></span><br><span class="line"><span class="comment">#TCP Behavior</span></span><br><span class="line"><span class="built_in">echo</span> 0                     &gt; /proc/sys/net/ipv4/tcp_timestamps</span><br><span class="line"><span class="built_in">echo</span> 0                     &gt; /proc/sys/net/ipv4/tcp_sack</span><br><span class="line"><span class="built_in">echo</span> 0                     &gt; /proc/sys/net/ipv4/tcp_fack</span><br><span class="line"><span class="built_in">echo</span> 0                     &gt; /proc/sys/net/ipv4/tcp_dsack</span><br><span class="line"><span class="built_in">echo</span> 0                     &gt; /proc/sys/net/ipv4/tcp_moderate_rcvbuf</span><br><span class="line"><span class="built_in">echo</span> 1                     &gt; /proc/sys/net/ipv4/tcp_rfc1337</span><br><span class="line"><span class="built_in">echo</span> 600        &gt; /proc/sys/net/core/netdev_budget</span><br><span class="line"><span class="built_in">echo</span> 128                   &gt; /proc/sys/net/core/dev_weight</span><br><span class="line"><span class="built_in">echo</span> 1                     &gt; /proc/sys/net/ipv4/tcp_syncookies</span><br><span class="line"><span class="built_in">echo</span> 0                     &gt; /proc/sys/net/ipv4/tcp_slow_start_after_idle</span><br><span class="line"><span class="built_in">echo</span> 1                     &gt; /proc/sys/net/ipv4/tcp_no_metrics_save</span><br><span class="line"><span class="built_in">echo</span> 1                     &gt; /proc/sys/net/ipv4/tcp_orphan_retries</span><br><span class="line"><span class="built_in">echo</span> 0                     &gt; /proc/sys/net/ipv4/tcp_fin_timeout</span><br><span class="line"><span class="built_in">echo</span> 0                     &gt; /proc/sys/net/ipv4/tcp_tw_reuse</span><br><span class="line"><span class="built_in">echo</span> 0                     &gt; /proc/sys/net/ipv4/tcp_tw_recycle</span><br><span class="line"><span class="built_in">echo</span> 1                     &gt; /proc/sys/net/ipv4/tcp_syncookies</span><br><span class="line"><span class="built_in">echo</span> 2                       &gt; /proc/sys/net/ipv4/tcp_synack_retries</span><br><span class="line"><span class="built_in">echo</span> 2                     &gt; /proc/sys/net/ipv4/tcp_syn_retries</span><br><span class="line"><span class="built_in">echo</span> cubic                   &gt; /proc/sys/net/ipv4/tcp_congestion_control</span><br><span class="line"><span class="built_in">echo</span> 0                     &gt; /proc/sys/net/ipv4/tcp_low_latency</span><br><span class="line"><span class="built_in">echo</span> 1                     &gt; /proc/sys/net/ipv4/tcp_window_scaling</span><br><span class="line"><span class="built_in">echo</span> 1                     &gt; /proc/sys/net/ipv4/tcp_adv_win_scale</span><br><span class="line"><span class="comment">#TCP Queueing</span></span><br><span class="line"><span class="built_in">echo</span> 0                &gt; /proc/sys/net/ipv4/tcp_max_tw_buckets</span><br><span class="line"><span class="built_in">echo</span> 1025 65535            &gt; /proc/sys/net/ipv4/ip_local_port_range</span><br><span class="line"><span class="built_in">echo</span> 131072                &gt; /proc/sys/net/core/somaxconn</span><br><span class="line"><span class="built_in">echo</span> 262144            &gt; /proc/sys/net/ipv4/tcp_max_orphans</span><br><span class="line"><span class="built_in">echo</span> 262144           &gt; /proc/sys/net/core/netdev_max_backlog</span><br><span class="line"><span class="built_in">echo</span> 262144        &gt; /proc/sys/net/ipv4/tcp_max_syn_backlog</span><br><span class="line"><span class="built_in">echo</span> 4000000             &gt; /proc/sys/fs/nr_open</span><br><span class="line"></span><br><span class="line"><span class="built_in">echo</span> 4194304     &gt; /proc/sys/net/ipv4/ipfrag_high_thresh</span><br><span class="line"><span class="built_in">echo</span> 3145728     &gt; /proc/sys/net/ipv4/ipfrag_low_thresh</span><br><span class="line"><span class="built_in">echo</span> 30      &gt; /proc/sys/net/ipv4/ipfrag_time</span><br><span class="line"><span class="built_in">echo</span> 0   &gt; /proc/sys/net/ipv4/tcp_abort_on_overflow</span><br><span class="line"><span class="built_in">echo</span> 1       &gt; /proc/sys/net/ipv4/tcp_autocorking</span><br><span class="line"><span class="built_in">echo</span> 31      &gt; /proc/sys/net/ipv4/tcp_app_win</span><br><span class="line"><span class="built_in">echo</span> 1       &gt; /proc/sys/net/ipv4/tcp_mtu_probing</span><br><span class="line"><span class="built_in">set</span> selinux=disabled</span><br><span class="line"><span class="built_in">ulimit</span> -n 1000000</span><br></pre></td></tr></table></figure>
+
+<p>最后再重申一下，配置并不是一成不变的，需要在理解配置含义的基础上，结合自身的测试需求合理进行配置。</p>
+
+    </div>
+
+    
+    
+    
+      
+  <div class="popular-posts-header">相关文章推荐</div>
+  <ul class="popular-posts">
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/posts/30b81f82/" rel="bookmark">OpenResty Lua钩子调用完整流程</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/posts/150430f0/" rel="bookmark">Openresty Lua协程调度机制</a></div>
+    </li>
+  </ul>
+<div>
+    
+        <div style="text-align:center;font-size:22px;letter-spacing:10px;user-select:none;color:#bbb;">-------------本文结束<i class="fa fa-paw"></i>感谢您的阅读-------------</div>
+    
+</div>
+
+
+
+        
+
+<div>
+<ul class="post-copyright">
+  <li class="post-copyright-author">
+    <strong>本文作者： </strong>猫猫哥
+  </li>
+  <li class="post-copyright-link">
+    <strong>本文链接：</strong>
+    <a href="https://catbro666.github.io/posts/4198933e/" title="是谁断了我的连接？—从压测碰到的一个奇怪问题聊聊Nginx的连接管理和性能调测">https://catbro666.github.io/posts/4198933e/</a>
+  </li>
+  <li class="post-copyright-license">
+    <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/zh-CN" rel="noopener external nofollow noreferrer" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+        
+
+  <div class="followme">
+    <p>欢迎关注我的其它发布渠道</p>
+
+    <div class="social-list">
+
+        <div class="social-item">
+          <a target="_blank" class="social-link" href="/atom.xml">
+            <span class="icon">
+              <i class="fa fa-rss"></i>
+            </span>
+
+            <span class="label">RSS</span>
+          </a>
+        </div>
+    </div>
+  </div>
+
+
+      <footer class="post-footer">
+          
+          <div class="post-tags">
+              <a href="/tags/Nginx/" rel="tag"><i class="fa fa-tag"></i> Nginx</a>
+              <a href="/tags/%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98/" rel="tag"><i class="fa fa-tag"></i> 性能调优</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/posts/59c71edb/" rel="prev" title="SSL及GMVPN握手协议详解">
+      <i class="fa fa-chevron-left"></i> SSL及GMVPN握手协议详解
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+    <div class="comments" id="valine-comments"></div>
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%97%AE%E9%A2%98%E6%8F%8F%E8%BF%B0"><span class="nav-number">1.</span> <span class="nav-text">问题描述</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%97%AE%E9%A2%98%E5%AE%9A%E4%BD%8D"><span class="nav-number">2.</span> <span class="nav-text">问题定位</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#reset%E5%8E%9F%E5%9B%A0"><span class="nav-number">2.1.</span> <span class="nav-text">reset原因</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%BF%9E%E6%8E%A5%E5%85%B3%E9%97%AD%E5%8E%9F%E5%9B%A0"><span class="nav-number">2.2.</span> <span class="nav-text">连接关闭原因</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%A4%8D%E7%8E%B0%E9%97%AE%E9%A2%98"><span class="nav-number">3.</span> <span class="nav-text">复现问题</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%80%BB%E7%BB%93%E5%9B%9E%E9%A1%BE"><span class="nav-number">4.</span> <span class="nav-text">总结回顾</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%BF%9E%E6%8E%A5%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F"><span class="nav-number">5.</span> <span class="nav-text">连接生命周期</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%BF%9E%E6%8E%A5%E5%BB%BA%E7%AB%8B"><span class="nav-number">5.1.</span> <span class="nav-text">连接建立</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%BF%9E%E6%8E%A5%E5%85%B3%E9%97%AD"><span class="nav-number">5.2.</span> <span class="nav-text">连接关闭</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%BF%9E%E6%8E%A5%E8%B6%85%E6%97%B6"><span class="nav-number">6.</span> <span class="nav-text">连接超时</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%80%A7%E8%83%BD%E8%B0%83%E6%B5%8B"><span class="nav-number">7.</span> <span class="nav-text">性能调测</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%9F%BA%E6%9C%AC%E5%8E%9F%E5%88%99"><span class="nav-number">7.1.</span> <span class="nav-text">基本原则</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Nginx%E9%85%8D%E7%BD%AE"><span class="nav-number">7.2.</span> <span class="nav-text">Nginx配置</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#main"><span class="nav-number">7.2.1.</span> <span class="nav-text">main</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#event"><span class="nav-number">7.2.2.</span> <span class="nav-text">event</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#http"><span class="nav-number">7.2.3.</span> <span class="nav-text">http</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BD%91%E5%8D%A1%E9%98%9F%E5%88%97%E5%8F%8Airq"><span class="nav-number">7.3.</span> <span class="nav-text">网卡队列及irq</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%B8%AD%E6%96%AD%E5%8F%B7%E7%BB%91%E5%AE%9A"><span class="nav-number">7.3.1.</span> <span class="nav-text">中断号绑定</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#RPS"><span class="nav-number">7.3.2.</span> <span class="nav-text">RPS</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Linux%E5%86%85%E6%A0%B8%E7%BD%91%E7%BB%9C%E6%A0%88%E5%8F%82%E6%95%B0"><span class="nav-number">7.4.</span> <span class="nav-text">Linux内核网络栈参数</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">猫猫哥</p>
+  <div class="site-description" itemprop="description">如果说根号二是无理数，那么我就是个无理人</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">20</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">3</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">17</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/catbro666" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;catbro666" rel="noopener external nofollow noreferrer" target="_blank"><i class="fab fa-github fa-fw"></i></a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:chzf_zju@163.com" title="E-Mail → mailto:chzf_zju@163.com" rel="noopener external nofollow noreferrer" target="_blank"><i class="fa fa-envelope fa-fw"></i></a>
+      </span>
+  </div>
+  <div class="cc-license motion-element" itemprop="license">
+    <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/zh-CN" class="cc-opacity" rel="noopener external nofollow noreferrer" target="_blank"><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/images/cc-by-nc-sa.svg" alt="Creative Commons"></a>
+  </div>
+
+
+<div style="">
+  <canvas id="canvas" style="width:60%;">当前浏览器不支持canvas，请更换浏览器后再试</canvas>
+</div>
+<script>
+(function(){
+
+   var digit=
+    [
+        [
+            [0,0,1,1,1,0,0],
+            [0,1,1,0,1,1,0],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,0,1,1,0],
+            [0,0,1,1,1,0,0]
+        ],//0
+        [
+            [0,0,0,1,1,0,0],
+            [0,1,1,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [1,1,1,1,1,1,1]
+        ],//1
+        [
+            [0,1,1,1,1,1,0],
+            [1,1,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,0,0],
+            [0,0,1,1,0,0,0],
+            [0,1,1,0,0,0,0],
+            [1,1,0,0,0,0,0],
+            [1,1,0,0,0,1,1],
+            [1,1,1,1,1,1,1]
+        ],//2
+        [
+            [1,1,1,1,1,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,0,0,1,1,0],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,1,1,0]
+        ],//3
+        [
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,1,0],
+            [0,0,1,1,1,1,0],
+            [0,1,1,0,1,1,0],
+            [1,1,0,0,1,1,0],
+            [1,1,1,1,1,1,1],
+            [0,0,0,0,1,1,0],
+            [0,0,0,0,1,1,0],
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,1,1]
+        ],//4
+        [
+            [1,1,1,1,1,1,1],
+            [1,1,0,0,0,0,0],
+            [1,1,0,0,0,0,0],
+            [1,1,1,1,1,1,0],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,1,1,0]
+        ],//5
+        [
+            [0,0,0,0,1,1,0],
+            [0,0,1,1,0,0,0],
+            [0,1,1,0,0,0,0],
+            [1,1,0,0,0,0,0],
+            [1,1,0,1,1,1,0],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,1,1,0]
+        ],//6
+        [
+            [1,1,1,1,1,1,1],
+            [1,1,0,0,0,1,1],
+            [0,0,0,0,1,1,0],
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,1,1,0,0,0],
+            [0,0,1,1,0,0,0],
+            [0,0,1,1,0,0,0],
+            [0,0,1,1,0,0,0]
+        ],//7
+        [
+            [0,1,1,1,1,1,0],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,1,1,0],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,1,1,0]
+        ],//8
+        [
+            [0,1,1,1,1,1,0],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,0,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,0,0],
+            [0,1,1,0,0,0,0]
+        ],//9
+        [
+            [0,0,0,0,0,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,0,0,0,0,0]
+        ]//:
+    ];
+
+var canvas = document.getElementById('canvas');
+
+if(canvas.getContext){
+    var cxt = canvas.getContext('2d');
+    //声明canvas的宽高
+    var H = 100,W = 700;
+    canvas.height = H;
+    canvas.width = W;
+    cxt.fillStyle = '#f00';
+    cxt.fillRect(10,10,50,50);
+
+    //存储时间数据
+    var data = [];
+    //存储运动的小球
+    var balls = [];
+    //设置粒子半径
+    var R = canvas.height/20-1;
+    (function(){
+        var temp = /(\d)(\d):(\d)(\d):(\d)(\d)/.exec(new Date());
+        //存储时间数字，由十位小时、个位小时、冒号、十位分钟、个位分钟、冒号、十位秒钟、个位秒钟这7个数字组成
+        data.push(temp[1],temp[2],10,temp[3],temp[4],10,temp[5],temp[6]);
+    })();
+
+    /*生成点阵数字*/
+    function renderDigit(index,num){
+        for(var i = 0; i < digit[num].length; i++){
+            for(var j = 0; j < digit[num][i].length; j++){
+                if(digit[num][i][j] == 1){
+                    cxt.beginPath();
+                    cxt.arc(14*(R+2)*index + j*2*(R+1)+(R+1),i*2*(R+1)+(R+1),R,0,2*Math.PI);
+                    cxt.closePath();
+                    cxt.fill();
+                }
+            }
+        }
+    }
+
+    /*更新时钟*/
+    function updateDigitTime(){
+        var changeNumArray = [];
+        var temp = /(\d)(\d):(\d)(\d):(\d)(\d)/.exec(new Date());
+        var NewData = [];
+        NewData.push(temp[1],temp[2],10,temp[3],temp[4],10,temp[5],temp[6]);
+        for(var i = data.length-1; i >=0 ; i--){
+            //时间发生变化
+            if(NewData[i] !== data[i]){
+                //将变化的数字值和在data数组中的索引存储在changeNumArray数组中
+                changeNumArray.push(i+'_'+(Number(data[i])+1)%10);
+            }
+        }
+        //增加小球
+        for(var i = 0; i< changeNumArray.length; i++){
+            addBalls.apply(this,changeNumArray[i].split('_'));
+        }
+        data = NewData.concat();
+    }
+
+    /*更新小球状态*/
+    function updateBalls(){
+        for(var i = 0; i < balls.length; i++){
+            balls[i].stepY += balls[i].disY;
+            balls[i].x += balls[i].stepX;
+            balls[i].y += balls[i].stepY;
+            if(balls[i].x > W + R || balls[i].y > H + R){
+                balls.splice(i,1);
+                i--;
+            }
+        }
+    }
+
+    /*增加要运动的小球*/
+    function addBalls(index,num){
+        var numArray = [1,2,3];
+        var colorArray =  ["#3BE","#09C","#A6C","#93C","#9C0","#690","#FB3","#F80","#F44","#C00"];
+        for(var i = 0; i < digit[num].length; i++){
+            for(var j = 0; j < digit[num][i].length; j++){
+                if(digit[num][i][j] == 1){
+                    var ball = {
+                        x:14*(R+2)*index + j*2*(R+1)+(R+1),
+                        y:i*2*(R+1)+(R+1),
+                        stepX:Math.floor(Math.random() * 4 -2),
+                        stepY:-2*numArray[Math.floor(Math.random()*numArray.length)],
+                        color:colorArray[Math.floor(Math.random()*colorArray.length)],
+                        disY:1
+                    };
+                    balls.push(ball);
+                }
+            }
+        }
+    }
+
+    /*渲染*/
+    function render(){
+        //重置画布宽度，达到清空画布的效果
+        canvas.height = 100;
+        //渲染时钟
+        for(var i = 0; i < data.length; i++){
+            renderDigit(i,data[i]);
+        }
+        //渲染小球
+        for(var i = 0; i < balls.length; i++){
+            cxt.beginPath();
+            cxt.arc(balls[i].x,balls[i].y,R,0,2*Math.PI);
+            cxt.fillStyle = balls[i].color;
+            cxt.closePath();
+            cxt.fill();
+        }
+    }
+
+    clearInterval(oTimer);
+    var oTimer = setInterval(function(){
+        //更新时钟
+        updateDigitTime();
+        //更新小球状态
+        updateBalls();
+        //渲染
+        render();
+    },50);
+}
+
+})();
+</script>
+
+
+      </div>
+        <div class="back-to-top motion-element">
+          <i class="fa fa-arrow-up"></i>
+          <span>0%</span>
+        </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 2019 – 
+  <span itemprop="copyrightYear">2021</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">猫猫哥</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+      <span class="post-meta-item-text">站点总字数：</span>
+    <span title="站点总字数">217k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+      <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
+    <span title="站点阅读时长">3:17</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener external nofollow noreferrer" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener external nofollow noreferrer" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+<script>
+  (function() {
+    function leancloudSelector(url) {
+      url = encodeURI(url);
+      return document.getElementById(url).querySelector('.leancloud-visitors-count');
+    }
+
+    function addCount(Counter) {
+      var visitors = document.querySelector('.leancloud_visitors');
+      var url = decodeURI(visitors.id);
+      var title = visitors.dataset.flagTitle;
+
+      Counter('get', '/classes/Counter?where=' + encodeURIComponent(JSON.stringify({ url })))
+        .then(response => response.json())
+        .then(({ results }) => {
+          if (results.length > 0) {
+            var counter = results[0];
+            leancloudSelector(url).innerText = counter.time + 1;
+            Counter('put', '/classes/Counter/' + counter.objectId, { time: { '__op': 'Increment', 'amount': 1 } })
+              .catch(error => {
+                console.error('Failed to save visitor count', error);
+              });
+          } else {
+              leancloudSelector(url).innerText = 'Counter not initialized! More info at console err msg.';
+              console.error('ATTENTION! LeanCloud counter has security bug, see how to solve it here: https://github.com/theme-next/hexo-leancloud-counter-security. \n However, you can still use LeanCloud without security, by setting `security` option to `false`.');
+            
+          }
+        })
+        .catch(error => {
+          console.error('LeanCloud Counter Error', error);
+        });
+    }
+
+    function showTime(Counter) {
+      var visitors = document.querySelectorAll('.leancloud_visitors');
+      var entries = [...visitors].map(element => {
+        return decodeURI(element.id);
+      });
+
+      Counter('get', '/classes/Counter?where=' + encodeURIComponent(JSON.stringify({ url: { '$in': entries } })))
+        .then(response => response.json())
+        .then(({ results }) => {
+          for (let url of entries) {
+            let target = results.find(item => item.url === url);
+            leancloudSelector(url).innerText = target ? target.time : 0;
+          }
+        })
+        .catch(error => {
+          console.error('LeanCloud Counter Error', error);
+        });
+    }
+
+    let { app_id, app_key, server_url } = {"enable":true,"app_id":"0Syy5qyXX1qTBOGiD0vUzpHb-MdYXbMMI","app_key":"B3MuN4GIHf7ru1ojTSkjjI9a","server_url":null,"security":true,"betterPerformance":true};
+    function fetchData(api_server) {
+      var Counter = (method, url, data) => {
+        return fetch(`${api_server}/1.1${url}`, {
+          method,
+          headers: {
+            'X-LC-Id'     : app_id,
+            'X-LC-Key'    : app_key,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(data)
+        });
+      };
+      if (CONFIG.page.isPost) {
+        if (CONFIG.hostname !== location.hostname) return;
+        addCount(Counter);
+      } else if (document.querySelectorAll('.post-title-link').length >= 1) {
+        showTime(Counter);
+      }
+    }
+
+    let api_server = app_id.slice(-9) !== '-MdYXbMMI' ? server_url : `https://${app_id.slice(0, 8).toLowerCase()}.api.lncldglobal.com`;
+
+    if (api_server) {
+      fetchData(api_server);
+    } else {
+      fetch('https://app-router.leancloud.cn/2/route?appId=' + app_id)
+        .then(response => response.json())
+        .then(({ api_server }) => {
+          fetchData('https://' + api_server);
+        });
+    }
+  })();
+</script>
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="//cdn.jsdelivr.net/npm/animejs@3.1.0/lib/anime.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/velocity-animate@1/velocity.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/velocity-animate@1/velocity.ui.min.js"></script>
+
+<script src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/js/utils.js"></script>
+
+<script src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/js/motion.js"></script>
+
+
+<script src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/js/schemes/pisces.js"></script>
+
+
+<script src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/js/next-boot.js"></script>
+
+
+
+
+  
+  <script>
+    (function(){
+      var canonicalURL, curProtocol;
+      //Get the <link> tag
+      var x=document.getElementsByTagName("link");
+		//Find the last canonical URL
+		if(x.length > 0){
+			for (i=0;i<x.length;i++){
+				if(x[i].rel.toLowerCase() == 'canonical' && x[i].href){
+					canonicalURL=x[i].href;
+				}
+			}
+		}
+    //Get protocol
+	    if (!canonicalURL){
+	    	curProtocol = window.location.protocol.split(':')[0];
+	    }
+	    else{
+	    	curProtocol = canonicalURL.split(':')[0];
+	    }
+      //Get current URL if the canonical URL does not exist
+	    if (!canonicalURL) canonicalURL = window.location.href;
+	    //Assign script content. Replace current URL with the canonical URL
+      !function(){var e=/([http|https]:\/\/[a-zA-Z0-9\_\.]+\.baidu\.com)/gi,r=canonicalURL,t=document.referrer;if(!e.test(r)){var n=(String(curProtocol).toLowerCase() === 'https')?"https://sp0.baidu.com/9_Q4simg2RQJ8t7jm9iCKT-xh_/s.gif":"//api.share.baidu.com/s.gif";t?(n+="?r="+encodeURIComponent(document.referrer),r&&(n+="&l="+r)):r&&(n+="?l="+r);var i=new Image;i.src=n}}(window);})();
+  </script>
+
+
+
+
+  
+<script src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+
+<script>
+NexT.utils.loadComments(document.querySelector('#valine-comments'), () => {
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/valine@1/dist/Valine.min.js', () => {
+    var GUEST = ['nick', 'mail', 'link'];
+    var guest = 'nick,mail,link';
+    guest = guest.split(',').filter(item => {
+      return GUEST.includes(item);
+    });
+    new Valine({
+      el         : '#valine-comments',
+      verify     : false,
+      notify     : true,
+      appId      : '0Syy5qyXX1qTBOGiD0vUzpHb-MdYXbMMI',
+      appKey     : 'B3MuN4GIHf7ru1ojTSkjjI9a',
+      placeholder: "欢迎留言讨论，记得在上方【邮箱】处填上邮箱地址，可以收到回复通知哦(^。^)",
+      avatar     : 'retro',
+      meta       : guest,
+      pageSize   : '10' || 10,
+      visitor    : false,
+      lang       : '' || 'zh-cn',
+      path       : location.pathname,
+      recordIP   : false,
+      serverURLs : ''
+    });
+  }, window.Valine);
+});
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/jquery/dist/jquery.min.js"></script>
+
+
+
+  <script async src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/js/cursor/fireworks.js"></script>
+
+
+
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/js/fold_action.js"></script>
+
+
+</body>
+</html>

@@ -6,7 +6,7 @@
   <link href="https://catbro666.github.io/atom.xml" rel="self"/>
   
   <link href="https://catbro666.github.io/"/>
-  <updated>2021-11-01T19:05:20.248Z</updated>
+  <updated>2021-11-07T10:20:22.560Z</updated>
   <id>https://catbro666.github.io/</id>
   
   <author>
@@ -15,6 +15,29 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>是谁断了我的连接？—从压测碰到的一个奇怪问题聊聊Nginx的连接管理和性能调测</title>
+    <link href="https://catbro666.github.io/posts/4198933e/"/>
+    <id>https://catbro666.github.io/posts/4198933e/</id>
+    <published>2021-11-07T09:52:11.000Z</published>
+    <updated>2021-11-07T10:20:22.560Z</updated>
+    
+    
+    <summary type="html">&lt;div class=&quot;note primary&quot;&gt;
+            &lt;p&gt;Nginx是目前使用最广泛的Web服务器之一，以高性能而著称，得益于其异步事件驱动架构，在高并发下仍然可以保持低消耗高性能，而模块化的设计也使其更易扩展，丰富了其功能。对于Nginx基本的介绍网上已有很多的文章，也有像《深入理解Nginx》这样的书籍讲解Nginx的架构设计与开发方法。本文不会涉及Nginx开发相关内容，而是以一个实际问题的定位过程作为引子，聊一下Nginx的连接管理和性能调测。如果你并不关心这个实际问题，可以直接跳到&lt;a href=&quot;#%E8%BF%9E%E6%8E%A5%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F&quot;&gt;连接生命周期&lt;/a&gt;。&lt;/p&gt;
+          &lt;/div&gt;</summary>
+    
+    
+    
+    <category term="技术向" scheme="https://catbro666.github.io/categories/%E6%8A%80%E6%9C%AF%E5%90%91/"/>
+    
+    
+    <category term="Nginx" scheme="https://catbro666.github.io/tags/Nginx/"/>
+    
+    <category term="性能调优" scheme="https://catbro666.github.io/tags/%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98/"/>
+    
+  </entry>
   
   <entry>
     <title>SSL及GMVPN握手协议详解</title>
@@ -245,7 +268,7 @@
     <link href="https://catbro666.github.io/posts/e92ef4b4/"/>
     <id>https://catbro666.github.io/posts/e92ef4b4/</id>
     <published>2021-08-08T15:32:26.000Z</published>
-    <updated>2021-11-01T13:41:43.636Z</updated>
+    <updated>2021-11-02T14:02:19.859Z</updated>
     
     
     <summary type="html">&lt;div class=&quot;note primary&quot;&gt;
