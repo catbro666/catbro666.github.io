@@ -6,7 +6,7 @@
   <link href="https://catbro666.github.io/atom.xml" rel="self"/>
   
   <link href="https://catbro666.github.io/"/>
-  <updated>2021-11-07T11:20:32.786Z</updated>
+  <updated>2021-11-11T16:53:30.392Z</updated>
   <id>https://catbro666.github.io/</id>
   
   <author>
@@ -15,6 +15,29 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Lua中如何实现类似gdb的断点调试—09支持动态添加和删除断点</title>
+    <link href="https://catbro666.github.io/posts/1fdd30ce/"/>
+    <id>https://catbro666.github.io/posts/1fdd30ce/</id>
+    <published>2021-11-11T16:51:24.000Z</published>
+    <updated>2021-11-11T16:53:30.392Z</updated>
+    
+    
+    <summary type="html">&lt;div class=&quot;note primary&quot;&gt;
+            &lt;p&gt;前面已经支持了几种不同的方式添加断点，但是必须事先在代码中添加断点，在使用上不是那么灵活方便。本文将支持动态增删断点，只需要开一开始引入调试库即可，后续可以在调试过程中动态的添加和删除断点。事不宜迟，我们直接进入正题。&lt;/p&gt;
+          &lt;/div&gt;</summary>
+    
+    
+    
+    <category term="技术向" scheme="https://catbro666.github.io/categories/%E6%8A%80%E6%9C%AF%E5%90%91/"/>
+    
+    
+    <category term="Lua" scheme="https://catbro666.github.io/tags/Lua/"/>
+    
+    <category term="调试" scheme="https://catbro666.github.io/tags/%E8%B0%83%E8%AF%95/"/>
+    
+  </entry>
   
   <entry>
     <title>是谁断了我的连接？—从压测碰到的一个奇怪问题聊聊Nginx的连接管理和性能调测</title>
@@ -36,29 +59,6 @@
     <category term="Nginx" scheme="https://catbro666.github.io/tags/Nginx/"/>
     
     <category term="性能调优" scheme="https://catbro666.github.io/tags/%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Lua中如何实现类似gdb的断点调试—09支持动态添加和删除断点</title>
-    <link href="https://catbro666.github.io/posts/1fdd30ce/"/>
-    <id>https://catbro666.github.io/posts/1fdd30ce/</id>
-    <published>2021-11-02T14:06:24.000Z</published>
-    <updated>2021-11-11T16:44:12.551Z</updated>
-    
-    
-    <summary type="html">&lt;div class=&quot;note primary&quot;&gt;
-            &lt;p&gt;前面已经支持了几种不同的方式添加断点，但是必须事先在代码中添加断点，在使用上不是那么灵活方便。本文将支持动态增删断点，只需要开一开始引入调试库即可，后续可以在调试过程中动态的添加和删除断点。事不宜迟，我们直接进入正题。&lt;/p&gt;
-          &lt;/div&gt;</summary>
-    
-    
-    
-    <category term="技术向" scheme="https://catbro666.github.io/categories/%E6%8A%80%E6%9C%AF%E5%90%91/"/>
-    
-    
-    <category term="Lua" scheme="https://catbro666.github.io/tags/Lua/"/>
-    
-    <category term="调试" scheme="https://catbro666.github.io/tags/%E8%B0%83%E8%AF%95/"/>
     
   </entry>
   
