@@ -36,7 +36,7 @@
 <meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/4198933e/nginx-connection-life-cycle.png">
 <meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/4198933e/RSS-RPS-REUSRPORT.jpg">
 <meta property="article:published_time" content="2021-11-07T09:52:11.000Z">
-<meta property="article:modified_time" content="2021-11-07T11:20:32.786Z">
+<meta property="article:modified_time" content="2021-12-10T10:37:44.221Z">
 <meta property="article:author" content="猫猫哥">
 <meta property="article:tag" content="Nginx">
 <meta property="article:tag" content="性能调优">
@@ -259,10 +259,16 @@
                 <i class="far fa-calendar"></i>
               </span>
               <span class="post-meta-item-text">发表于</span>
-              
 
-              <time title="创建时间：2021-11-07 17:52:11 / 修改时间：19:20:32" itemprop="dateCreated datePublished" datetime="2021-11-07T17:52:11+08:00">2021-11-07</time>
+              <time title="创建时间：2021-11-07 17:52:11" itemprop="dateCreated datePublished" datetime="2021-11-07T17:52:11+08:00">2021-11-07</time>
             </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-12-10 18:37:44" itemprop="dateModified" datetime="2021-12-10T18:37:44+08:00">2021-12-10</time>
+              </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
                 <i class="far fa-folder"></i>
@@ -319,14 +325,14 @@ translateInitilization();
                 <i class="far fa-file-word"></i>
               </span>
                 <span class="post-meta-item-text">本文字数：</span>
-              <span>16k</span>
+              <span>17k</span>
             </span>
             <span class="post-meta-item" title="阅读时长">
               <span class="post-meta-item-icon">
                 <i class="far fa-clock"></i>
               </span>
                 <span class="post-meta-item-text">阅读时长 &asymp;</span>
-              <span>15 分钟</span>
+              <span>16 分钟</span>
             </span>
 
         </div>
@@ -388,7 +394,11 @@ translateInitilization();
 <h2 id="总结回顾"><a href="#总结回顾" class="headerlink" title="总结回顾"></a>总结回顾</h2><p>问题原因已经定位到，再回过头看现场的测试配置。其实按照所有worker的连接总数来算，连接是够的，而单个worker则是不够的。但是因为其他几个配置的间接作用导致了连接集中在了单个worker中。首先，因为系统版本较低不支持reuseport，只能依赖nginx自身进行进程间的连接分配。其次又配置了multi_accept，所以只要有已经就绪的TCP连接，worker进程就一直进行accept，造成单个worker进程的接收了大部分连接。这几个因素结合在一起造成了最终的问题。归根结底，还是因为对Nginx配置理解不够深入导致的。</p>
 <h2 id="连接生命周期"><a href="#连接生命周期" class="headerlink" title="连接生命周期"></a>连接生命周期</h2><p>在讨论前面的问题时我们也看到了，Nginx中的连接是有几个不同的状态的，我们分成连接建立时和连接关闭时两部分来看连接的生命周期。</p>
 <h3 id="连接建立"><a href="#连接建立" class="headerlink" title="连接建立"></a>连接建立</h3><p>下面是连接建立时一个大致的调用关系图，实际情况要比着复杂的多。任何一处都可能超时或出错提前终止连接，碰到NGX_EAGAIN则可能多次调用同一个handler。</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line">ngx_event_accept</span><br><span class="line">|-- accept</span><br><span class="line">|-- ngx_get_connection</span><br><span class="line">+-- ngx_http_init_connection</span><br><span class="line">    |-- ngx_reusable_connection(1)</span><br><span class="line">    +-- ngx_http_ssl_handshake</span><br><span class="line">        |-- NGX_EAGAIN: ngx_reusable_connection(1)</span><br><span class="line">        |-- ngx_ssl_create_connection</span><br><span class="line">        |-- ngx_reusable_connection(0)</span><br><span class="line">        |-- ngx_ssl_handshake</span><br><span class="line">        +-- ngx_http_ssl_handshake_handler</span><br><span class="line">            |-- ngx_reusable_connection(1)</span><br><span class="line">            +-- ngx_http_wait_request_handler</span><br><span class="line">                |-- ngx_reusable_connection(0)</span><br><span class="line">                |-- ngx_http_create_request</span><br><span class="line">                +-- ngx_http_process_request_line</span><br><span class="line">                    |-- ngx_http_read_request_header</span><br><span class="line">                    |-- ngx_http_parse_request_line</span><br><span class="line">                    +-- ngx_http_process_request_headers</span><br><span class="line">                        |-- ngx_http_read_request_header</span><br><span class="line">                        |-- ngx_http_parse_header_line</span><br><span class="line">                        |-- ngx_http_process_request_header</span><br><span class="line">                        +-- ngx_http_process_request</span><br><span class="line">                            |-- Switch stat from reading to writing</span><br><span class="line">                            +-- ngx_http_handler</span><br><span class="line">                                |-- HTTP to HTTPS? certificate verify fail?</span><br><span class="line">                                +-- ngx_http_core_run_phases</span><br></pre></td></tr></table></figure>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line">ngx_event_accept</span><br><span class="line">|-- accept</span><br><span class="line">|-- ngx_get_connection</span><br><span class="line">+-- ngx_http_init_connection</span><br><span class="line">    |-- ngx_reusable_connection(1)</span><br><span class="line">    +-- ngx_http_ssl_handshake</span><br><span class="line">        |-- NGX_EAGAIN: ngx_reusable_connection(1)</span><br><span class="line">        |-- ngx_ssl_create_connection</span><br><span class="line">        |-- ngx_reusable_connection(0)</span><br><span class="line">        |-- ngx_ssl_handshake</span><br><span class="line">        +-- ngx_http_ssl_handshake_handler</span><br><span class="line">            |-- ngx_reusable_connection(1)</span><br><span class="line">            +-- ngx_http_wait_request_handler</span><br><span class="line">                |-- ngx_reusable_connection(0)</span><br><span class="line">                |-- ngx_http_create_request</span><br><span class="line">                +-- ngx_http_process_request_line</span><br><span class="line">                    |-- ngx_http_read_request_header</span><br><span class="line">                    |-- ngx_http_parse_request_line</span><br><span class="line">                    +-- ngx_http_process_request_headers</span><br><span class="line">                        |-- ngx_http_read_request_header</span><br><span class="line">                        |-- ngx_http_parse_header_line</span><br><span class="line">                        |-- ngx_http_process_request_header</span><br><span class="line">                        +-- ngx_http_process_request</span><br><span class="line">                            |-- Switch stat from reading to writing</span><br><span class="line">                            +-- ngx_http_handler</span><br><span class="line">                                |-- HTTP to HTTPS? certificate verify fail?</span><br><span class="line">                                +-- ngx_http_core_run_phases</span><br><span class="line">                                	+-- ngx_http_proxy_handler</span><br><span class="line">                                		+-- ngx_http_read_client_request_body</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">ngx_http_process_request</span><br><span class="line">	|-- Switch stat from reading to writing</span><br><span class="line">	+-- ngx_http_handler</span><br><span class="line">		|-- HTTP to HTTPS? certificate verify fail?</span><br><span class="line">		+-- ngx_http_core_run_phases</span><br><span class="line">			+-- ngx_http_proxy_handler</span><br><span class="line">				+-- ngx_http_upstream_create</span><br><span class="line">				+-- ngx_http_read_client_request_body</span><br><span class="line">					+-- ngx_http_request_body_filter</span><br><span class="line">					+-- ngx_http_upstream_init</span><br><span class="line">						+-- ngx_http_upstream_init_request</span><br><span class="line">							|-- ngx_http_upstream_cache</span><br><span class="line">							|-- ngx_http_upstream_connect</span><br><span class="line">								|-- ngx_http_upstream_ssl_init_connection</span><br><span class="line">								|-- ngx_http_upstream_send_request</span><br><span class="line">									+-- ngx_http_upstream_send_request_body</span><br><span class="line">									+-- ngx_http_upstream_process_header</span><br><span class="line">										+-- ngx_http_upstream_process_headers</span><br><span class="line">										+-- ngx_http_upstream_send_response</span><br><span class="line">											+-- ngx_http_send_header</span><br><span class="line">											+-- ngx_http_upstream_process_upstream</span><br><span class="line">												+-- ngx_http_upstream_process_request</span><br><span class="line">													+-- ngx_http_file_cache_update</span><br></pre></td></tr></table></figure>
+
+
 
 <p>首先，nginx是从accept才开始接手连接的处理，在此之前则完全是内核的行为。不过在初始化阶段可以通过设置一些socket选项来改变其行为，大家比较熟知的有比如SO_REUSEPORT，TCP_DEFER_ACCEPT。前者允许多个socket绑定到在相同的地址端口对上，由内核在多个进程的socket间进行连接接收的负载均衡，后者则可以推迟连接就绪的时间，只有当收到客户端发来的应用数据时才可以accept。</p>
 <p>accept之后nginx会从空闲的连接中获取一个，这个动作在ngx_get_connection中完成，然后进入HTTP初始化流程。我们这里主要关注连接状态的变化情况，它是通过<strong>ngx_resuable_connection</strong>函数进行修改。最初连接是处于free状态的，进入ngx_http_ssl_handshake完成一些基本的初始化之后，连接设置定时器开始准备接收消息，此时的超时时间是post_accept_timeout，也就是配置项中的client_header_timeout，同步地连接进入reusable状态。等到接收到SSL握手消息之后，会创建SSL连接，同步地nginx连接进入unreusable状态。后续会进入握手流程，等到握手完成之后，连接又变成了reusable状态，开始等待接收HTTP请求，此时的超时时间仍然是post_accept_timeout。直到接收到HTTP请求，连接就此进入unreusable状态。一直到请求结束为止，状态都不再变化。</p>
@@ -717,7 +727,7 @@ translateInitilization();
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">21</span>
+          <span class="site-state-item-count">22</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
@@ -730,7 +740,7 @@ translateInitilization();
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">17</span>
+        <span class="site-state-item-count">19</span>
         <span class="site-state-item-name">标签</span></a>
       </div>
   </nav>
@@ -1047,13 +1057,13 @@ if(canvas.getContext){
       <i class="fa fa-chart-area"></i>
     </span>
       <span class="post-meta-item-text">站点总字数：</span>
-    <span title="站点总字数">229k</span>
+    <span title="站点总字数">251k</span>
     <span class="post-meta-divider">|</span>
     <span class="post-meta-item-icon">
       <i class="fa fa-coffee"></i>
     </span>
       <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
-    <span title="站点阅读时长">3:28</span>
+    <span title="站点阅读时长">3:48</span>
 </div>
   <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener external nofollow noreferrer" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener external nofollow noreferrer" target="_blank">NexT.Gemini</a> 强力驱动
   </div>
@@ -1247,7 +1257,7 @@ NexT.utils.loadComments(document.querySelector('#valine-comments'), () => {
       lang       : '' || 'zh-cn',
       path       : location.pathname,
       recordIP   : false,
-      serverURLs : ''
+      serverURLs : 'https://0syy5qyx.api.lncldglobal.com'
     });
   }, window.Valine);
 });

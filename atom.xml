@@ -6,7 +6,7 @@
   <link href="https://catbro666.github.io/atom.xml" rel="self"/>
   
   <link href="https://catbro666.github.io/"/>
-  <updated>2021-11-11T16:53:30.392Z</updated>
+  <updated>2021-12-11T19:22:05.817Z</updated>
   <id>https://catbro666.github.io/</id>
   
   <author>
@@ -15,6 +15,31 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>深入理解mmap--内核代码分析及驱动demo示例</title>
+    <link href="https://catbro666.github.io/posts/5ec4fb12/"/>
+    <id>https://catbro666.github.io/posts/5ec4fb12/</id>
+    <published>2021-12-11T13:06:53.000Z</published>
+    <updated>2021-12-11T19:22:05.817Z</updated>
+    
+    
+    <summary type="html">&lt;div class=&quot;note primary&quot;&gt;
+            &lt;p&gt;mmap是一个用户空间很常用的系统调用，无论是分配内存、读写大文件、链接动态库文件，还是多进程间共享内存，都可以看到其身影。本文首先介绍了进程地址空间和mmap，然后分析了内核代码以了解其实现，最后通过一个简单的demo驱动示例，加深对mmap的理解。&lt;/p&gt;
+          &lt;/div&gt;</summary>
+    
+    
+    
+    <category term="技术向" scheme="https://catbro666.github.io/categories/%E6%8A%80%E6%9C%AF%E5%90%91/"/>
+    
+    
+    <category term="Linux" scheme="https://catbro666.github.io/tags/Linux/"/>
+    
+    <category term="内存管理" scheme="https://catbro666.github.io/tags/%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86/"/>
+    
+    <category term="mmap" scheme="https://catbro666.github.io/tags/mmap/"/>
+    
+  </entry>
   
   <entry>
     <title>Lua中如何实现类似gdb的断点调试—09支持动态添加和删除断点</title>
@@ -44,7 +69,7 @@
     <link href="https://catbro666.github.io/posts/4198933e/"/>
     <id>https://catbro666.github.io/posts/4198933e/</id>
     <published>2021-11-07T09:52:11.000Z</published>
-    <updated>2021-11-07T11:20:32.786Z</updated>
+    <updated>2021-12-10T10:37:44.221Z</updated>
     
     
     <summary type="html">&lt;div class=&quot;note primary&quot;&gt;
@@ -441,26 +466,6 @@
 &lt;li&gt;首先要搞清楚空洞的性质以判断一个文件是否有空洞，以及空洞的位置&lt;/li&gt;
 &lt;li&gt;知道了空洞的位置之后，读到源文件中的空洞部分时，在目标文件中&lt;code&gt;lseek&lt;/code&gt;相应的长度&lt;/li&gt;
 &lt;/ul&gt;</summary>
-    
-    
-    
-    <category term="技术向" scheme="https://catbro666.github.io/categories/%E6%8A%80%E6%9C%AF%E5%90%91/"/>
-    
-    
-    <category term="UNIX" scheme="https://catbro666.github.io/tags/UNIX/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>UNIX环境高级编程APUE练习3.2-不用fcntl实现dup2的功能</title>
-    <link href="https://catbro666.github.io/posts/2485f370/"/>
-    <id>https://catbro666.github.io/posts/2485f370/</id>
-    <published>2019-12-17T09:52:09.000Z</published>
-    <updated>2021-06-26T11:09:03.174Z</updated>
-    
-    
-    <summary type="html">&lt;h2 id=&quot;题面&quot;&gt;&lt;a href=&quot;#题面&quot; class=&quot;headerlink&quot; title=&quot;题面&quot;&gt;&lt;/a&gt;题面&lt;/h2&gt;&lt;p&gt;编写与&lt;code&gt;dup2&lt;/code&gt;功能相同的函数，要求不调用&lt;code&gt;fcntl&lt;/code&gt;函数，并且要有正确的出错处理。&lt;/p&gt;
-&lt;h2 id=&quot;基本思路&quot;&gt;&lt;a href=&quot;#基本思路&quot; class=&quot;headerlink&quot; title=&quot;基本思路&quot;&gt;&lt;/a&gt;基本思路&lt;/h2&gt;&lt;p&gt;不能用&lt;code&gt;fcntl&lt;/code&gt;，能够返回一个文件描述符的只有&lt;code&gt;open&lt;/code&gt;和&lt;code&gt;dup&lt;/code&gt;。而&lt;code&gt;open&lt;/code&gt;会创建一个新的文件表项，返回的fd指向新的文件表项，与&lt;code&gt;dup2&lt;/code&gt;的表现不符。&lt;code&gt;dup&lt;/code&gt;基本能满足要求，但是返回的是最小的可用fd，需要进一步操作满足要求。另外需要自己添加错误处理，以及处理oldfd与newfd相等的情况等。具体地，&lt;/p&gt;</summary>
     
     
     
