@@ -6,7 +6,7 @@
   <link href="https://catbro666.github.io/atom.xml" rel="self"/>
   
   <link href="https://catbro666.github.io/"/>
-  <updated>2021-12-11T19:46:43.481Z</updated>
+  <updated>2021-12-12T10:33:52.213Z</updated>
   <id>https://catbro666.github.io/</id>
   
   <author>
@@ -15,6 +15,33 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>VIM常用快捷键和插件整理</title>
+    <link href="https://catbro666.github.io/posts/d6ca5270/"/>
+    <id>https://catbro666.github.io/posts/d6ca5270/</id>
+    <published>2021-12-12T10:25:29.000Z</published>
+    <updated>2021-12-12T10:33:52.213Z</updated>
+    
+    
+      
+      
+        
+        
+    <summary type="html">&lt;span id=&quot;more&quot;&gt;&lt;/span&gt;
+
+&lt;p&gt;本文不会介绍基本的VIM使用方法，如果你对VIM的几种模式、基本的编辑、移动和选取等还不了解，推荐你先看一下这篇&lt;a href=&quot;https://coolshell.cn/articles/5426.html&quot;&gt;简明</summary>
+        
+      
+    
+    
+    
+    <category term="工具向" scheme="https://catbro666.github.io/categories/%E5%B7%A5%E5%85%B7%E5%90%91/"/>
+    
+    
+    <category term="vim" scheme="https://catbro666.github.io/tags/vim/"/>
+    
+  </entry>
   
   <entry>
     <title>深入理解mmap--内核代码分析及驱动demo示例</title>
@@ -450,29 +477,6 @@
     
     
     <category term="Hexo" scheme="https://catbro666.github.io/tags/Hexo/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>UNIX环境高级编程APUE练习4.6-实现类似cp(1)的程序，保留文件中的空洞</title>
-    <link href="https://catbro666.github.io/posts/aa99fc97/"/>
-    <id>https://catbro666.github.io/posts/aa99fc97/</id>
-    <published>2020-01-06T08:49:42.000Z</published>
-    <updated>2021-06-26T11:09:28.161Z</updated>
-    
-    
-    <summary type="html">&lt;h2 id=&quot;1-题面&quot;&gt;&lt;a href=&quot;#1-题面&quot; class=&quot;headerlink&quot; title=&quot;1 题面&quot;&gt;&lt;/a&gt;1 题面&lt;/h2&gt;&lt;p&gt;编写类似&lt;code&gt;cp(1)&lt;/code&gt;的程序，它复制包含空洞的文件，但是不将字节0写到输出文件中去。&lt;/p&gt;
-&lt;h2 id=&quot;2-基本思路&quot;&gt;&lt;a href=&quot;#2-基本思路&quot; class=&quot;headerlink&quot; title=&quot;2 基本思路&quot;&gt;&lt;/a&gt;2 基本思路&lt;/h2&gt;&lt;ul&gt;
-&lt;li&gt;首先要搞清楚空洞的性质以判断一个文件是否有空洞，以及空洞的位置&lt;/li&gt;
-&lt;li&gt;知道了空洞的位置之后，读到源文件中的空洞部分时，在目标文件中&lt;code&gt;lseek&lt;/code&gt;相应的长度&lt;/li&gt;
-&lt;/ul&gt;</summary>
-    
-    
-    
-    <category term="技术向" scheme="https://catbro666.github.io/categories/%E6%8A%80%E6%9C%AF%E5%90%91/"/>
-    
-    
-    <category term="UNIX" scheme="https://catbro666.github.io/tags/UNIX/"/>
     
   </entry>
   
