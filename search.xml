@@ -2832,10 +2832,13 @@
   <entry>
     <title>VIM常用快捷键和插件整理</title>
     <url>/posts/d6ca5270/</url>
-    <content><![CDATA[<span id="more"></span>
+    <content><![CDATA[<div class="note primary">
+            <p>本文不会介绍基本的VIM使用方法，如果你对VIM的几种模式、基本的编辑、移动和选取等还不了解，推荐你先看一下这篇<a href="https://coolshell.cn/articles/5426.html">简明 VIM 练级攻略</a>，写得还是不错的，基本上最常用的命令都有了。如果你不是vim重度用户的话，知道这些命令已经足够。只能说vim的水太深，根据自身情况在编辑效率和学习成本之间做个平衡吧。</p>
+          </div>
 
-<p>本文不会介绍基本的VIM使用方法，如果你对VIM的几种模式、基本的编辑、移动和选取等还不了解，推荐你先看一下这篇<a href="https://coolshell.cn/articles/5426.html">简明 VIM 练级攻略</a>，写得还是不错的，基本上最常用的命令都有了。</p>
-<p>这里有一个快捷键的汇总图，内容太多不可能完全记住，主要还是做快速查阅用。不过还是推荐有需要时查看vim的help文档，内容写得非常详细。</p>
+<span id="more"></span>
+
+<p>这里有一个vim cheat sheet图，可以作为快速查阅用。要了解具体的命令推荐查看vim的help文档，内容写得非常详细。</p>
 <p><img src="https://coolshell.cn/wp-content/uploads/2011/09/vim_cheat_sheet_for_programmers_print.png" alt="vim cheet sheet" loading="lazy"></p>
 <h2 id="Vim编辑命令一般格式"><a href="#Vim编辑命令一般格式" class="headerlink" title="Vim编辑命令一般格式"></a>Vim编辑命令一般格式</h2><p>vim中编辑命令的结构</p>
 <p><code>&lt;number&gt; &lt;operator&gt; &lt;number&gt; &lt;text object or motion&gt;</code></p>

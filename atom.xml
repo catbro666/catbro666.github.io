@@ -6,7 +6,7 @@
   <link href="https://catbro666.github.io/atom.xml" rel="self"/>
   
   <link href="https://catbro666.github.io/"/>
-  <updated>2021-12-12T10:34:08.364Z</updated>
+  <updated>2021-12-12T10:46:14.736Z</updated>
   <id>https://catbro666.github.io/</id>
   
   <author>
@@ -21,18 +21,12 @@
     <link href="https://catbro666.github.io/posts/d6ca5270/"/>
     <id>https://catbro666.github.io/posts/d6ca5270/</id>
     <published>2021-12-12T10:25:29.000Z</published>
-    <updated>2021-12-12T10:34:08.364Z</updated>
+    <updated>2021-12-12T10:46:14.736Z</updated>
     
     
-      
-      
-        
-        
-    <summary type="html">&lt;span id=&quot;more&quot;&gt;&lt;/span&gt;
-
-&lt;p&gt;本文不会介绍基本的VIM使用方法，如果你对VIM的几种模式、基本的编辑、移动和选取等还不了解，推荐你先看一下这篇&lt;a href=&quot;https://coolshell.cn/articles/5426.html&quot;&gt;简明</summary>
-        
-      
+    <summary type="html">&lt;div class=&quot;note primary&quot;&gt;
+            &lt;p&gt;本文不会介绍基本的VIM使用方法，如果你对VIM的几种模式、基本的编辑、移动和选取等还不了解，推荐你先看一下这篇&lt;a href=&quot;https://coolshell.cn/articles/5426.html&quot;&gt;简明 VIM 练级攻略&lt;/a&gt;，写得还是不错的，基本上最常用的命令都有了。如果你不是vim重度用户的话，知道这些命令已经足够。只能说vim的水太深，根据自身情况在编辑效率和学习成本之间做个平衡吧。&lt;/p&gt;
+          &lt;/div&gt;</summary>
     
     
     
