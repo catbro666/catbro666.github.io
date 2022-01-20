@@ -6,7 +6,7 @@
   <link href="https://catbro666.github.io/atom.xml" rel="self"/>
   
   <link href="https://catbro666.github.io/"/>
-  <updated>2021-12-12T10:46:14.736Z</updated>
+  <updated>2022-01-20T14:45:57.743Z</updated>
   <id>https://catbro666.github.io/</id>
   
   <author>
@@ -15,6 +15,31 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>如何在裸机上直接运行程序—王爽《汇编语言》课程设计2</title>
+    <link href="https://catbro666.github.io/posts/8054db72/"/>
+    <id>https://catbro666.github.io/posts/8054db72/</id>
+    <published>2022-01-17T12:42:17.000Z</published>
+    <updated>2022-01-20T14:45:57.743Z</updated>
+    
+    
+    <summary type="html">&lt;div class=&quot;note primary&quot;&gt;
+            &lt;p&gt;平常我们的程序基本都是运行在操作系统之上，很少有机会直接在裸机上运行程序。现代操作系统需要支持多任务环境的工作方式，这要求CPU在硬件上提供支持。以Intel处理器为例，从80286/80386开始，CPU开始支持工作在保护模式，为多任务环境提供保护机制。&lt;/p&gt;&lt;p&gt;操作系统为我们提供了保护和抽象，这方便了开发和使用，但是同时也对学习者了解计算机底层工作原理造成了一定的障碍。本文通过编码实践王爽老师《汇编语言》中的课程设计2，与寄存器、内存、显存、中断、外设等进行了近距离的亲密接触，通过这次实践也算是入门汇编了吧。&lt;/p&gt;
+          &lt;/div&gt;</summary>
+    
+    
+    
+    <category term="技术向" scheme="https://catbro666.github.io/categories/%E6%8A%80%E6%9C%AF%E5%90%91/"/>
+    
+    
+    <category term="8086" scheme="https://catbro666.github.io/tags/8086/"/>
+    
+    <category term="汇编" scheme="https://catbro666.github.io/tags/%E6%B1%87%E7%BC%96/"/>
+    
+    <category term="DOS" scheme="https://catbro666.github.io/tags/DOS/"/>
+    
+  </entry>
   
   <entry>
     <title>VIM常用快捷键和插件整理</title>
@@ -42,7 +67,7 @@
     <link href="https://catbro666.github.io/posts/5ec4fb12/"/>
     <id>https://catbro666.github.io/posts/5ec4fb12/</id>
     <published>2021-12-11T13:06:53.000Z</published>
-    <updated>2021-12-11T19:46:43.481Z</updated>
+    <updated>2022-01-20T14:38:20.881Z</updated>
     
     
     <summary type="html">&lt;div class=&quot;note primary&quot;&gt;
@@ -90,7 +115,7 @@
     <link href="https://catbro666.github.io/posts/4198933e/"/>
     <id>https://catbro666.github.io/posts/4198933e/</id>
     <published>2021-11-07T09:52:11.000Z</published>
-    <updated>2021-12-10T10:37:44.221Z</updated>
+    <updated>2022-01-20T14:41:00.771Z</updated>
     
     
     <summary type="html">&lt;div class=&quot;note primary&quot;&gt;
@@ -452,25 +477,6 @@
     <category term="信号" scheme="https://catbro666.github.io/tags/%E4%BF%A1%E5%8F%B7/"/>
     
     <category term="共享内存" scheme="https://catbro666.github.io/tags/%E5%85%B1%E4%BA%AB%E5%86%85%E5%AD%98/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Hexo-NexT Tag 插件的使用</title>
-    <link href="https://catbro666.github.io/posts/29bfe8c9/"/>
-    <id>https://catbro666.github.io/posts/29bfe8c9/</id>
-    <published>2021-06-22T12:13:58.000Z</published>
-    <updated>2021-06-26T11:12:07.228Z</updated>
-    
-    
-    <summary type="html">&lt;p&gt;&lt;code&gt;Tag Plugin&lt;/code&gt; 是一种使 Hexo 支持特殊样式内容的方法。例如，我们无法在标准 Markdown 中显示具有自定义尺寸的图像。然后我们可以使用标签插件来解决它。 Hexo 有很多可以帮助用户的标签。 Hexo 还具有主题接口，使主题能够创建自己的标签。&lt;/p&gt;</summary>
-    
-    
-    
-    <category term="工具向" scheme="https://catbro666.github.io/categories/%E5%B7%A5%E5%85%B7%E5%90%91/"/>
-    
-    
-    <category term="Hexo" scheme="https://catbro666.github.io/tags/Hexo/"/>
     
   </entry>
   

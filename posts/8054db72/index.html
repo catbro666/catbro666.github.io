@@ -1,0 +1,1230 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.4.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/images/hiking-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/images/hiking-16.png">
+  <link rel="mask-icon" href="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/images/logo.svg" color="#222">
+  <meta name="google-site-verification" content="JT1HKSsLR6ZiapLatX1c6-7k-OcEM8cAMdR5pgCSptk">
+  <meta name="yandex-verification" content="5ab41d9d91227789">
+  <meta name="baidu-site-verification" content="code-9Qi2zUhBf4">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="https://fonts.loli.net/css?family=Noto Serif SC:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="//cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"catbro666.github.io","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","width":240,"display":"post","padding":18,"offset":42,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":"mac"},"back2top":{"enable":true,"sidebar":true,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="平常我们的程序基本都是运行在操作系统之上，很少有机会直接在裸机上运行程序。现代操作系统需要支持多任务环境的工作方式，这要求CPU在硬件上提供支持。以Intel处理器为例，从80286&#x2F;80386开始，CPU开始支持工作在保护模式，为多任务环境提供保护机制。操作系统为我们提供了保护和抽象，这方便了开发和使用，但是同时也对学习者了解计算机底层工作原理造成了一定的障碍。本文通过">
+<meta property="og:type" content="article">
+<meta property="og:title" content="如何在裸机上直接运行程序—王爽《汇编语言》课程设计2">
+<meta property="og:url" content="https://catbro666.github.io/posts/8054db72/index.html">
+<meta property="og:site_name" content="CatBro&#39;s Blog">
+<meta property="og:description" content="平常我们的程序基本都是运行在操作系统之上，很少有机会直接在裸机上运行程序。现代操作系统需要支持多任务环境的工作方式，这要求CPU在硬件上提供支持。以Intel处理器为例，从80286&#x2F;80386开始，CPU开始支持工作在保护模式，为多任务环境提供保护机制。操作系统为我们提供了保护和抽象，这方便了开发和使用，但是同时也对学习者了解计算机底层工作原理造成了一定的障碍。本文通过">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2022-01-17T12:42:17.000Z">
+<meta property="article:modified_time" content="2022-01-20T14:45:57.743Z">
+<meta property="article:author" content="猫猫哥">
+<meta property="article:tag" content="8086">
+<meta property="article:tag" content="汇编">
+<meta property="article:tag" content="DOS">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="https://catbro666.github.io/posts/8054db72/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <meta name="360-site-verification" content="e7586a6caf7e44316b4a27dfaf53e858"/>
+
+
+
+  <title>如何在裸机上直接运行程序—王爽《汇编语言》课程设计2 | CatBro's Blog</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-6PKG8T836C"></script>
+    <script>
+      if (CONFIG.hostname === location.hostname) {
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-6PKG8T836C');
+      }
+    </script>
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?43ceb843b17e732b0a5dd658f624cac5";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+<link rel="alternate" href="/atom.xml" title="CatBro's Blog" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">CatBro's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">Volar con el viento</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+        <li class="menu-item menu-item-hot">
+
+    <a href="/hot/" rel="section"><i class="fa fa-thermometer-half fa-fw"></i>热度排行</a>
+
+  </li>
+        <li class="menu-item menu-item-commonweal">
+
+    <a href="/404.html" rel="section"><i class="fa fa-heartbeat fa-fw"></i>公益 404</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="reading-progress-bar"></div>
+
+  <a href="https://github.com/catbro666" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener external nofollow noreferrer" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://catbro666.github.io/posts/8054db72/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/images/avatar.gif">
+      <meta itemprop="name" content="猫猫哥">
+      <meta itemprop="description" content="如果说根号二是无理数，那么我就是个无理人">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="CatBro's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          如何在裸机上直接运行程序—王爽《汇编语言》课程设计2
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2022-01-17 20:42:17" itemprop="dateCreated datePublished" datetime="2022-01-17T20:42:17+08:00">2022-01-17</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2022-01-20 22:45:57" itemprop="dateModified" datetime="2022-01-20T22:45:57+08:00">2022-01-20</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E6%8A%80%E6%9C%AF%E5%90%91/" itemprop="url" rel="index"><span itemprop="name">技术向</span></a>
+                </span>
+            </span>
+
+          
+            <span id="/posts/8054db72/" class="post-meta-item leancloud_visitors" data-flag-title="如何在裸机上直接运行程序—王爽《汇编语言》课程设计2" title="阅读次数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span class="leancloud-visitors-count"></span>
+            </span>
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="far fa-comment"></i>
+      </span>
+      <span class="post-meta-item-text">评论数：</span>
+    
+    <a title="valine" href="/posts/8054db72/#valine-comments" itemprop="discussionUrl">
+      <span class="post-comments-count valine-comment-count" data-xid="/posts/8054db72/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  <br>
+  <span class="post-meta-item" title="繁/简：">
+    <span class="post-meta-item-icon">
+      <i class="fas fa-yin-yang"></i>
+    </span>
+      <span class="post-meta-item-text">繁/简：</span>
+    <a id="translateLink" href="javascript:translatePage();" rel="external nofollow noreferrer">繁體</a>
+  </span>
+
+<script type="text/javascript" src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/js/tw_cn.js"></script>
+<script type="text/javascript">
+var defaultEncoding = 2; //网站编写字体是否繁体，1-繁体，2-简体
+var translateDelay = 0; //延迟时间,若不在前, 要设定延迟翻译时间, 如100表示100ms,默认为0
+var cookieDomain = "https://catbro666.github.io/"; //Cookie地址, 一定要设定, 通常为你的网址
+var msgToTraditionalChinese = "繁體"; //此处可以更改为你想要显示的文字
+var msgToSimplifiedChinese = "简体"; //同上，但两处均不建议更改
+var translateButtonId = "translateLink"; //默认互换id
+translateInitilization();
+</script>
+<br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>17k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>15 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <div class="note primary">
+            <p>平常我们的程序基本都是运行在操作系统之上，很少有机会直接在裸机上运行程序。现代操作系统需要支持多任务环境的工作方式，这要求CPU在硬件上提供支持。以Intel处理器为例，从80286/80386开始，CPU开始支持工作在保护模式，为多任务环境提供保护机制。</p><p>操作系统为我们提供了保护和抽象，这方便了开发和使用，但是同时也对学习者了解计算机底层工作原理造成了一定的障碍。本文通过编码实践王爽老师《汇编语言》中的课程设计2，与寄存器、内存、显存、中断、外设等进行了近距离的亲密接触，通过这次实践也算是入门汇编了吧。</p>
+          </div>
+
+<span id="more"></span>
+
+<h2 id="背景知识"><a href="#背景知识" class="headerlink" title="背景知识"></a>背景知识</h2><p>计算机上电之后，CPU自动从FFFF:0单元处开始执行，这里有一条跳转指令，CPU转去执行BIOS中的硬件系统检测和初始化程序。初始化程序将从0:0单元处开始建立中断向量表。硬件系统检测和初始化完成之后，调用int 19h进行操作系统引导。从软盘或硬盘第一个扇区读取内容到0:7c00，然后CS:IP指向0:7c00开始执行。</p>
+<p>这个课程设计的任务就是编写一个可以直接在裸机上运行的程序，具体功能如下：</p>
+<ol>
+<li>列出功能选项，让用户通过键盘进行选择，界面如下。<ol>
+<li>reset pc            ; 重新启动计算机</li>
+<li>start system                ; 引导现有的操作系统</li>
+<li>clock                             ; 进入时钟程序</li>
+<li>set clock                       ; 设置时钟</li>
+</ol>
+</li>
+<li>用户输入“1”后重新启动计算机（重新跳转到ffff:0单元）</li>
+<li>用户输入“2”后引导现有的操作系统（读取硬盘C的0道0面1扇区进行引导）</li>
+<li>用户输入“3”后，执行动态显示当前日期、时间的程序（循环读取CMOS），格式：年/月/日 时:分:秒。按下F1键后，改变显示颜色；按下Esc键后，返回到主选单（利用键盘中断）</li>
+<li>用户输入“4”后，用户可输入字符串更改CMOS中的日期时间，更改后返回到主选单</li>
+</ol>
+<h2 id="准备工作"><a href="#准备工作" class="headerlink" title="准备工作"></a>准备工作</h2><ul>
+<li>首先需要准备一个常用虚拟机，VMware/VirtualBox等都可以</li>
+<li>准备<a target="_blank" rel="noopener external nofollow noreferrer" href="https://winworldpc.com/product/ms-dos/622">MS-DOS 6.22映像</a>，或者<a target="_blank" rel="noopener external nofollow noreferrer" href="https://www.dosbox.com/download.php?main=1">DOSBox</a>，作为开发和调试的环境，DOS 6.22虚拟机的安装可以参考<a target="_blank" rel="noopener external nofollow noreferrer" href="https://www.cnblogs.com/pchmonster/p/8372902.html">这里</a></li>
+<li>准备debug、masm、link程序，分别是DOS下的调试器、编译器和链接器，可以从<a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/xDarkLemon/DOSBox_MASM/tree/master/masm">这里</a>下载</li>
+</ul>
+<h2 id="程序设计"><a href="#程序设计" class="headerlink" title="程序设计"></a>程序设计</h2><p>由前面的背景知识可知，计算机刚上电之后，CPU会自动执行硬件系统检测及初始化工作，这些操作我们用户是无法进行插手的。完成初始化之后，将调用int 19h读取启动设备第一个扇区的内容到0:7c00，从这里开始我们就接手CPU的控制权了。</p>
+<h3 id="制作启动盘"><a href="#制作启动盘" class="headerlink" title="制作启动盘"></a>制作启动盘</h3><p>所以我们首先要做的就是制作一个启动盘，我们这里选用1.44M的软盘，它比硬盘具有更高的优先级。创建一个空的软盘映像非常简单，在Window下可以使用WinImage工具，在Linux上则直接使用如下dd命令即可：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">dd <span class="keyword">if</span>=/dev/zero of=floppy.img bs=512 count=2880</span><br></pre></td></tr></table></figure>
+
+<h3 id="安装程序"><a href="#安装程序" class="headerlink" title="安装程序"></a>安装程序</h3><p>有了软盘映像之后，接下来的任务就是将我们的程序写到软盘上，这个可以通过一个安装程序来完成，借助int 13h中断将任务程序的二进制代码写到软盘上。</p>
+<h3 id="任务程序引导部分"><a href="#任务程序引导部分" class="headerlink" title="任务程序引导部分"></a>任务程序引导部分</h3><p>如前所述，int 19h会帮我们将启动盘的第一个扇区读到0:7c00，然后CPU从0:7c00开始执行。一个扇区基本不可能放下我们整个任务程序，所以我们需要将任务程序分成两个部分：引导部分和主体部分。引导部分的代码负责把剩余主体部分读到内存中。我们这里选择读到0:7e00h处，紧跟在第一个扇区后面。读完之后就跳转到主体部分代码的开头继续执行。</p>
+<h3 id="任务程序主体部分"><a href="#任务程序主体部分" class="headerlink" title="任务程序主体部分"></a>任务程序主体部分</h3><p>主体部分完成我们程序的主要功能</p>
+<ol>
+<li>首先我们需要注册一个新的int 9中断例程，包装BIOS提供的中断例程，因为我们需要根据用户的键盘输入做不同的操作。这个中断例程是我们程序的核心。</li>
+<li>接着显示几个选项供用户选择</li>
+<li>然后进入循环，根据模式标志决定是否显示时间</li>
+</ol>
+<h3 id="int-9中断例程"><a href="#int-9中断例程" class="headerlink" title="int 9中断例程"></a>int 9中断例程</h3><p>int9中断例程负责处理用户的键盘输入，分为两个状态。</p>
+<ul>
+<li>用户在主选单时<ul>
+<li>输入按键1：重新启动计算机，跳到ffff:0执行</li>
+<li>输入按键2：首先复原BIOS的int9中断例程，然后清屏，将硬盘的第一个扇区读取到内存0:7c00处，然后跳转到0:7c00进行硬盘引导</li>
+<li>输入按键3：保存屏幕（主选单），清屏，修改模式为1（动态显示时间）</li>
+<li>输入按键4：首先需要复原BIOS的int9中断例程，保存屏幕（主选单），清屏，显示提示字符串，等待用户输入日期时间，检查格式是否正确，将时间设置到CMOS RTC上。完成之后恢复屏幕，重新安装我们包装的int 9中断例程。</li>
+</ul>
+</li>
+<li>用户在时钟程序时<ul>
+<li>输入按键F1：改变显示的颜色</li>
+<li>输入按键Esc：恢复屏幕，修改模式为0（主选单）</li>
+</ul>
+</li>
+</ul>
+<h3 id="处理用户输入的时间"><a href="#处理用户输入的时间" class="headerlink" title="处理用户输入的时间"></a>处理用户输入的时间</h3><p>我们使用一个字符栈来保存用户输入的字符，同时用一个变量top保存当前栈顶的位置。</p>
+<ul>
+<li>当用户输入字符时：首先检查是否到栈顶， 到了栈顶则忽略，否则将字符入栈，然后更新屏幕显示</li>
+<li>当用户输入退格键时：如果栈是空的，不做啥操作，否则弹出一个字符，然后更新屏幕显示</li>
+<li>当用户输入Enter键时：结束输入过程</li>
+</ul>
+<h2 id="避坑指南"><a href="#避坑指南" class="headerlink" title="避坑指南"></a>避坑指南</h2><p>笔者在编码测试过程碰到了许多的问题，汇编的调试不是那么方便，有些bug还藏得比较隐蔽，所以花了不少时间来调试问题。笔者痛定思痛，含泪总结了下面这几条，希望对有类似经历的朋友有所帮助。</p>
+<ul>
+<li>逻辑独立的程序块最好设计成子程序<ul>
+<li>一方面，是因为条件转移指令只能是短转移，程序太长会超出其范围。</li>
+<li>另一方面，代码逻辑更加清晰，而且可以单独进行单元测试，否则全部写到一块后面问题会比较难定位。</li>
+<li>子程序在实现的时候一定要标注好参数和返回值的情况，前提条件和后置条件，这关系到寄存器的使用。</li>
+</ul>
+</li>
+<li>寄存器的保护<ul>
+<li>被调用者保护的寄存器：调用方在调用子函数前，需要先备份它。我们这里主要是返回值用到的寄存器。</li>
+<li>调用者保护的寄存器：子函数在修改前需要先保存原值</li>
+<li>push和pop一定要对应，顺序相反，建议加了一个push之后立马写对应的pop，否则很可能遗忘。</li>
+</ul>
+</li>
+<li>内存的操作<ul>
+<li>处理内存的时候一定要注意长度，尤其是寄存器一起使用的指令，要使用对应长度的寄存器，这个如果搞错了编译器也是不会给出报错的。</li>
+<li>内存寻址时段寄存器最好不要省略，避免疏忽造成不必要的bug。（比如用到了bp寄存器，段地址默认在ss中）</li>
+</ul>
+</li>
+<li>合理安排寄存器的使用<ul>
+<li>寄存器是稀缺资源，总共就这么十几个，有些使用场景还受限</li>
+<li>首先确定内存寻址需要用到的寄存器，内存寻址只能使用这几个寄存器：bx/bp、di/si。可以单独使用，也可以左右两个组合使用。提示：其中bx可以分成bl和bh使用，其他几个则只能作为整体使用，所以有些场景可能只有bx能胜任。</li>
+<li>其次是确定指令、子程序或中断规定使用的寄存器</li>
+<li>字节的操作只能使用ah/al、bh/hl、ch/cl、dh/dl，其余寄存器不能拆分使用。</li>
+<li>如果寄存器实在不够用，就只能临时先压栈，然后用完再出栈。或者将程序分拆为多个子程序。</li>
+</ul>
+</li>
+<li>注意标号的偏移地址，是其在安装程序中的偏移地址，并不是后面任务程序从启动盘被读取到内存中之后的偏移地址。所以我们访问数据时需要对偏移地址做修正。（<code>call 标号</code>指令在编译成机器码时会转成相对位移，所以可以直接使用标号）</li>
+<li>留心程序中的竞争问题，因为中断随时可能发生，需要注意中断例程和主程序中都用到的数据，必要时可以关中断。</li>
+<li>名字相似的指令不要打错，比如and和add指令，它们真的太像了，我至少在它们上面栽了两个跟头。</li>
+</ul>
+<h2 id="程序实现"><a href="#程序实现" class="headerlink" title="程序实现"></a>程序实现</h2><p>接下来来看实际代码实现，首先看下整体的框架，然后看每个部分的细节。</p>
+<h3 id="程序框架"><a href="#程序框架" class="headerlink" title="程序框架"></a>程序框架</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line">assume cs:code, ss:stack, ds:data</span><br><span class="line">stack segment</span><br><span class="line">    dw 64 dup(0)</span><br><span class="line">stack ends</span><br><span class="line">data segment</span><br><span class="line">    mes db &#x27;fail to write to floppy!&#x27;, 0</span><br><span class="line">data ends</span><br><span class="line"></span><br><span class="line">code segment</span><br><span class="line">; 任务程序引导部分（1个扇区512字节）</span><br><span class="line">; 功能: 将任务程序的主体部分读入内存</span><br><span class="line">; 第一个扇区由BIOS读入内存0:7c00h处</span><br><span class="line">boot:</span><br><span class="line">; 从第二个扇区开始读取到0:7e00h处</span><br><span class="line">; 然后跳转到任务程序主体部分task</span><br><span class="line">        省略...</span><br><span class="line">        db 512-($-boot) dup(0)  ; pad到512字节</span><br><span class="line">        </span><br><span class="line">; 任务程序主体部分（3个扇区1536字节）</span><br><span class="line">; 功能：处理用户输入，执行对应操作</span><br><span class="line">; 程序位于内存0:7e00h处</span><br><span class="line">task:</span><br><span class="line">        省略...</span><br><span class="line">        db 1536-($-task) dup(0)  ; pad到3个扇区的长度</span><br><span class="line">        </span><br><span class="line">; 任务程序数据部分（1个扇区512字节）</span><br><span class="line">dat:</span><br><span class="line">        省略...</span><br><span class="line">        db 512-($-dat) dup(0)           ; pad到512字节</span><br><span class="line">        </span><br><span class="line">; 安装程序: 将任务程序写到软盘上</span><br><span class="line">start:</span><br><span class="line">        省略...</span><br><span class="line">ok:</span><br><span class="line">        mov ax, 4c00h</span><br><span class="line">        int 21h</span><br><span class="line">code ends</span><br><span class="line">end start</span><br></pre></td></tr></table></figure>
+
+<p>可以看到我们的代码段分为4大块，除了安装程序之外，是任务程序的引导部分、主体部分以及数据部分。我们在任务程序的每个部分最后都做了补0处理，补齐到扇区的长度，使操作更方便。另外，将数据单独放在一个扇区中，方便计算偏移，进行数据的访问。</p>
+<h3 id="安装程序-1"><a href="#安装程序-1" class="headerlink" title="安装程序"></a>安装程序</h3><p>我们先来看安装程序</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line">; 安装程序: 将任务程序写到软盘上</span><br><span class="line">start:</span><br><span class="line">        mov ax, data</span><br><span class="line">        mov ds, ax</span><br><span class="line">        mov ax, stack</span><br><span class="line">        mov ss, ax</span><br><span class="line">        mov sp, 128</span><br><span class="line"></span><br><span class="line">        mov ax, cs</span><br><span class="line">        mov es, ax</span><br><span class="line">        mov bx, offset boot     ; es:bx 指向缓存数据的内存地址</span><br><span class="line"></span><br><span class="line">        mov al, 5               ; 读写的扇区数</span><br><span class="line">        mov ch, 0               ; 磁道号</span><br><span class="line">        mov cl, 1               ; 扇区号</span><br><span class="line">        mov dl, 0               ; 驱动器号  软驱从0开始，0:软驱A，1:软驱B；</span><br><span class="line">                                ; 硬盘从80h开始，80h：硬盘C，81h：硬盘D</span><br><span class="line">        mov dh, 0               ; 磁头号（对于软盘即面号）</span><br><span class="line">        mov ah, 3               ; 功能号，2表示读扇区，3表示写扇区</span><br><span class="line">        int 13h</span><br><span class="line"></span><br><span class="line">        cmp ah, 0</span><br><span class="line">        je ok</span><br><span class="line">        mov dh, 10</span><br><span class="line">        mov dl, 10</span><br><span class="line">        mov si, 0</span><br><span class="line">        call showstr</span><br><span class="line">ok:</span><br><span class="line">        mov ax, 4c00h</span><br><span class="line">        int 21h</span><br></pre></td></tr></table></figure>
+
+<p>首先设置段寄存器，然后将es:bx指向代码段的开头即boot的位置，我们将从这个位置开始写5个扇区到软盘中。如果写磁盘成功，则程序结束；否则显示一条错误信息。其中<code>showstr</code>是我们封装的子程序，用于在屏幕指定位置显示以0结尾的字符串。</p>
+<h3 id="任务程序引导部分-1"><a href="#任务程序引导部分-1" class="headerlink" title="任务程序引导部分"></a>任务程序引导部分</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">; 任务程序引导部分（1个扇区512字节）</span><br><span class="line">; 功能: 将任务程序的主体部分读入内存</span><br><span class="line">; 第一个扇区由BIOS读入内存0:7c00h处</span><br><span class="line">boot:</span><br><span class="line">; 从第二个扇区开始读取到0:7e00h处</span><br><span class="line">; 然后跳转到任务程序主体部分task</span><br><span class="line">        mov ax, 0</span><br><span class="line">        mov es, ax</span><br><span class="line">        mov bx, 7e00h           ; es:bx 指向接收从扇区读取数据的内存区</span><br><span class="line"></span><br><span class="line">        mov al, 4               ; 读取的扇区数</span><br><span class="line">        mov ch, 0               ; 磁道号(0~79)</span><br><span class="line">        mov cl, 2               ; 扇区号(1~18)，第二个扇区开始</span><br><span class="line">        mov dl, 0               ; 驱动器号  软驱从0开始，0:软驱A，1:软驱B</span><br><span class="line">                                ; 硬盘从80h开始，80h：硬盘C，81h：硬盘D</span><br><span class="line">        mov dh, 0               ; 磁头号(0~1)（对于软盘即面号）</span><br><span class="line">        mov ah, 2               ; 功能号，2表示读扇区，3表示写扇区</span><br><span class="line">        int 13h</span><br><span class="line">        ; 这里失败的话，回退到从硬盘启动</span><br><span class="line"></span><br><span class="line">        jmp bx                  ; 跳转到任务程序主体部分task</span><br><span class="line"></span><br><span class="line">        db 512-($-boot) dup(0)  ; pad到512字节</span><br></pre></td></tr></table></figure>
+
+<p>引导部分负责将任务程序的主体部分读到内存中，我们这里选择读到0:7e00h处，紧跟在第一个引导扇区后面。总共读了4个扇区，其中3个扇区代码、1个扇区数据。读完之后，跳转到0:7e00h处执行。</p>
+<h3 id="数据部分"><a href="#数据部分" class="headerlink" title="数据部分"></a>数据部分</h3><p>我们将所有的数据集中到了一起以方便访问。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">; 任务程序数据部分（1个扇区512字节）</span><br><span class="line">dat:</span><br><span class="line">    ; 相对task偏移+7e00h</span><br><span class="line">    ; m1:0, m2:1, m3:2, m4:3, m5:4</span><br><span class="line">    dw offset m1-task+7e00h, offset m2-task+7e00h, offset m3-task+7e00h</span><br><span class="line">    dw offset m4-task+7e00h, offset m5-task+7e00h</span><br><span class="line">    m1 db &#x27;--------------------------------------MENU--------------------------------------&#x27;, 0</span><br><span class="line">    m2 db &#x27;1) reset pc&#x27;, 0          ; 重新启动计算机</span><br><span class="line">    m3 db &#x27;2) start system&#x27;, 0      ; 引导现有的操作系统</span><br><span class="line">    m4 db &#x27;3) clock&#x27;, 0             ; 进入时钟程序</span><br><span class="line">    m5 db &#x27;4) set clock&#x27;, 0         ; 设置时间</span><br><span class="line">    prompt db &#x27;time format: yy/MM/dd hh:mm:ss&#x27;, 0   ; 设置时间提示字符串</span><br><span class="line">    timeformat db &#x27;yy/MM/dd hh:mm:ss&#x27;, 0            ; 时间格式</span><br><span class="line">    timeoffset db 9, 8, 7, 4, 2, 0                  ; CMOS时间各项寄存器号</span><br><span class="line">    old9 dd 0                       ; 保存int9中断原本的地址</span><br><span class="line">    mode db 0                       ; int9中断例程模式，0表示主选项，1表示时间程序</span><br><span class="line">    charstk db 32 dup(0)            ; 设置时间的字符栈</span><br><span class="line">    top dw 0</span><br><span class="line">    digitoffset db 0,1,3,4,6,7,9,10,12,13,15,16     ; 时间字符串中数字的偏移</span><br><span class="line">    daysofmonth db 0,31,29,31,30,31,30,31,31,30,31,30,31     ; 每个月的天数</span><br><span class="line">    hextable db &#x27;0123456789ABCDEF&#x27;  ; 十六进制打印</span><br><span class="line"></span><br><span class="line">    db 512-($-dat) dup(0)           ; pad到512字节</span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="主程序"><a href="#主程序" class="headerlink" title="主程序"></a>主程序</h3><p>引导程序将程序的剩余部分读取到内存之后，会跳转到主程序开始这里开始执行</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br></pre></td><td class="code"><pre><span class="line">; 任务程序主体部分（3个扇区1536字节）</span><br><span class="line">; 功能：处理用户输入，执行对应操作</span><br><span class="line">; 程序位于内存0:7e00h处</span><br><span class="line">task:</span><br><span class="line">;主程序逻辑：</span><br><span class="line">;- 首先注册主菜单int9中断例程</span><br><span class="line">;- 显示菜单</span><br><span class="line">;- 无限循环, 根据模式标志决定是否显示时间</span><br><span class="line">        mov ax, 0               ;</span><br><span class="line">        mov ds, ax              ; 主程序中将ds设为0</span><br><span class="line"></span><br><span class="line">        call mount9             ; 注册包装过的int9中断例程</span><br><span class="line"></span><br><span class="line">        mov cx, 5               ; 显示主菜单，5行</span><br><span class="line">        mov di, 0               ;</span><br><span class="line">        mov dh, 0               ; 行号</span><br><span class="line">        mov dl ,0               ; 列号</span><br><span class="line">s:</span><br><span class="line">        mov si, 8400h[di]       ; 菜单字符串偏移</span><br><span class="line">        call showstr</span><br><span class="line">        inc dh</span><br><span class="line">        add di, 2               ; 指向下一个字符串的偏移</span><br><span class="line">        loop s                  ;</span><br><span class="line"></span><br><span class="line">        mov dh, 5               ; 行号</span><br><span class="line">        mov dl, 0               ; 列号</span><br><span class="line">        mov bx, 0               ; bh页号</span><br><span class="line">        mov ah, 2               ; 功能号2: 设置光标</span><br><span class="line">        int 10h</span><br><span class="line">        </span><br><span class="line">        mov bx, offset mode-task+7e00h</span><br><span class="line">        mov si, offset timeformat-task+7e00h    ; +3</span><br><span class="line">        mov dh, 0</span><br><span class="line">        mov dl, 0</span><br><span class="line">        ; 进入无限循环</span><br><span class="line">s1:</span><br><span class="line">        call getclock           ; 从CMOS读取时间</span><br><span class="line">        pushf</span><br><span class="line">        cli                     ; 屏蔽中断，防止中断中将模式改为0后，还显示时间</span><br><span class="line">        cmp byte ptr [bx], 0    ; 模式值</span><br><span class="line">        je skiptime</span><br><span class="line">        call showstr            ; 显示从CMOS读取的时间</span><br><span class="line">skiptime:</span><br><span class="line">        popf</span><br><span class="line">        jmp s1</span><br></pre></td></tr></table></figure>
+
+<p><code>getclock</code>是我们封装的一个子程序，用于从CMOS读取时间写到<code>timeformat</code>所在的位置。最后在显示字符串的地方，我们关闭了中断，因为int 9中断中随时可能将发生，如果在主程序判断模式的值和完成时间显示之间，中断例程将模式从1改为0，那么显示就会出现问题。</p>
+<h3 id="中断例程的注册及恢复"><a href="#中断例程的注册及恢复" class="headerlink" title="中断例程的注册及恢复"></a>中断例程的注册及恢复</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">; 用于注册新的int 9中断例程，原来的中断向量保存在old9的位置</span><br><span class="line">mount9:</span><br><span class="line">        push ax</span><br><span class="line">        push si</span><br><span class="line">        mov si, offset old9-task+7e00h</span><br><span class="line">        mov ax, ds:[9*4]        ; 保存原来的中断例程的偏移地址</span><br><span class="line">        mov [si], ax            ; 保存到old9位置</span><br><span class="line">        mov ax, ds:[9*4+2]      ; 保存原来的中断例程的段地址</span><br><span class="line">        mov [si].2, ax          ; 保存到old9+2位置</span><br><span class="line"></span><br><span class="line">        pushf</span><br><span class="line">        cli                     ; 屏蔽中断，防止中断向量出现非法状态</span><br><span class="line">        mov ds:[9*4], offset int9 + 7c00h   ; 设置新的int9偏移, +7c00h修正</span><br><span class="line">        mov word ptr ds:[9*4+2], 0h     ; 新的int9段地址, 9000h</span><br><span class="line">        popf</span><br><span class="line"></span><br><span class="line">        pop si</span><br><span class="line">        pop ax</span><br><span class="line">        ret</span><br></pre></td></tr></table></figure>
+
+<p><code>mount9</code>用于注册新的int 9中断例程，将对应的中断向量设置为新的中断例程<code>int9</code>的偏移地址。因为我们还要用来原来的中断例程，所以将其中断向量保存在<code>old9</code>所在的位置。</p>
+<p>同样地，这里在修改中断向量之前，我们也屏蔽了中断。因为修改偏移地址和段地址至少需要两个指令，如果在两者之间正好发生了中断，那么中断向量就处于一个非法的状态。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">; 恢复int 9中断例程为BIOS自带的那个</span><br><span class="line">umount9:</span><br><span class="line">        push ax</span><br><span class="line">        push si</span><br><span class="line">        mov si, offset old9-task+7e00h</span><br><span class="line">        pushf</span><br><span class="line">        cli                     ; 屏蔽中断，防止中断向量出现非法状态</span><br><span class="line">        mov ax, [si]</span><br><span class="line">        mov ds:[9*4], ax        ; 偏移地址</span><br><span class="line">        mov ax, [si].2</span><br><span class="line">        mov ds:[9*4+2], ax      ; 段地址</span><br><span class="line">        popf</span><br><span class="line"></span><br><span class="line">        pop si</span><br><span class="line">        pop ax</span><br><span class="line">        ret</span><br></pre></td></tr></table></figure>
+
+<p><code>umount9</code>则是将old9中保存的中断向量恢复到中断向量表中对应的位置。</p>
+<h3 id="int-9中断例程实现"><a href="#int-9中断例程实现" class="headerlink" title="int 9中断例程实现"></a>int 9中断例程实现</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br></pre></td><td class="code"><pre><span class="line">;主选菜单int9中断例程逻辑：（处理字符1~4）</span><br><span class="line">;- 用户输入1，重新启动计算机，跳到ffff:0执行</span><br><span class="line">;- 用户输入2，首先复原int9中断例程，然后清屏，将硬盘第一个扇区内容读到0:7c00，跳转到0:7c00</span><br><span class="line">;- 用户输入3，保存屏幕(主选单)，清屏，修改模式为1(动态显示时间)</span><br><span class="line">;- 用户输入4，首先复原int9中断例程，保存屏幕(主选单)，清屏，显示提示字符串</span><br><span class="line">;             等待用户输入日期时间，检查格式是否正确，将时间设置到CMOS RTC上</span><br><span class="line">;             完成之后恢复屏幕，重新安装我们包装的int 9中断例程。</span><br><span class="line">;</span><br><span class="line">;时钟程序int9中断例程逻辑：（处理F1和Esc）</span><br><span class="line">;- 用户输入F1，改变显示颜色</span><br><span class="line">;- 用户输入Esc，恢复屏幕，修改模式为0（主选单）</span><br><span class="line">int9:</span><br><span class="line">        push ax</span><br><span class="line">        push bx</span><br><span class="line">        push si</span><br><span class="line"></span><br><span class="line">        pushf                   ; 中断过程：标志寄存器入栈</span><br><span class="line">        mov si, offset old9-task+7e00h</span><br><span class="line">        call dword ptr [si]     ; 中断过程：模拟int9</span><br><span class="line"></span><br><span class="line">int9s:</span><br><span class="line">        mov ah, 1               ; int9进来，键盘缓冲区不一定有数据</span><br><span class="line">        int 16h</span><br><span class="line">        je int9ret</span><br><span class="line"></span><br><span class="line">        mov ah, 0</span><br><span class="line">        int 16h                 ; 读取键盘缓冲区,防止键盘缓冲区溢出</span><br><span class="line">                                ; (ah)=scan code, (al)=ascii</span><br><span class="line">                                </span><br><span class="line">int9s1:</span><br><span class="line">        ;in al, 60h      ; 从60h端口读取扫描码</span><br><span class="line">        mov bx, offset mode-task+7e00h</span><br><span class="line">        mov al, [bx]            ; 获取模式值</span><br><span class="line">        cmp al, 1</span><br><span class="line">        je timemode</span><br><span class="line">        cmp ah, 02              ; 1的扫描码02</span><br><span class="line">        je sub1</span><br><span class="line">        cmp ah, 03              ; 2的扫描码03</span><br><span class="line">        je sub2</span><br><span class="line">        cmp ah, 04              ; 3的扫描码04</span><br><span class="line">        je sub3</span><br><span class="line">        cmp ah, 05              ; 4的扫描码05</span><br><span class="line">        je sub4</span><br><span class="line">        jmp int9ret</span><br><span class="line">timemode:</span><br><span class="line">        cmp ah, 3bh             ; F1的扫描码3bh</span><br><span class="line">        je subf1</span><br><span class="line">        cmp ah, 01              ; Esc的扫描码01</span><br><span class="line">        je subesc</span><br><span class="line">        jmp int9ret</span><br><span class="line">int9ret:</span><br><span class="line">        pop si</span><br><span class="line">        pop bx</span><br><span class="line">        pop ax</span><br><span class="line">        iret</span><br></pre></td></tr></table></figure>
+
+<p>首先调用BIOS的int 9中断例程进行处理，这里为了模拟<code>int</code>指令的操作，我们手动模拟中断过程。中断过程可以简单描述如下：</p>
+<ol>
+<li>取得中断类型码N</li>
+<li>pushf</li>
+<li>TF=0, IF=0</li>
+<li>push CS</li>
+<li>push IP</li>
+<li>(IP)=(N*4), (CS)=(N*4+2)</li>
+</ol>
+<p>其中第一步已经知道，我们需要手动执行<code>pushf</code>将标志寄存器入栈，第三步外部已经置0也可以省略，4～6步通过<code>call</code>指令实现。</p>
+<p>然后我们通过int 16h中断从键盘缓冲区读取数据，为了防止缓冲区溢出，这里读取之后将缓冲区中对应数据移除。（实际测试发现如果不移除，缓冲区满了之后键盘输入就没有响应了）。</p>
+<p>获取到键盘扫描码之后，首先判断当前模式，如果是模式0，处理按键1~4；如果是模式1，处理按键F1和Esc。处理结束之后都会跳到int9ret处中断返回。</p>
+<p>接下来依次来看每个按键的处理</p>
+<h4 id="按键1-重新启动"><a href="#按键1-重新启动" class="headerlink" title="按键1: 重新启动"></a>按键1: 重新启动</h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">sub1:</span><br><span class="line">        pop si</span><br><span class="line">        pop ax</span><br><span class="line">        mov ax, 0ffffh</span><br><span class="line">        push ax</span><br><span class="line">        mov ax, 0</span><br><span class="line">        push ax</span><br><span class="line">        retf                    ; 0ffffh:0</span><br></pre></td></tr></table></figure>
+
+<p>按键1的处理非常简单，直接跳转到ffff:0即可。</p>
+<h4 id="按键2-boot操作系统"><a href="#按键2-boot操作系统" class="headerlink" title="按键2: boot操作系统"></a>按键2: boot操作系统</h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line">sub2:</span><br><span class="line">        push cx</span><br><span class="line">        push dx</span><br><span class="line">        push es</span><br><span class="line">        call umount9            ; 调用umount9</span><br><span class="line"></span><br><span class="line">        ; 清屏</span><br><span class="line">        mov ah, 0               ; 功能号0, 清屏</span><br><span class="line">        call screen</span><br><span class="line"></span><br><span class="line">        mov dh, 0               ; 行号</span><br><span class="line">        mov dl, 0               ; 列号</span><br><span class="line">        mov bx, 0               ; bh页号</span><br><span class="line">        mov ah, 2               ; 功能号2: 设置光标</span><br><span class="line">        int 10h</span><br><span class="line"></span><br><span class="line">; 从硬盘第一个扇区读取到0:7c00h处</span><br><span class="line">; 然后跳转</span><br><span class="line">        mov ax, 0</span><br><span class="line">        mov es, ax</span><br><span class="line">        mov bx, 7c00h           ; es:bx 指向接收从扇区读取数据的内存区</span><br><span class="line"></span><br><span class="line">        mov al, 1               ; 读取的扇区数</span><br><span class="line">        mov ch, 0               ; 磁道号</span><br><span class="line">        mov cl, 1               ; 扇区号，第一个扇区开始</span><br><span class="line">        mov dl, 80h             ; 驱动器号  软驱从0开始，0:软驱A，1:软驱B；硬盘从80h开始，80h：硬盘C，81h：硬盘D</span><br><span class="line">        mov dh, 0               ; 磁头号（对于软盘即面号）</span><br><span class="line">        mov ah, 2               ; 功能号，2表示读扇区，3表示写扇区</span><br><span class="line">        int 13h</span><br><span class="line"></span><br><span class="line">        ; 需要清栈么</span><br><span class="line">        jmp bx                  ; 跳转到硬盘引导</span><br></pre></td></tr></table></figure>
+
+<p>按键2从硬盘引导现有操作系统，为了不影响后面的显示，我们先进行清屏操作，将光标设到开头，然后将硬盘的第一个扇区读取到0:7c00处，最后跳转到0:7c00处开始执行。</p>
+<h4 id="按键3-动态显示CMOS时间"><a href="#按键3-动态显示CMOS时间" class="headerlink" title="按键3: 动态显示CMOS时间"></a>按键3: 动态显示CMOS时间</h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">sub3:</span><br><span class="line">        ; 保存屏幕</span><br><span class="line">        mov ah, 2               ; 功能号2, 保存</span><br><span class="line">        call screen</span><br><span class="line"></span><br><span class="line">        ; 清屏</span><br><span class="line">        mov ah, 0               ; 功能号0, 清屏</span><br><span class="line">        call screen</span><br><span class="line"></span><br><span class="line">        mov byte ptr [bx], 1    ; 模式改为1</span><br><span class="line"></span><br><span class="line">        push dx</span><br><span class="line">        mov dh, 0               ; 行号</span><br><span class="line">        mov dl, 17              ; 列号</span><br><span class="line">        mov bx, 0               ; bx已经不用了, 可以覆盖</span><br><span class="line">        mov ah, 2               ; 功能号2: 设置光标</span><br><span class="line">        int 10h</span><br><span class="line">        pop dx</span><br><span class="line"></span><br><span class="line">        jmp int9ret</span><br></pre></td></tr></table></figure>
+
+<p><code>screen</code>是我们封装的一个子程序，负责屏幕相关操作。首先保存当前屏幕（主选单），然后清屏，将模式改为1，最后为了美观一点将光标设置到了时间后面。中断例程只是修改了模式，时间的动态显示在外面中程序循环中进行。因为在动态显示时间的时候，也是需要处理键盘按键中断的。</p>
+<h4 id="按键4-设置CMOS时间"><a href="#按键4-设置CMOS时间" class="headerlink" title="按键4: 设置CMOS时间"></a>按键4: 设置CMOS时间</h4><p>按键4的处理稍微有点复杂，我们一点点来看。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><span class="line">sub4:</span><br><span class="line">        push dx</span><br><span class="line">        call umount9            ; 恢复原来的int 9中断例程</span><br><span class="line"></span><br><span class="line">        mov ah, 2               ; 功能号2, 保存屏幕</span><br><span class="line">        call screen</span><br><span class="line"></span><br><span class="line">sub4s:</span><br><span class="line">        mov ah, 0               ; 功能号0, 清屏</span><br><span class="line">        call screen</span><br><span class="line"></span><br><span class="line">        mov si, offset prompt-task+7e00h</span><br><span class="line">        mov dh, 0</span><br><span class="line">        mov dl, 0</span><br><span class="line">        call showstr            ; 显示提示字符串</span><br><span class="line"></span><br><span class="line">        mov dh, 1               ; 行号</span><br><span class="line">        mov bx, 0               ; bx已经不用了, 可以覆盖</span><br><span class="line">        mov ah, 2               ; 功能号2: 设置光标</span><br><span class="line">        int 10h</span><br><span class="line">        mov si, offset charstk-task+7e00h</span><br><span class="line">        call inputclock         ; 用户输入字符串</span><br><span class="line">        call checkclock         ; 检查字符串格式是否合法</span><br><span class="line">        cmp ah, 0</span><br><span class="line">        jne sub4s               ; 格式不正确，重新输入</span><br><span class="line"></span><br><span class="line">        call setclock           ; 写到CMOS RTC</span><br><span class="line"></span><br><span class="line">        mov ah, 3               ; 功能号3, 恢复屏幕</span><br><span class="line">        call screen             ; call screen</span><br><span class="line"></span><br><span class="line">        mov dh, 5               ; 行号</span><br><span class="line">        mov dl, 0               ; 列号</span><br><span class="line">        mov bx, 0               ; bx已经不用了, 可以覆盖</span><br><span class="line">        mov ah, 2               ; 功能号2: 设置光标</span><br><span class="line">        int 10h</span><br><span class="line"></span><br><span class="line">        call mount9             ; 重新注册新的int9中断例程</span><br><span class="line">        pop dx</span><br><span class="line">        jmp int9ret</span><br></pre></td></tr></table></figure>
+
+<p>首先调用<code>umount</code>恢复原来的int 9中断例程，不再额外处理那些键盘输入，接着保存当前屏幕（主选单）并清屏，然后显示一个提示字符串并显示光标到下一行。</p>
+<p>这些准备工作做完之后，就调用<code>intputclock</code>让用户输入字符串，用户完成输入之后调用<code>checkclock</code>检查格式是否正确，如果不正确跳到前面重新输入。如果格式正确，则调用<code>setclock</code>将时间写到CMOS上。</p>
+<p>完成设置之后，还有一些恢复的工作别忘了，需要恢复屏幕及光标位置，然后重新注册int 9中断例程。</p>
+<h4 id="按键F1-修改显示颜色"><a href="#按键F1-修改显示颜色" class="headerlink" title="按键F1: 修改显示颜色"></a>按键F1: 修改显示颜色</h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">subf1:</span><br><span class="line">        mov ah, 1               ; 功能号1, 修改颜色</span><br><span class="line">        call screen</span><br><span class="line">        jmp int9ret</span><br></pre></td></tr></table></figure>
+
+<p>因为我们将屏幕的相关操作都封装成了screen函数，所以这里简单调用即可</p>
+<h4 id="按键Esc-退出时间显示，恢复为主选单"><a href="#按键Esc-退出时间显示，恢复为主选单" class="headerlink" title="按键Esc: 退出时间显示，恢复为主选单"></a>按键Esc: 退出时间显示，恢复为主选单</h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">subesc:</span><br><span class="line">        ; 恢复屏幕</span><br><span class="line">        mov ah, 3               ; 功能号3, 恢复</span><br><span class="line">        call screen</span><br><span class="line"></span><br><span class="line">        mov byte ptr [bx], 0    ; 模式改为0</span><br><span class="line"></span><br><span class="line">        push dx</span><br><span class="line">        mov dh, 5               ; 行号</span><br><span class="line">        mov dl, 0               ; 列号</span><br><span class="line">        mov bx, 0               ; bx已经不用了, 可以覆盖</span><br><span class="line">        mov ah, 2               ; 功能号2: 设置光标</span><br><span class="line">        int 10h</span><br><span class="line">        pop dx</span><br><span class="line"></span><br><span class="line">        jmp int9ret</span><br></pre></td></tr></table></figure>
+
+<p>这个也比较简单，恢复屏幕，设置光标位置，将模式修改为0。</p>
+<h3 id="屏幕操作子程序"><a href="#屏幕操作子程序" class="headerlink" title="屏幕操作子程序"></a>屏幕操作子程序</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line">; 屏幕相关操作</span><br><span class="line">; ah 功能号: 0清屏, 1换颜色, 2保存当前屏幕，3恢复保存的屏幕</span><br><span class="line">; 从第0页保存到第1页，从第1页恢复到第0页</span><br><span class="line">screen:</span><br><span class="line">        push ax</span><br><span class="line">        push bx</span><br><span class="line">        push cx</span><br><span class="line">        push ds</span><br><span class="line">        push es</span><br><span class="line">        push si</span><br><span class="line">        push di</span><br><span class="line"></span><br><span class="line">        cmp ah, 0</span><br><span class="line">        je clear</span><br><span class="line">        cmp ah, 1</span><br><span class="line">        je color</span><br><span class="line">        cmp ah, 2</span><br><span class="line">        je save</span><br><span class="line">        cmp ah, 3</span><br><span class="line">        je restore</span><br><span class="line">        jmp screenret</span><br><span class="line">        </span><br><span class="line">        ; 省略</span><br><span class="line">screenret:</span><br><span class="line">        pop di</span><br><span class="line">        pop si</span><br><span class="line">        pop es</span><br><span class="line">        pop ds</span><br><span class="line">        pop cx</span><br><span class="line">        pop bx</span><br><span class="line">        pop ax</span><br><span class="line">        ret</span><br></pre></td></tr></table></figure>
+
+<p><code>screen</code>子程序包含4个功能，由ah寄存器指定功能号。</p>
+<p>(ah)=0表示清屏操作，修改第0页的显示缓冲区，所有字符都改成空格，颜色属性改成黑底白字。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">clear:</span><br><span class="line">        mov ax, 0b800h                  ; 显示缓冲区第0页起始地址</span><br><span class="line">        mov ds, ax</span><br><span class="line">        mov si, 0</span><br><span class="line">        mov cx, 2000                    ; 80 * 25</span><br><span class="line">clears:</span><br><span class="line">        mov byte ptr [si], &#x27; &#x27;          ; 清屏</span><br><span class="line">        mov byte ptr [si].1, 00000111b  ; 黑底白字</span><br><span class="line">        add si, 2</span><br><span class="line">        loop clears</span><br><span class="line">        jmp screenret</span><br></pre></td></tr></table></figure>
+
+<p>(ah)=1表示修改显示颜色，操作跟上面类似</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">color:</span><br><span class="line">        mov ax, 0b800h                  ; 显示缓冲区第0页起始地址</span><br><span class="line">        mov ds, ax</span><br><span class="line">        mov si, 1</span><br><span class="line">        mov cx, 2000                    ; 80 * 25</span><br><span class="line">colors:</span><br><span class="line">        inc byte ptr [si]               ; 修改颜色</span><br><span class="line">        add si, 2</span><br><span class="line">        loop colors</span><br><span class="line">        jmp screenret</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>(ah)=2表示保存当前屏幕，我们选择将显示缓冲区第0页内容拷贝到了第1页中。这里使用了串处理指令简化代码。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">save:</span><br><span class="line">        mov ax, 0b800h                  ; 第0页起始地址</span><br><span class="line">        mov ds, ax</span><br><span class="line">        mov si, 0</span><br><span class="line">        mov ax, 0b8fah                  ; 第1页起始地址</span><br><span class="line">        mov es, ax</span><br><span class="line">        mov di, 0</span><br><span class="line">        mov cx, 4000                    ; 80 * 25 * 2</span><br><span class="line">        cld                             ; df=0</span><br><span class="line">        rep movsb</span><br><span class="line">        jmp screenret</span><br></pre></td></tr></table></figure>
+
+<p>(ah)=2表示恢复保存的屏幕，也即执行跟前一个相反的操作，将第1页的内容拷贝到第0页。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">restore:</span><br><span class="line">        mov ax, 0b8fah                  ; 第1页起始地址</span><br><span class="line">        mov ds, ax</span><br><span class="line">        mov si, 0</span><br><span class="line">        mov ax, 0b800h                  ; 第0页起始地址</span><br><span class="line">        mov es, ax</span><br><span class="line">        mov di, 0</span><br><span class="line">        mov cx, 4000</span><br><span class="line">        cld                             ; df=0</span><br><span class="line">        rep movsb</span><br></pre></td></tr></table></figure>
+
+<h3 id="时间输入子程序"><a href="#时间输入子程序" class="headerlink" title="时间输入子程序"></a>时间输入子程序</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br></pre></td><td class="code"><pre><span class="line">; 输入时间，从键盘缓冲区读取</span><br><span class="line">; dh, dl 显示的行号列号</span><br><span class="line">; ds:si 指向字符栈起始位置</span><br><span class="line">inputclock:</span><br><span class="line">        push ax</span><br><span class="line">        push bx</span><br><span class="line">        push si</span><br><span class="line"></span><br><span class="line">        mov bx, offset top-task+7e00h</span><br><span class="line">        mov word ptr [bx], 0    ; top先清0</span><br><span class="line"></span><br><span class="line">        ; 先清空键盘缓冲区</span><br><span class="line">cleanbuf:</span><br><span class="line">        mov ah, 1</span><br><span class="line">        int 16h</span><br><span class="line">        je getstrs</span><br><span class="line">        mov ah, 0</span><br><span class="line">        int 16h</span><br><span class="line">        jmp cleanbuf</span><br><span class="line">        </span><br><span class="line">getstrs:</span><br><span class="line">        mov ah, 0</span><br><span class="line">        int 16h</span><br><span class="line">        cmp al, 20h             ; ASCII码小于20h，说明不是字符</span><br><span class="line">        jb nochar</span><br><span class="line">        mov ah, 0</span><br><span class="line">        call charstack          ; 字符入栈</span><br><span class="line">        mov ah, 2</span><br><span class="line">        call charstack          ; 显示栈中的字符</span><br><span class="line">        jmp getstrs</span><br><span class="line">nochar:</span><br><span class="line">        cmp ah, 0eh             ; 退格键的扫描码</span><br><span class="line">        je backspace</span><br><span class="line">        cmp ah, 1ch             ; Enter键的扫描码</span><br><span class="line">        je enter</span><br><span class="line">        jmp getstrs</span><br><span class="line">backspace:</span><br><span class="line">        mov ah, 1</span><br><span class="line">        call charstack          ; 字符出栈</span><br><span class="line">        mov ah, 2</span><br><span class="line">        call charstack          ; 显示栈中的字符</span><br><span class="line">        jmp getstrs</span><br><span class="line">enter:</span><br><span class="line">        pop si</span><br><span class="line">        pop bx</span><br><span class="line">        pop ax</span><br><span class="line">        ret</span><br></pre></td></tr></table></figure>
+
+<p>我们使用一个字符栈来保存用户输入的字符串，为了代码的简洁将字符栈的相关操作封装成了<code>charstack</code>子程序。</p>
+<p>首先将top清零，保险起见将键盘缓冲区清理了一下。接下来调用int 16h中断读取用户的键盘输入，如果是字符就入栈，如果是退格键就出栈，如果是Enter键则结束输入。每次用户做了修改之后，更新显示。</p>
+<p>字符栈的子程序实现如下</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br></pre></td><td class="code"><pre><span class="line">; 字符栈的入栈、出栈和显示</span><br><span class="line">; 参数说明: (ah)=功能号，0入栈，1出栈，2显示</span><br><span class="line">;           ds:si 指向字符栈空间</span><br><span class="line">;           对于0号功能: (al)=入栈字符</span><br><span class="line">;           对于1号功能: (al)=返回的字符</span><br><span class="line">;           对于2号功能: (dh)和(dl)=字符串在屏幕上显示的行、列</span><br><span class="line">charstack:</span><br><span class="line">        push bx</span><br><span class="line">        push di</span><br><span class="line">        push es</span><br><span class="line">        push bp</span><br><span class="line">        mov bp, offset top-task+7e00h</span><br><span class="line">        cmp ah, 0</span><br><span class="line">        je charpush</span><br><span class="line">        cmp ah, 1</span><br><span class="line">        je charpop</span><br><span class="line">        cmp ah, 2</span><br><span class="line">        je charshow</span><br><span class="line">        jmp charret</span><br><span class="line">        </span><br><span class="line">charpush:</span><br><span class="line">        mov bx, ds:[bp]         ; top的值</span><br><span class="line">        cmp bx, 31              ; 防止溢出</span><br><span class="line">        ja charret</span><br><span class="line">        mov [si][bx], al</span><br><span class="line">        inc word ptr ds:[bp]</span><br><span class="line">        jmp charret</span><br><span class="line">charpop:</span><br><span class="line">        cmp word ptr ds:[bp], 0</span><br><span class="line">        je charret</span><br><span class="line">        dec word ptr ds:[bp]</span><br><span class="line">        mov bx, ds:[bp]</span><br><span class="line">        mov al, [si][bx]</span><br><span class="line">        jmp charret</span><br><span class="line">charshow:</span><br><span class="line">        mov bx, 0b800h</span><br><span class="line">        mov es, bx</span><br><span class="line">        mov ax, 160</span><br><span class="line">        mul dh                  ; 行号*160</span><br><span class="line">        mov di, ax</span><br><span class="line">        mov ax, 2</span><br><span class="line">        mul dl                  ; 列号*2</span><br><span class="line">        add di, ax</span><br><span class="line"></span><br><span class="line">        mov bx, 0</span><br><span class="line">charshows:</span><br><span class="line">        cmp bx, ds:[bp]</span><br><span class="line">        jne noempty</span><br><span class="line">        mov byte ptr es:[di], &#x27; &#x27;</span><br><span class="line"></span><br><span class="line">        push dx</span><br><span class="line">        mov dl, bl</span><br><span class="line">        mov bx, 0               ; bx已经不用了, 可以覆盖</span><br><span class="line">        mov ah, 2               ; 功能号2: 设置光标</span><br><span class="line">        int 10h</span><br><span class="line">        pop dx</span><br><span class="line">        jmp charret</span><br><span class="line">noempty:</span><br><span class="line">        mov al, [si][bx]</span><br><span class="line">        mov es:[di], al</span><br><span class="line">        mov byte ptr es:[di+2], &#x27; &#x27;</span><br><span class="line">        inc bx</span><br><span class="line">        add di, 2</span><br><span class="line">        jmp charshows</span><br><span class="line"></span><br><span class="line">charret:</span><br><span class="line">        pop bp</span><br><span class="line">        pop es</span><br><span class="line">        pop di</span><br><span class="line">        pop bx</span><br><span class="line">        ret</span><br></pre></td></tr></table></figure>
+
+<p>(ah)表示功能号，0入栈，1出栈，2显示。注意入栈和出栈时要检查栈顶位置，防止溢出。另外，在显示的时候，我们将最后一个字符后面的位置也置成了空格，是为了处理退格的情况。</p>
+<h3 id="时间检查子程序"><a href="#时间检查子程序" class="headerlink" title="时间检查子程序"></a>时间检查子程序</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br></pre></td><td class="code"><pre><span class="line">; 检查时间格式是否正确</span><br><span class="line">; 参数: ds:si指向字符栈起始位置</span><br><span class="line">; 返回: (ah)=0表示格式正确, (ah)=1表示格式错误</span><br><span class="line">; yy/MM/dd hh:mm:ss</span><br><span class="line">checkclock:</span><br><span class="line">        push bx</span><br><span class="line">        push cx</span><br><span class="line">        push dx</span><br><span class="line">        push si</span><br><span class="line">        push di</span><br><span class="line">        push ax</span><br><span class="line"></span><br><span class="line">        ; 检查数字</span><br><span class="line">        mov di, offset digitoffset-task+7e00h</span><br><span class="line">        mov bx, 0</span><br><span class="line">        mov cx, 12</span><br><span class="line">        </span><br><span class="line">checkdigits:</span><br><span class="line">        mov bl, [di]            ; 获取数字在字符串中的偏移量</span><br><span class="line">        mov al, [si][bx]</span><br><span class="line">        call isdigit            ; 检查对应位置是否是数字</span><br><span class="line">        cmp ah, 0</span><br><span class="line">        jne checkfail           ; 返回值0表示是数字</span><br><span class="line">        inc di</span><br><span class="line">        loop checkdigits</span><br><span class="line"></span><br><span class="line">        ; 检查特殊符号</span><br><span class="line">        mov cx, 5</span><br><span class="line">        mov di, offset timeformat-task+7e00h</span><br><span class="line">        mov bx, 2               ; +3</span><br><span class="line">checksigns:</span><br><span class="line">        mov al, [di][bx]</span><br><span class="line">        cmp [si][bx], al        ; 检查对应位置的符号是否正确</span><br><span class="line">        jne checkfail</span><br><span class="line">        add bx, 3</span><br><span class="line">        loop checksigns</span><br><span class="line"></span><br><span class="line">        ; 检查日期</span><br><span class="line">        call checkdate          ; 检查日期是否合法，包括闰年的检查</span><br><span class="line">        cmp ah, 0</span><br><span class="line">        jne checkfail</span><br><span class="line"></span><br><span class="line">        ; 检查时间</span><br><span class="line">        add si, 9</span><br><span class="line">        call checktime          ; 检查时间是否合法</span><br><span class="line">        cmp ah, 0</span><br><span class="line">        jne checkfail</span><br><span class="line"></span><br><span class="line">        pop ax</span><br><span class="line">        mov ah, 0</span><br><span class="line">        jmp checkend</span><br><span class="line">checkfail:</span><br><span class="line">        pop ax</span><br><span class="line">        mov ah, 1</span><br><span class="line">checkend:</span><br><span class="line">        pop di</span><br><span class="line">        pop si</span><br><span class="line">        pop dx</span><br><span class="line">        pop cx</span><br><span class="line">        pop bx</span><br><span class="line">        ret</span><br></pre></td></tr></table></figure>
+
+<p><code>checkclock</code>子程序用于检查格式，首先要确保用户输入的字符串是<code>yy/MM/dd hh:mm:ss</code>格式的，这部分比较简单，其中<code>isdigit</code>用于检查某个字符是否是数字。然后还要检查日期和时间是否合法的，因为这块比较复杂，分别封装成了两个子程序<code>checkdate</code>和<code>checktime</code>。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br></pre></td><td class="code"><pre><span class="line">; 检查日期是否合法</span><br><span class="line">; 参数: ds:si指向字符串起始位置</span><br><span class="line">; 返回: (ah)=0表示格式正确, (ah)=1表示格式错误</span><br><span class="line">; YY/MM/dd</span><br><span class="line">checkdate:</span><br><span class="line">        push bx</span><br><span class="line">        push si</span><br><span class="line">        push di</span><br><span class="line">        push ax</span><br><span class="line"></span><br><span class="line">        ; 检查月份是否超出</span><br><span class="line">        add si, 3               ; 月份从位置3开始</span><br><span class="line">        call char2number        ; 将ds:si所指位置的两个字符转成数值</span><br><span class="line">        cmp al, 1               ; 月份有效值1到12</span><br><span class="line">        jb datefail</span><br><span class="line">        cmp al, 12</span><br><span class="line">        ja datefail</span><br><span class="line"></span><br><span class="line">        mov bx, 0</span><br><span class="line">        mov bl, al              ; 月份先保存到bl</span><br><span class="line"></span><br><span class="line">        ; 检查日期是否超出</span><br><span class="line">        add si, 3               ; 日期从位置6开始</span><br><span class="line">        call char2number</span><br><span class="line">        cmp al, 1               ; 日期最小1</span><br><span class="line">        jb datefail</span><br><span class="line"></span><br><span class="line">        mov di, offset daysofmonth-task+7e00h</span><br><span class="line">        cmp al, [di][bx]</span><br><span class="line">        ja datefail             ; 最大根据月份来判断</span><br><span class="line"></span><br><span class="line">        ; 不是2月29日不用检查闰年</span><br><span class="line">        cmp al, 29</span><br><span class="line">        jne datepass</span><br><span class="line">        cmp bl, 2</span><br><span class="line">        jne datepass</span><br><span class="line">    </span><br><span class="line">        ; 检查闰年</span><br><span class="line">        mov bh, al              ; 日期先保存到bl</span><br><span class="line">        mov ax, 0</span><br><span class="line">        sub si, 6</span><br><span class="line">        call char2number</span><br><span class="line">        add ax, 1900            ; (al)&gt;=90, 认为是19YY</span><br><span class="line">        cmp ax, 1990</span><br><span class="line">        jnb nineteenth</span><br><span class="line">        add ax, 100             ; (al)&lt;90, 认为是20YY</span><br><span class="line">nineteenth:</span><br><span class="line">        call isleapyear         ; 判断ax所表示的年份是否是闰年</span><br><span class="line">        cmp ah, 0</span><br><span class="line">        jne datepass            ; 闰年不能有2月29日</span><br><span class="line">datefail:</span><br><span class="line">        pop ax</span><br><span class="line">        mov ah, 1</span><br><span class="line">        jmp dateend</span><br><span class="line">datepass:</span><br><span class="line">        pop ax</span><br><span class="line">        mov ah, 0</span><br><span class="line">dateend:</span><br><span class="line">        pop di</span><br><span class="line">        pop si</span><br><span class="line">        pop dx</span><br><span class="line">        ret</span><br></pre></td></tr></table></figure>
+
+<p>首先看日期的检查，月份的有效值1到12，日期的最小值也是1，最大值根据月份来决定，我们已经将每个月的天数做成了表格放在数据中，可以直接查表获取。其中<code>char2number</code>用于将两个字符转成字节型数值。</p>
+<p>如果是2月29日，还需要检查是否是闰年，我们将闰年的检查封装成了<code>isleapyear</code>子程序，篇幅原因不再展示。另外，因为<a target="_blank" rel="noopener external nofollow noreferrer" href="https://wiki.osdev.org/CMOS#The_Real-Time_Clock">CMOS RTC时间</a>不一定有表示世纪的寄存器，我们将大于等于90的年份认为是20世纪，其余的认为是21世纪。</p>
+<p><code>checktime</code>子程序比较简单，这里不再赘述。</p>
+<h3 id="CMOS-RTC时间的读写"><a href="#CMOS-RTC时间的读写" class="headerlink" title="CMOS RTC时间的读写"></a><a target="_blank" rel="noopener external nofollow noreferrer" href="https://wiki.osdev.org/CMOS#The_Real-Time_Clock">CMOS RTC时间</a>的读写</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line">; 设置CMOS RTC时间</span><br><span class="line">; 参数: ds:si指向字符串起始位置</span><br><span class="line">; 实际测试，不是闰年也设置不了2月29日</span><br><span class="line">; 2月28日直接跳到3月1日, 暂不清楚原因</span><br><span class="line">setclock:</span><br><span class="line">        push ax</span><br><span class="line">        push cx</span><br><span class="line">        push si</span><br><span class="line">        push di</span><br><span class="line"></span><br><span class="line">        mov di, offset timeoffset-task+7e00h</span><br><span class="line">        mov cx, 6               ; 循环次数</span><br><span class="line">setclocks:</span><br><span class="line">        mov al, [di]            ; 获取内存单元号</span><br><span class="line">        out 70h, al             ; 写到控制端口</span><br><span class="line"></span><br><span class="line">        mov ah, [si]            ; 十位字符</span><br><span class="line">        sub ah, 30h             ; 实际数值</span><br><span class="line">        push cx</span><br><span class="line">        mov cl, 4               ; 左移位数</span><br><span class="line">        shl ah, cl              ; 高4位放十位的值</span><br><span class="line">        pop cx</span><br><span class="line">        mov al, [si].1          ; 个位字符</span><br><span class="line">        sub al, 30h             ; 实际数值</span><br><span class="line">        add al, ah              ; 相加</span><br><span class="line"></span><br><span class="line">        out 71h, al             ; 写到数据端口</span><br><span class="line"></span><br><span class="line">        add si, 3</span><br><span class="line">        inc di</span><br><span class="line">        loop setclocks</span><br><span class="line"></span><br><span class="line">        pop di</span><br><span class="line">        pop si</span><br><span class="line">        pop cx</span><br><span class="line">        pop ax</span><br><span class="line">        ret</span><br></pre></td></tr></table></figure>
+
+<p>我们通过端口来跟外设通信，CMOS RAM芯片有两个端口70h和71h，70h是地址端口，存放要访问的CMOS RAM单元地址；71h为数据端口，存放要读写的数据。每次对CMOS RAM的读写分两步进行，首先将地址写入端口70h，然后将数据写到71h端口。</p>
+<p>我们依次将年月日时分秒的值写入CMOS中，其中时间信息都是以BCD码的形式存放的，一个字节表示两个十进制数。所以写之前，先要将两个字符转化对应的BCD码。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line">; 设置CMOS RTC时间</span><br><span class="line">; 参数: ds:si指向字符串起始位置</span><br><span class="line">getclock:</span><br><span class="line">        push ax</span><br><span class="line">        push cx</span><br><span class="line">        push si</span><br><span class="line">        push di</span><br><span class="line"></span><br><span class="line">        mov di, offset timeoffset-task+7e00h</span><br><span class="line">        mov cx, 6               ; 循环次数</span><br><span class="line">getclocks:</span><br><span class="line">        mov al, [di]            ; 获取内存单元号</span><br><span class="line">        out 70h, al             ; 写到控制端口</span><br><span class="line">        in al, 71h              ; 从数据端口读取</span><br><span class="line"></span><br><span class="line">        mov ah, al</span><br><span class="line">        push cx</span><br><span class="line">        mov cl, 4               ; 右移位数</span><br><span class="line">        shr ah, cl              ; ah中为十位</span><br><span class="line">        pop cx</span><br><span class="line">        and al, 00001111b       ; al中为个位</span><br><span class="line">        add ah, 30h             ; 对应ascii码</span><br><span class="line">        add al, 30h             ; 对应ascii码</span><br><span class="line">        mov [si], ah</span><br><span class="line">        mov [si].1, al</span><br><span class="line"></span><br><span class="line">        add si, 3</span><br><span class="line">        inc di</span><br><span class="line">        loop getclocks</span><br><span class="line"></span><br><span class="line">        pop di</span><br><span class="line">        pop si</span><br><span class="line">        pop cx</span><br><span class="line">        pop ax</span><br><span class="line">        ret</span><br></pre></td></tr></table></figure>
+
+<p><code>getclock</code>子程序用于从CMOS读取，操作正好相反，这里不再赘述。</p>
+<h2 id="测试"><a href="#测试" class="headerlink" title="测试"></a>测试</h2><p>最终完成整个程序之后，可以按如下步骤进行测试（这里我是在DOSBox环境下开发的，程序文件名为design2.asm）</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">Z:\&gt;mount c ~</span><br><span class="line">Z:\&gt;c:</span><br><span class="line">C:\&gt;masm design2;</span><br><span class="line">C:\&gt;link design2;</span><br><span class="line">C:\&gt;imgmount 0 c:\floppy.img -t floppy -fs none</span><br><span class="line">C:\&gt;design2.ext</span><br><span class="line">C:\&gt;imgmount -u 0</span><br></pre></td></tr></table></figure>
+
+<p>首先进行编译、链接，因为软盘映像我们前面已经做好，这里直接挂载即可，然后运行design2安装程序将任务程序写到软盘中，最后再卸载软盘映像。</p>
+<p>现在我们就可以把这个软盘映像放到虚拟机上进行测试了，如果虚拟机没有创建过软驱的话需要先创建一个，选择启动时连接这个软驱，然后启动虚拟机，接下来就是见证奇迹的时刻了。</p>
+<h2 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h2><p>完整的代码已上传<a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/catbro666/assembly-course-design2">Github</a>，欢迎交流讨论。</p>
+
+    </div>
+
+    
+    
+    
+      
+<div>
+    
+        <div style="text-align:center;font-size:22px;letter-spacing:10px;user-select:none;color:#bbb;">-------------本文结束<i class="fa fa-paw"></i>感谢您的阅读-------------</div>
+    
+</div>
+
+
+
+        
+
+<div>
+<ul class="post-copyright">
+  <li class="post-copyright-author">
+    <strong>本文作者： </strong>猫猫哥
+  </li>
+  <li class="post-copyright-link">
+    <strong>本文链接：</strong>
+    <a href="https://catbro666.github.io/posts/8054db72/" title="如何在裸机上直接运行程序—王爽《汇编语言》课程设计2">https://catbro666.github.io/posts/8054db72/</a>
+  </li>
+  <li class="post-copyright-license">
+    <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/zh-CN" rel="noopener external nofollow noreferrer" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+        
+
+  <div class="followme">
+    <p>欢迎关注我的其它发布渠道</p>
+
+    <div class="social-list">
+
+        <div class="social-item">
+          <a target="_blank" class="social-link" href="/atom.xml">
+            <span class="icon">
+              <i class="fa fa-rss"></i>
+            </span>
+
+            <span class="label">RSS</span>
+          </a>
+        </div>
+    </div>
+  </div>
+
+
+      <footer class="post-footer">
+          
+          <div class="post-tags">
+              <a href="/tags/8086/" rel="tag"><i class="fa fa-tag"></i> 8086</a>
+              <a href="/tags/%E6%B1%87%E7%BC%96/" rel="tag"><i class="fa fa-tag"></i> 汇编</a>
+              <a href="/tags/DOS/" rel="tag"><i class="fa fa-tag"></i> DOS</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/posts/d6ca5270/" rel="prev" title="VIM常用快捷键和插件整理">
+      <i class="fa fa-chevron-left"></i> VIM常用快捷键和插件整理
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+    <div class="comments" id="valine-comments"></div>
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%83%8C%E6%99%AF%E7%9F%A5%E8%AF%86"><span class="nav-number">1.</span> <span class="nav-text">背景知识</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%87%86%E5%A4%87%E5%B7%A5%E4%BD%9C"><span class="nav-number">2.</span> <span class="nav-text">准备工作</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%A8%8B%E5%BA%8F%E8%AE%BE%E8%AE%A1"><span class="nav-number">3.</span> <span class="nav-text">程序设计</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%88%B6%E4%BD%9C%E5%90%AF%E5%8A%A8%E7%9B%98"><span class="nav-number">3.1.</span> <span class="nav-text">制作启动盘</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AE%89%E8%A3%85%E7%A8%8B%E5%BA%8F"><span class="nav-number">3.2.</span> <span class="nav-text">安装程序</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BB%BB%E5%8A%A1%E7%A8%8B%E5%BA%8F%E5%BC%95%E5%AF%BC%E9%83%A8%E5%88%86"><span class="nav-number">3.3.</span> <span class="nav-text">任务程序引导部分</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BB%BB%E5%8A%A1%E7%A8%8B%E5%BA%8F%E4%B8%BB%E4%BD%93%E9%83%A8%E5%88%86"><span class="nav-number">3.4.</span> <span class="nav-text">任务程序主体部分</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#int-9%E4%B8%AD%E6%96%AD%E4%BE%8B%E7%A8%8B"><span class="nav-number">3.5.</span> <span class="nav-text">int 9中断例程</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%A4%84%E7%90%86%E7%94%A8%E6%88%B7%E8%BE%93%E5%85%A5%E7%9A%84%E6%97%B6%E9%97%B4"><span class="nav-number">3.6.</span> <span class="nav-text">处理用户输入的时间</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%81%BF%E5%9D%91%E6%8C%87%E5%8D%97"><span class="nav-number">4.</span> <span class="nav-text">避坑指南</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%A8%8B%E5%BA%8F%E5%AE%9E%E7%8E%B0"><span class="nav-number">5.</span> <span class="nav-text">程序实现</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%A8%8B%E5%BA%8F%E6%A1%86%E6%9E%B6"><span class="nav-number">5.1.</span> <span class="nav-text">程序框架</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AE%89%E8%A3%85%E7%A8%8B%E5%BA%8F-1"><span class="nav-number">5.2.</span> <span class="nav-text">安装程序</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BB%BB%E5%8A%A1%E7%A8%8B%E5%BA%8F%E5%BC%95%E5%AF%BC%E9%83%A8%E5%88%86-1"><span class="nav-number">5.3.</span> <span class="nav-text">任务程序引导部分</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%95%B0%E6%8D%AE%E9%83%A8%E5%88%86"><span class="nav-number">5.4.</span> <span class="nav-text">数据部分</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%BB%E7%A8%8B%E5%BA%8F"><span class="nav-number">5.5.</span> <span class="nav-text">主程序</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%AD%E6%96%AD%E4%BE%8B%E7%A8%8B%E7%9A%84%E6%B3%A8%E5%86%8C%E5%8F%8A%E6%81%A2%E5%A4%8D"><span class="nav-number">5.6.</span> <span class="nav-text">中断例程的注册及恢复</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#int-9%E4%B8%AD%E6%96%AD%E4%BE%8B%E7%A8%8B%E5%AE%9E%E7%8E%B0"><span class="nav-number">5.7.</span> <span class="nav-text">int 9中断例程实现</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%8C%89%E9%94%AE1-%E9%87%8D%E6%96%B0%E5%90%AF%E5%8A%A8"><span class="nav-number">5.7.1.</span> <span class="nav-text">按键1: 重新启动</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%8C%89%E9%94%AE2-boot%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F"><span class="nav-number">5.7.2.</span> <span class="nav-text">按键2: boot操作系统</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%8C%89%E9%94%AE3-%E5%8A%A8%E6%80%81%E6%98%BE%E7%A4%BACMOS%E6%97%B6%E9%97%B4"><span class="nav-number">5.7.3.</span> <span class="nav-text">按键3: 动态显示CMOS时间</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%8C%89%E9%94%AE4-%E8%AE%BE%E7%BD%AECMOS%E6%97%B6%E9%97%B4"><span class="nav-number">5.7.4.</span> <span class="nav-text">按键4: 设置CMOS时间</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%8C%89%E9%94%AEF1-%E4%BF%AE%E6%94%B9%E6%98%BE%E7%A4%BA%E9%A2%9C%E8%89%B2"><span class="nav-number">5.7.5.</span> <span class="nav-text">按键F1: 修改显示颜色</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%8C%89%E9%94%AEEsc-%E9%80%80%E5%87%BA%E6%97%B6%E9%97%B4%E6%98%BE%E7%A4%BA%EF%BC%8C%E6%81%A2%E5%A4%8D%E4%B8%BA%E4%B8%BB%E9%80%89%E5%8D%95"><span class="nav-number">5.7.6.</span> <span class="nav-text">按键Esc: 退出时间显示，恢复为主选单</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%B1%8F%E5%B9%95%E6%93%8D%E4%BD%9C%E5%AD%90%E7%A8%8B%E5%BA%8F"><span class="nav-number">5.8.</span> <span class="nav-text">屏幕操作子程序</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%97%B6%E9%97%B4%E8%BE%93%E5%85%A5%E5%AD%90%E7%A8%8B%E5%BA%8F"><span class="nav-number">5.9.</span> <span class="nav-text">时间输入子程序</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%97%B6%E9%97%B4%E6%A3%80%E6%9F%A5%E5%AD%90%E7%A8%8B%E5%BA%8F"><span class="nav-number">5.10.</span> <span class="nav-text">时间检查子程序</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#CMOS-RTC%E6%97%B6%E9%97%B4%E7%9A%84%E8%AF%BB%E5%86%99"><span class="nav-number">5.11.</span> <span class="nav-text">CMOS RTC时间的读写</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%B5%8B%E8%AF%95"><span class="nav-number">6.</span> <span class="nav-text">测试</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%B0%8F%E7%BB%93"><span class="nav-number">7.</span> <span class="nav-text">小结</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">猫猫哥</p>
+  <div class="site-description" itemprop="description">如果说根号二是无理数，那么我就是个无理人</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">24</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">3</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">23</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/catbro666" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;catbro666" rel="noopener external nofollow noreferrer" target="_blank"><i class="fab fa-github fa-fw"></i></a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:chzf_zju@163.com" title="E-Mail → mailto:chzf_zju@163.com" rel="noopener external nofollow noreferrer" target="_blank"><i class="fa fa-envelope fa-fw"></i></a>
+      </span>
+  </div>
+  <div class="cc-license motion-element" itemprop="license">
+    <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/zh-CN" class="cc-opacity" rel="noopener external nofollow noreferrer" target="_blank"><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/images/cc-by-nc-sa.svg" alt="Creative Commons"></a>
+  </div>
+
+
+<div style="">
+  <canvas id="canvas" style="width:60%;">当前浏览器不支持canvas，请更换浏览器后再试</canvas>
+</div>
+<script>
+(function(){
+
+   var digit=
+    [
+        [
+            [0,0,1,1,1,0,0],
+            [0,1,1,0,1,1,0],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,0,1,1,0],
+            [0,0,1,1,1,0,0]
+        ],//0
+        [
+            [0,0,0,1,1,0,0],
+            [0,1,1,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [1,1,1,1,1,1,1]
+        ],//1
+        [
+            [0,1,1,1,1,1,0],
+            [1,1,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,0,0],
+            [0,0,1,1,0,0,0],
+            [0,1,1,0,0,0,0],
+            [1,1,0,0,0,0,0],
+            [1,1,0,0,0,1,1],
+            [1,1,1,1,1,1,1]
+        ],//2
+        [
+            [1,1,1,1,1,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,0,0,1,1,0],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,1,1,0]
+        ],//3
+        [
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,1,0],
+            [0,0,1,1,1,1,0],
+            [0,1,1,0,1,1,0],
+            [1,1,0,0,1,1,0],
+            [1,1,1,1,1,1,1],
+            [0,0,0,0,1,1,0],
+            [0,0,0,0,1,1,0],
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,1,1]
+        ],//4
+        [
+            [1,1,1,1,1,1,1],
+            [1,1,0,0,0,0,0],
+            [1,1,0,0,0,0,0],
+            [1,1,1,1,1,1,0],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,1,1,0]
+        ],//5
+        [
+            [0,0,0,0,1,1,0],
+            [0,0,1,1,0,0,0],
+            [0,1,1,0,0,0,0],
+            [1,1,0,0,0,0,0],
+            [1,1,0,1,1,1,0],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,1,1,0]
+        ],//6
+        [
+            [1,1,1,1,1,1,1],
+            [1,1,0,0,0,1,1],
+            [0,0,0,0,1,1,0],
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,1,1,0,0,0],
+            [0,0,1,1,0,0,0],
+            [0,0,1,1,0,0,0],
+            [0,0,1,1,0,0,0]
+        ],//7
+        [
+            [0,1,1,1,1,1,0],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,1,1,0],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,1,1,0]
+        ],//8
+        [
+            [0,1,1,1,1,1,0],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,0,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,0,0],
+            [0,1,1,0,0,0,0]
+        ],//9
+        [
+            [0,0,0,0,0,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,0,0,0,0,0]
+        ]//:
+    ];
+
+var canvas = document.getElementById('canvas');
+
+if(canvas.getContext){
+    var cxt = canvas.getContext('2d');
+    //声明canvas的宽高
+    var H = 100,W = 700;
+    canvas.height = H;
+    canvas.width = W;
+    cxt.fillStyle = '#f00';
+    cxt.fillRect(10,10,50,50);
+
+    //存储时间数据
+    var data = [];
+    //存储运动的小球
+    var balls = [];
+    //设置粒子半径
+    var R = canvas.height/20-1;
+    (function(){
+        var temp = /(\d)(\d):(\d)(\d):(\d)(\d)/.exec(new Date());
+        //存储时间数字，由十位小时、个位小时、冒号、十位分钟、个位分钟、冒号、十位秒钟、个位秒钟这7个数字组成
+        data.push(temp[1],temp[2],10,temp[3],temp[4],10,temp[5],temp[6]);
+    })();
+
+    /*生成点阵数字*/
+    function renderDigit(index,num){
+        for(var i = 0; i < digit[num].length; i++){
+            for(var j = 0; j < digit[num][i].length; j++){
+                if(digit[num][i][j] == 1){
+                    cxt.beginPath();
+                    cxt.arc(14*(R+2)*index + j*2*(R+1)+(R+1),i*2*(R+1)+(R+1),R,0,2*Math.PI);
+                    cxt.closePath();
+                    cxt.fill();
+                }
+            }
+        }
+    }
+
+    /*更新时钟*/
+    function updateDigitTime(){
+        var changeNumArray = [];
+        var temp = /(\d)(\d):(\d)(\d):(\d)(\d)/.exec(new Date());
+        var NewData = [];
+        NewData.push(temp[1],temp[2],10,temp[3],temp[4],10,temp[5],temp[6]);
+        for(var i = data.length-1; i >=0 ; i--){
+            //时间发生变化
+            if(NewData[i] !== data[i]){
+                //将变化的数字值和在data数组中的索引存储在changeNumArray数组中
+                changeNumArray.push(i+'_'+(Number(data[i])+1)%10);
+            }
+        }
+        //增加小球
+        for(var i = 0; i< changeNumArray.length; i++){
+            addBalls.apply(this,changeNumArray[i].split('_'));
+        }
+        data = NewData.concat();
+    }
+
+    /*更新小球状态*/
+    function updateBalls(){
+        for(var i = 0; i < balls.length; i++){
+            balls[i].stepY += balls[i].disY;
+            balls[i].x += balls[i].stepX;
+            balls[i].y += balls[i].stepY;
+            if(balls[i].x > W + R || balls[i].y > H + R){
+                balls.splice(i,1);
+                i--;
+            }
+        }
+    }
+
+    /*增加要运动的小球*/
+    function addBalls(index,num){
+        var numArray = [1,2,3];
+        var colorArray =  ["#3BE","#09C","#A6C","#93C","#9C0","#690","#FB3","#F80","#F44","#C00"];
+        for(var i = 0; i < digit[num].length; i++){
+            for(var j = 0; j < digit[num][i].length; j++){
+                if(digit[num][i][j] == 1){
+                    var ball = {
+                        x:14*(R+2)*index + j*2*(R+1)+(R+1),
+                        y:i*2*(R+1)+(R+1),
+                        stepX:Math.floor(Math.random() * 4 -2),
+                        stepY:-2*numArray[Math.floor(Math.random()*numArray.length)],
+                        color:colorArray[Math.floor(Math.random()*colorArray.length)],
+                        disY:1
+                    };
+                    balls.push(ball);
+                }
+            }
+        }
+    }
+
+    /*渲染*/
+    function render(){
+        //重置画布宽度，达到清空画布的效果
+        canvas.height = 100;
+        //渲染时钟
+        for(var i = 0; i < data.length; i++){
+            renderDigit(i,data[i]);
+        }
+        //渲染小球
+        for(var i = 0; i < balls.length; i++){
+            cxt.beginPath();
+            cxt.arc(balls[i].x,balls[i].y,R,0,2*Math.PI);
+            cxt.fillStyle = balls[i].color;
+            cxt.closePath();
+            cxt.fill();
+        }
+    }
+
+    clearInterval(oTimer);
+    var oTimer = setInterval(function(){
+        //更新时钟
+        updateDigitTime();
+        //更新小球状态
+        updateBalls();
+        //渲染
+        render();
+    },50);
+}
+
+})();
+</script>
+
+
+      </div>
+        <div class="back-to-top motion-element">
+          <i class="fa fa-arrow-up"></i>
+          <span>0%</span>
+        </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 2019 – 
+  <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">猫猫哥</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+      <span class="post-meta-item-text">站点总字数：</span>
+    <span title="站点总字数">280k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+      <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
+    <span title="站点阅读时长">4:14</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener external nofollow noreferrer" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener external nofollow noreferrer" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+<script>
+  (function() {
+    function leancloudSelector(url) {
+      url = encodeURI(url);
+      return document.getElementById(url).querySelector('.leancloud-visitors-count');
+    }
+
+    function addCount(Counter) {
+      var visitors = document.querySelector('.leancloud_visitors');
+      var url = decodeURI(visitors.id);
+      var title = visitors.dataset.flagTitle;
+
+      Counter('get', '/classes/Counter?where=' + encodeURIComponent(JSON.stringify({ url })))
+        .then(response => response.json())
+        .then(({ results }) => {
+          if (results.length > 0) {
+            var counter = results[0];
+            leancloudSelector(url).innerText = counter.time + 1;
+            Counter('put', '/classes/Counter/' + counter.objectId, { time: { '__op': 'Increment', 'amount': 1 } })
+              .catch(error => {
+                console.error('Failed to save visitor count', error);
+              });
+          } else {
+              leancloudSelector(url).innerText = 'Counter not initialized! More info at console err msg.';
+              console.error('ATTENTION! LeanCloud counter has security bug, see how to solve it here: https://github.com/theme-next/hexo-leancloud-counter-security. \n However, you can still use LeanCloud without security, by setting `security` option to `false`.');
+            
+          }
+        })
+        .catch(error => {
+          console.error('LeanCloud Counter Error', error);
+        });
+    }
+
+    function showTime(Counter) {
+      var visitors = document.querySelectorAll('.leancloud_visitors');
+      var entries = [...visitors].map(element => {
+        return decodeURI(element.id);
+      });
+
+      Counter('get', '/classes/Counter?where=' + encodeURIComponent(JSON.stringify({ url: { '$in': entries } })))
+        .then(response => response.json())
+        .then(({ results }) => {
+          for (let url of entries) {
+            let target = results.find(item => item.url === url);
+            leancloudSelector(url).innerText = target ? target.time : 0;
+          }
+        })
+        .catch(error => {
+          console.error('LeanCloud Counter Error', error);
+        });
+    }
+
+    let { app_id, app_key, server_url } = {"enable":true,"app_id":"0Syy5qyXX1qTBOGiD0vUzpHb-MdYXbMMI","app_key":"B3MuN4GIHf7ru1ojTSkjjI9a","server_url":null,"security":true,"betterPerformance":true};
+    function fetchData(api_server) {
+      var Counter = (method, url, data) => {
+        return fetch(`${api_server}/1.1${url}`, {
+          method,
+          headers: {
+            'X-LC-Id'     : app_id,
+            'X-LC-Key'    : app_key,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(data)
+        });
+      };
+      if (CONFIG.page.isPost) {
+        if (CONFIG.hostname !== location.hostname) return;
+        addCount(Counter);
+      } else if (document.querySelectorAll('.post-title-link').length >= 1) {
+        showTime(Counter);
+      }
+    }
+
+    let api_server = app_id.slice(-9) !== '-MdYXbMMI' ? server_url : `https://${app_id.slice(0, 8).toLowerCase()}.api.lncldglobal.com`;
+
+    if (api_server) {
+      fetchData(api_server);
+    } else {
+      fetch('https://app-router.leancloud.cn/2/route?appId=' + app_id)
+        .then(response => response.json())
+        .then(({ api_server }) => {
+          fetchData('https://' + api_server);
+        });
+    }
+  })();
+</script>
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="//cdn.jsdelivr.net/npm/animejs@3.1.0/lib/anime.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/velocity-animate@1/velocity.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/velocity-animate@1/velocity.ui.min.js"></script>
+
+<script src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/js/utils.js"></script>
+
+<script src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/js/motion.js"></script>
+
+
+<script src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/js/schemes/pisces.js"></script>
+
+
+<script src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/js/next-boot.js"></script>
+
+
+
+
+  
+  <script>
+    (function(){
+      var canonicalURL, curProtocol;
+      //Get the <link> tag
+      var x=document.getElementsByTagName("link");
+		//Find the last canonical URL
+		if(x.length > 0){
+			for (i=0;i<x.length;i++){
+				if(x[i].rel.toLowerCase() == 'canonical' && x[i].href){
+					canonicalURL=x[i].href;
+				}
+			}
+		}
+    //Get protocol
+	    if (!canonicalURL){
+	    	curProtocol = window.location.protocol.split(':')[0];
+	    }
+	    else{
+	    	curProtocol = canonicalURL.split(':')[0];
+	    }
+      //Get current URL if the canonical URL does not exist
+	    if (!canonicalURL) canonicalURL = window.location.href;
+	    //Assign script content. Replace current URL with the canonical URL
+      !function(){var e=/([http|https]:\/\/[a-zA-Z0-9\_\.]+\.baidu\.com)/gi,r=canonicalURL,t=document.referrer;if(!e.test(r)){var n=(String(curProtocol).toLowerCase() === 'https')?"https://sp0.baidu.com/9_Q4simg2RQJ8t7jm9iCKT-xh_/s.gif":"//api.share.baidu.com/s.gif";t?(n+="?r="+encodeURIComponent(document.referrer),r&&(n+="&l="+r)):r&&(n+="?l="+r);var i=new Image;i.src=n}}(window);})();
+  </script>
+
+
+
+
+  
+<script src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+
+<script>
+NexT.utils.loadComments(document.querySelector('#valine-comments'), () => {
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/valine@1/dist/Valine.min.js', () => {
+    var GUEST = ['nick', 'mail', 'link'];
+    var guest = 'nick,mail,link';
+    guest = guest.split(',').filter(item => {
+      return GUEST.includes(item);
+    });
+    new Valine({
+      el         : '#valine-comments',
+      verify     : false,
+      notify     : true,
+      appId      : '0Syy5qyXX1qTBOGiD0vUzpHb-MdYXbMMI',
+      appKey     : 'B3MuN4GIHf7ru1ojTSkjjI9a',
+      placeholder: "欢迎留言讨论，记得在上方【邮箱】处填上邮箱地址，可以收到回复通知哦(^。^)",
+      avatar     : 'retro',
+      meta       : guest,
+      pageSize   : '10' || 10,
+      visitor    : false,
+      lang       : '' || 'zh-cn',
+      path       : location.pathname,
+      recordIP   : false,
+      serverURLs : 'https://0syy5qyx.api.lncldglobal.com'
+    });
+  }, window.Valine);
+});
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/jquery/dist/jquery.min.js"></script>
+
+
+
+  <script async src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/js/cursor/fireworks.js"></script>
+
+
+
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/js/fold_action.js"></script>
+
+
+</body>
+</html>
