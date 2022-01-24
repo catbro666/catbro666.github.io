@@ -30,29 +30,29 @@
 <meta property="og:site_name" content="CatBro&#39;s Blog">
 <meta property="og:description" content="本文主要介绍C语言中的函数调用约定，通过汇编代码结合实时观察栈的变化情况，直观地了解函数调用的过程。本文只讨论x86&#x2F;64架构、Linux&#x2F;GCC环境下的情况，不过其他环境在整体思想上应该是类似的，都需要处理这些问题。">
 <meta property="og:locale" content="zh_CN">
-<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/%E5%85%B8%E5%9E%8B%E7%9A%84%E6%A0%88%E5%B8%A7%E7%BB%93%E6%9E%84.jpeg">
-<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/C%E8%AF%AD%E8%A8%80%E5%87%BD%E6%95%B0%E8%B0%83%E7%94%A801.png">
-<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/C%E8%AF%AD%E8%A8%80%E5%87%BD%E6%95%B0%E8%B0%83%E7%94%A802.png">
-<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/C%E8%AF%AD%E8%A8%80%E5%87%BD%E6%95%B0%E8%B0%83%E7%94%A803.png">
-<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/C%E8%AF%AD%E8%A8%80%E5%87%BD%E6%95%B0%E8%B0%83%E7%94%A804.png">
-<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/C%E8%AF%AD%E8%A8%80%E5%87%BD%E6%95%B0%E8%B0%83%E7%94%A805.png">
-<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/C%E8%AF%AD%E8%A8%80%E5%87%BD%E6%95%B0%E8%B0%83%E7%94%A806.png">
-<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/C%E8%AF%AD%E8%A8%80%E5%87%BD%E6%95%B0%E8%B0%83%E7%94%A807.png">
-<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/C%E8%AF%AD%E8%A8%80%E5%87%BD%E6%95%B0%E8%B0%83%E7%94%A808.png">
-<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/C%E8%AF%AD%E8%A8%80%E5%87%BD%E6%95%B0%E8%B0%83%E7%94%A809.png">
-<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/C%E8%AF%AD%E8%A8%80%E5%87%BD%E6%95%B0%E8%B0%83%E7%94%A810.png">
-<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/C%E8%AF%AD%E8%A8%80%E5%87%BD%E6%95%B0%E8%B0%83%E7%94%A811.png">
-<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/C%E8%AF%AD%E8%A8%80%E5%87%BD%E6%95%B0%E8%B0%83%E7%94%A812.png">
-<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/C%E8%AF%AD%E8%A8%80%E5%87%BD%E6%95%B0%E8%B0%83%E7%94%A813.png">
-<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/C%E8%AF%AD%E8%A8%80%E5%87%BD%E6%95%B0%E8%B0%83%E7%94%A814.png">
-<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/C%E8%AF%AD%E8%A8%80%E5%87%BD%E6%95%B0%E8%B0%83%E7%94%A815.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/657c24ad/%E5%85%B8%E5%9E%8B%E7%9A%84%E6%A0%88%E5%B8%A7%E7%BB%93%E6%9E%84.jpeg">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/657c24ad/C%E8%AF%AD%E8%A8%80%E5%87%BD%E6%95%B0%E8%B0%83%E7%94%A801.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/657c24ad/C%E8%AF%AD%E8%A8%80%E5%87%BD%E6%95%B0%E8%B0%83%E7%94%A802.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/657c24ad/C%E8%AF%AD%E8%A8%80%E5%87%BD%E6%95%B0%E8%B0%83%E7%94%A803.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/657c24ad/C%E8%AF%AD%E8%A8%80%E5%87%BD%E6%95%B0%E8%B0%83%E7%94%A804.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/657c24ad/C%E8%AF%AD%E8%A8%80%E5%87%BD%E6%95%B0%E8%B0%83%E7%94%A805.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/657c24ad/C%E8%AF%AD%E8%A8%80%E5%87%BD%E6%95%B0%E8%B0%83%E7%94%A806.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/657c24ad/C%E8%AF%AD%E8%A8%80%E5%87%BD%E6%95%B0%E8%B0%83%E7%94%A807.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/657c24ad/C%E8%AF%AD%E8%A8%80%E5%87%BD%E6%95%B0%E8%B0%83%E7%94%A808.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/657c24ad/C%E8%AF%AD%E8%A8%80%E5%87%BD%E6%95%B0%E8%B0%83%E7%94%A809.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/657c24ad/C%E8%AF%AD%E8%A8%80%E5%87%BD%E6%95%B0%E8%B0%83%E7%94%A810.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/657c24ad/C%E8%AF%AD%E8%A8%80%E5%87%BD%E6%95%B0%E8%B0%83%E7%94%A811.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/657c24ad/C%E8%AF%AD%E8%A8%80%E5%87%BD%E6%95%B0%E8%B0%83%E7%94%A812.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/657c24ad/C%E8%AF%AD%E8%A8%80%E5%87%BD%E6%95%B0%E8%B0%83%E7%94%A813.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/657c24ad/C%E8%AF%AD%E8%A8%80%E5%87%BD%E6%95%B0%E8%B0%83%E7%94%A814.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/657c24ad/C%E8%AF%AD%E8%A8%80%E5%87%BD%E6%95%B0%E8%B0%83%E7%94%A815.png">
 <meta property="article:published_time" content="2022-01-23T12:09:28.000Z">
-<meta property="article:modified_time" content="2022-01-24T09:59:08.399Z">
+<meta property="article:modified_time" content="2022-01-24T09:59:43.067Z">
 <meta property="article:author" content="猫猫哥">
 <meta property="article:tag" content="汇编">
 <meta property="article:tag" content="C语言">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/%E5%85%B8%E5%9E%8B%E7%9A%84%E6%A0%88%E5%B8%A7%E7%BB%93%E6%9E%84.jpeg">
+<meta name="twitter:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/657c24ad/%E5%85%B8%E5%9E%8B%E7%9A%84%E6%A0%88%E5%B8%A7%E7%BB%93%E6%9E%84.jpeg">
 
 <link rel="canonical" href="https://catbro666.github.io/posts/657c24ad/">
 
@@ -278,7 +278,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-01-24 17:59:08" itemprop="dateModified" datetime="2022-01-24T17:59:08+08:00">2022-01-24</time>
+                <time title="修改时间：2022-01-24 17:59:43" itemprop="dateModified" datetime="2022-01-24T17:59:43+08:00">2022-01-24</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -364,7 +364,7 @@ translateInitilization();
 <h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>什么是调用约定（Calling Convention）？</p>
 <p>它主要是为了方便代码的共享以及简化子函数的使用方式。参数和返回值如何进行传递、栈帧如何建立和销毁、调用者和被调者分别负责哪些事情？调用约定对这些都作出了规定，函数的定义者和调用者只要都遵循这个约定，那么就可以无错地进行交互；否则，不一致的状态可能导致程序的致命错误。</p>
 <p>x86 C编译器默认通常使用cdecl调用约定，这也是C语言事实上的标准。当然还有一些其他的调用约定，读者可以通过文末的参考资料进行更多的了解。</p>
-<h2 id="典型的栈帧结构"><a href="#典型的栈帧结构" class="headerlink" title="典型的栈帧结构"></a>典型的栈帧结构</h2><p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/%E5%85%B8%E5%9E%8B%E7%9A%84%E6%A0%88%E5%B8%A7%E7%BB%93%E6%9E%84.jpeg" alt="典型的栈帧结构" loading="lazy"></p>
+<h2 id="典型的栈帧结构"><a href="#典型的栈帧结构" class="headerlink" title="典型的栈帧结构"></a>典型的栈帧结构</h2><p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/657c24ad/%E5%85%B8%E5%9E%8B%E7%9A%84%E6%A0%88%E5%B8%A7%E7%BB%93%E6%9E%84.jpeg" alt="典型的栈帧结构" loading="lazy"></p>
 <p>上图是一个典型的调用子函数期间的栈帧结构。栈从下面高地址往上生长，每嵌套一层函数调用，就往上生长一个栈帧。其中的返回地址可以看作是每个栈帧的分界线，它上面的部分归被调者管，它下面的部分归调用者管。</p>
 <p>ESP和EBP分别指示当前栈顶位置和当前栈帧的基址。通过EBP加适当的偏移可以方便地访问参数以及局部变量，同时也可以快速地进行关帧的操作。</p>
 <p>调用约定可以分成两个部分，即规定调用者(caller)的部分和规定被调者(callee)的部分。下面分别进行介绍。</p>
@@ -416,11 +416,11 @@ translateInitilization();
 </li>
 </ol>
 <p>接下来的就是调用foo函数相关的部分了，此时栈的情况如下：</p>
-<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/C%E8%AF%AD%E8%A8%80%E5%87%BD%E6%95%B0%E8%B0%83%E7%94%A801.png" alt="C语言函数调用01" loading="lazy"></p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/657c24ad/C%E8%AF%AD%E8%A8%80%E5%87%BD%E6%95%B0%E8%B0%83%E7%94%A801.png" alt="C语言函数调用01" loading="lazy"></p>
 <p>此时的EBP指向main函数栈帧的基址，ESP指向栈顶位置。因为我们的程序非常简单，后面也没有用到调用者保存的寄存器，所以这里省略了保存寄存器的步骤。又因为前面一开始已经分配了参数的栈空间，所以接下来直接对栈中对应位置的形参赋值即可。</p>
-<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/C%E8%AF%AD%E8%A8%80%E5%87%BD%E6%95%B0%E8%B0%83%E7%94%A802.png" alt="C语言函数调用02" loading="lazy"></p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/657c24ad/C%E8%AF%AD%E8%A8%80%E5%87%BD%E6%95%B0%E8%B0%83%E7%94%A802.png" alt="C语言函数调用02" loading="lazy"></p>
 <p>参数的传递是从右往左的顺序，所以先传递第二个参数，ESP+4的位置的值被赋值为2。</p>
-<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/C%E8%AF%AD%E8%A8%80%E5%87%BD%E6%95%B0%E8%B0%83%E7%94%A803.png" alt="C语言函数调用03" loading="lazy"></p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/657c24ad/C%E8%AF%AD%E8%A8%80%E5%87%BD%E6%95%B0%E8%B0%83%E7%94%A803.png" alt="C语言函数调用03" loading="lazy"></p>
 <p>接着传递第一个参数，ESP位置的值被赋值为1。参数传递完毕接下来就执行<code>call</code>指令进入子函数foo的范围了。</p>
 <p>我们暂且跳过，假设现在foo函数已经返回，来看最后几条指令的操作。现在EAX中存放了返回值。</p>
 <ol>
@@ -431,34 +431,34 @@ translateInitilization();
 <li>如果前面有将调用者保存的寄存器入栈的话，这里要执行相应的出栈操作恢复相应的寄存器的值。在我们这个例子中并没有。</li>
 </ol>
 <h2 id="被调者部分"><a href="#被调者部分" class="headerlink" title="被调者部分"></a>被调者部分</h2><p>现在我们来看被调者foo函数中的部分，在main函数中执行<code>call</code>指令之后，栈的情况如下：</p>
-<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/C%E8%AF%AD%E8%A8%80%E5%87%BD%E6%95%B0%E8%B0%83%E7%94%A804.png" alt="C语言函数调用04" loading="lazy"></p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/657c24ad/C%E8%AF%AD%E8%A8%80%E5%87%BD%E6%95%B0%E8%B0%83%E7%94%A804.png" alt="C语言函数调用04" loading="lazy"></p>
 <p>此时，返回地址已经入栈，EBP还是上一个main函数的基址。</p>
-<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/C%E8%AF%AD%E8%A8%80%E5%87%BD%E6%95%B0%E8%B0%83%E7%94%A805.png" alt="C语言函数调用05" loading="lazy"></p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/657c24ad/C%E8%AF%AD%E8%A8%80%E5%87%BD%E6%95%B0%E8%B0%83%E7%94%A805.png" alt="C语言函数调用05" loading="lazy"></p>
 <p>首先需要创建foo函数的栈帧，将EBP入栈，保存main函数栈帧的基址。</p>
-<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/C%E8%AF%AD%E8%A8%80%E5%87%BD%E6%95%B0%E8%B0%83%E7%94%A806.png" alt="C语言函数调用06" loading="lazy"></p>
-<p>紧接着让EBP指向当前ESP的位置，此时EBP变成了foo函数栈帧的基址。后续就可以通过EBP加上一定的偏移来访问形参和局部变量了。<img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/C%E8%AF%AD%E8%A8%80%E5%87%BD%E6%95%B0%E8%B0%83%E7%94%A807.png" alt="C语言函数调用07" loading="lazy"></p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/657c24ad/C%E8%AF%AD%E8%A8%80%E5%87%BD%E6%95%B0%E8%B0%83%E7%94%A806.png" alt="C语言函数调用06" loading="lazy"></p>
+<p>紧接着让EBP指向当前ESP的位置，此时EBP变成了foo函数栈帧的基址。后续就可以通过EBP加上一定的偏移来访问形参和局部变量了。<img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/657c24ad/C%E8%AF%AD%E8%A8%80%E5%87%BD%E6%95%B0%E8%B0%83%E7%94%A807.png" alt="C语言函数调用07" loading="lazy"></p>
 <p>接下来一条指令分配局部变量的栈空间，因为有两个int型局部变量，所以这里将esp减了8。</p>
-<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/C%E8%AF%AD%E8%A8%80%E5%87%BD%E6%95%B0%E8%B0%83%E7%94%A808.png" alt="C语言函数调用08" loading="lazy"></p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/657c24ad/C%E8%AF%AD%E8%A8%80%E5%87%BD%E6%95%B0%E8%B0%83%E7%94%A808.png" alt="C语言函数调用08" loading="lazy"></p>
 <p>正常情况下，如果foo函数用到了被调者保存的寄存器的话，需要现在这里执行入栈的操作，保存相应寄存器的值。因为我们程序比较简单，所以没有这个过程。</p>
 <p>接下来将EBP-4的位置赋值为0x10，对应C代码中的<code>int fa = 0x10;</code></p>
-<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/C%E8%AF%AD%E8%A8%80%E5%87%BD%E6%95%B0%E8%B0%83%E7%94%A809.png" alt="C语言函数调用09" loading="lazy"></p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/657c24ad/C%E8%AF%AD%E8%A8%80%E5%87%BD%E6%95%B0%E8%B0%83%E7%94%A809.png" alt="C语言函数调用09" loading="lazy"></p>
 <p>同样地，将EBP-8的位置赋值为0x20，对应C代码中的<code>int fb = 0x10;</code></p>
 <p>接下来执行将形参a的值赋值给fa，首先将EBP+8位置的形参a赋值到EAX寄存器。</p>
-<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/C%E8%AF%AD%E8%A8%80%E5%87%BD%E6%95%B0%E8%B0%83%E7%94%A810.png" alt="C语言函数调用10" loading="lazy"></p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/657c24ad/C%E8%AF%AD%E8%A8%80%E5%87%BD%E6%95%B0%E8%B0%83%E7%94%A810.png" alt="C语言函数调用10" loading="lazy"></p>
 <p>然后再将EAX寄存器的值赋值到EBP-4的位置。</p>
-<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/C%E8%AF%AD%E8%A8%80%E5%87%BD%E6%95%B0%E8%B0%83%E7%94%A811.png" alt="C语言函数调用11" loading="lazy"></p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/657c24ad/C%E8%AF%AD%E8%A8%80%E5%87%BD%E6%95%B0%E8%B0%83%E7%94%A811.png" alt="C语言函数调用11" loading="lazy"></p>
 <p>接下来是形参b的值赋值给fb，执行的操作类似，通过寄存器EAX做了一下中转。</p>
-<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/C%E8%AF%AD%E8%A8%80%E5%87%BD%E6%95%B0%E8%B0%83%E7%94%A812.png" alt="C语言函数调用12" loading="lazy"></p>
-<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/C%E8%AF%AD%E8%A8%80%E5%87%BD%E6%95%B0%E8%B0%83%E7%94%A813.png" alt="C语言函数调用13" loading="lazy"></p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/657c24ad/C%E8%AF%AD%E8%A8%80%E5%87%BD%E6%95%B0%E8%B0%83%E7%94%A812.png" alt="C语言函数调用12" loading="lazy"></p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/657c24ad/C%E8%AF%AD%E8%A8%80%E5%87%BD%E6%95%B0%E8%B0%83%E7%94%A813.png" alt="C语言函数调用13" loading="lazy"></p>
 <p>接下来执行fa和fb相加的操作，先将EBP-8的值放到EAX中，因为-O0的关系这一步又显得有些多余，然后EBP-4的值加到EAX中，执行完之后EAX就变成了3。</p>
-<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/C%E8%AF%AD%E8%A8%80%E5%87%BD%E6%95%B0%E8%B0%83%E7%94%A814.png" alt="C语言函数调用14" loading="lazy"></p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/657c24ad/C%E8%AF%AD%E8%A8%80%E5%87%BD%E6%95%B0%E8%B0%83%E7%94%A814.png" alt="C语言函数调用14" loading="lazy"></p>
 <p>到这里函数体已经执行完毕，但是还有一些善后工作需要做：</p>
 <ol>
 <li>此时返回值已经在EAX中了。</li>
 <li>如果前面有被调者保存的寄存器入栈的话，这里需要执行相应的出栈操作进行恢复。</li>
 <li>接下来需要释放局部变量的栈空间，然后恢复上一个栈帧的EBP，将其出栈。这两步合并到了<code>leave</code>指令中。执行完<code>leave</code>之后的栈情况如下。栈顶为返回地址，EBP已经恢复为main函数的基址。</li>
 </ol>
-<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/C%E8%AF%AD%E8%A8%80%E5%87%BD%E6%95%B0%E8%B0%83%E7%94%A815.png" alt="C语言函数调用15" loading="lazy"></p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/657c24ad/C%E8%AF%AD%E8%A8%80%E5%87%BD%E6%95%B0%E8%B0%83%E7%94%A815.png" alt="C语言函数调用15" loading="lazy"></p>
 <p>当最后一个<code>ret</code>指令执行之后，返回地址出栈，栈恢复到执行<code>call</code>指令前的情况，程序跳转到返回地址继续执行main函数后续的代码。</p>
 <h2 id="x64上的区别"><a href="#x64上的区别" class="headerlink" title="x64上的区别"></a>x64上的区别</h2><p>在x64上，不仅寄存器的位数扩展到了64位，可用的寄存器也更多了。Linux在x64上使用System V AMD64 ABI调用约定，其主要内容如下：</p>
 <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">%rax     %eax    返回值</span><br><span class="line">%rbx     %ebx    被调用者保存</span><br><span class="line">%rcx     %ecx    第四个参数</span><br><span class="line">%rdx     %edx    第三个参数，<span class="number">128</span>位返回值</span><br><span class="line">%rsi     %esi    第二个参数</span><br><span class="line">%rdi     %edi    第一个参数</span><br><span class="line">%rbp     %ebp    基址指针，被调用者保存</span><br><span class="line">%rsp     %esp    堆栈指针，被调用者保存</span><br><span class="line">%r8      %r8d    第五个参数</span><br><span class="line">%r9      %r9d    第六个参数</span><br><span class="line">%r10     %r10d   调用者保存</span><br><span class="line">%r11     %r11d   调用者保存</span><br><span class="line">%r12     %r12d   被调用者保存</span><br><span class="line">%r13     %r13d   被调用者保存</span><br><span class="line">%r14     %r14d   被调用者保存</span><br><span class="line">%r15     %r15d   被调用者保存</span><br><span class="line">xmm0<span class="number">-7</span>           前<span class="number">8</span>个浮点参数</span><br><span class="line">xmm0<span class="number">-1</span>           浮点返回值</span><br></pre></td></tr></table></figure>
