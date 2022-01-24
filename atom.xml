@@ -6,7 +6,7 @@
   <link href="https://catbro666.github.io/atom.xml" rel="self"/>
   
   <link href="https://catbro666.github.io/"/>
-  <updated>2022-01-20T14:58:09.532Z</updated>
+  <updated>2022-01-24T09:59:08.399Z</updated>
   <id>https://catbro666.github.io/</id>
   
   <author>
@@ -15,6 +15,29 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>C语言中的函数调用约定</title>
+    <link href="https://catbro666.github.io/posts/657c24ad/"/>
+    <id>https://catbro666.github.io/posts/657c24ad/</id>
+    <published>2022-01-23T12:09:28.000Z</published>
+    <updated>2022-01-24T09:59:08.399Z</updated>
+    
+    
+    <summary type="html">&lt;div class=&quot;note primary&quot;&gt;
+            &lt;p&gt;本文主要介绍C语言中的函数调用约定，通过汇编代码结合实时观察栈的变化情况，直观地了解函数调用的过程。本文只讨论x86/64架构、Linux/GCC环境下的情况，不过其他环境在整体思想上应该是类似的，都需要处理这些问题。&lt;/p&gt;
+          &lt;/div&gt;</summary>
+    
+    
+    
+    <category term="理论向" scheme="https://catbro666.github.io/categories/%E7%90%86%E8%AE%BA%E5%90%91/"/>
+    
+    
+    <category term="汇编" scheme="https://catbro666.github.io/tags/%E6%B1%87%E7%BC%96/"/>
+    
+    <category term="C语言" scheme="https://catbro666.github.io/tags/C%E8%AF%AD%E8%A8%80/"/>
+    
+  </entry>
   
   <entry>
     <title>如何在裸机上直接运行程序—王爽《汇编语言》课程设计2</title>
@@ -452,31 +475,6 @@
     <category term="Nginx" scheme="https://catbro666.github.io/tags/Nginx/"/>
     
     <category term="协程" scheme="https://catbro666.github.io/tags/%E5%8D%8F%E7%A8%8B/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>如何编写一个多进程性能测试程序</title>
-    <link href="https://catbro666.github.io/posts/e416d910/"/>
-    <id>https://catbro666.github.io/posts/e416d910/</id>
-    <published>2021-06-26T12:17:38.000Z</published>
-    <updated>2021-06-29T06:13:51.859Z</updated>
-    
-    
-    <summary type="html">&lt;div class=&quot;note primary&quot;&gt;
-            &lt;p&gt;在工作中经常碰到需要写一些多进程/多线程的测试程序，用来测试接口的性能。本文将会从零开始一点点增加代码，最终完成一个简易的多进程测试程序编写。该程序支持实时打印测试进结果和最终测试结果的统计。&lt;/p&gt;&lt;p&gt;同时，本文还涵盖了以下知识点，可以作为学习参考：&lt;/p&gt;&lt;ul&gt;&lt;li&gt;使用&lt;code&gt;getopt_long()&lt;/code&gt;处理命令行选项和参数&lt;/li&gt;&lt;li&gt;使用&lt;code&gt;fork()&lt;/code&gt;和&lt;code&gt;wait()&lt;/code&gt;处理多进程&lt;/li&gt;&lt;li&gt;使用&lt;code&gt;sigaction()&lt;/code&gt;配合&lt;code&gt;alarm()&lt;/code&gt;处理定时信号&lt;code&gt;SIGALRM&lt;/code&gt;&lt;/li&gt;&lt;li&gt;使用&lt;code&gt;shmget()&lt;/code&gt;、&lt;code&gt;shmat()&lt;/code&gt;、&lt;code&gt;shmdt()&lt;/code&gt;、&lt;code&gt;shmctl()&lt;/code&gt;等通过共享内存进行进程间通信&lt;/li&gt;&lt;li&gt;使用&lt;code&gt;sigaction()&lt;/code&gt;捕获&lt;code&gt;SIGINT&lt;/code&gt;和&lt;code&gt;SIGQUIT&lt;/code&gt;信号，在程序终止前做共享内存清理工作&lt;/li&gt;&lt;/ul&gt;
-          &lt;/div&gt;</summary>
-    
-    
-    
-    <category term="技术向" scheme="https://catbro666.github.io/categories/%E6%8A%80%E6%9C%AF%E5%90%91/"/>
-    
-    
-    <category term="多进程" scheme="https://catbro666.github.io/tags/%E5%A4%9A%E8%BF%9B%E7%A8%8B/"/>
-    
-    <category term="信号" scheme="https://catbro666.github.io/tags/%E4%BF%A1%E5%8F%B7/"/>
-    
-    <category term="共享内存" scheme="https://catbro666.github.io/tags/%E5%85%B1%E4%BA%AB%E5%86%85%E5%AD%98/"/>
     
   </entry>
   
