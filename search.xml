@@ -2660,11 +2660,11 @@
 <span id="more"></span>
 
 <h2 id="进程地址空间及vma"><a href="#进程地址空间及vma" class="headerlink" title="进程地址空间及vma"></a>进程地址空间及vma</h2><p>作为前置知识，先来对进程地址空间做个简单介绍，以便更好地理解后面的内容。现代操作系统的内存管理离不开硬件的支持，如分段机制、分页机制。它们用于实现内存的隔离、保护以及高效使用。进程之间地址空间相互隔离，每个进程都有一套页表，实现线性地址到物理地址的转换。</p>
-<h3 id="虚拟内存映射"><a href="#虚拟内存映射" class="headerlink" title="虚拟内存映射"></a>虚拟内存映射</h3><p>下面是32位系统的进程地址空间布局图</p>
+<h3 id="虚拟内存映射"><a href="#虚拟内存映射" class="headerlink" title="虚拟内存映射"></a>虚拟内存映射</h3><p>下面是32位系统（x86）的进程地址空间布局图</p>
 <p><img src="https://imgs.developpaper.com/imgs/1458743340-5ddbcaa6525a5_articlex.png" alt="img" loading="lazy"></p>
 <p>0～3G 部分是用户空间的地址，3G～4G 部分是内核地址空间。虚拟地址从低到高分别为代码段、数据段（已初始化的静态变量）、bss段（未初始化的静态变量）、heap堆、mmap映射区、栈、命令行参数、环境变量。</p>
 <p>从0xc0000000开始就是内核地址空间了。内核地址空间又分为线性内存区和高端内存区。高端内存区是用于vmalloc机制、fixmap等的。在x86体系中，最低16MB物理内存是DMA内存区，用于执行DMA操作。</p>
-<p>64位系统上，内存地址可用空间为0x0000000000000000 ~ 0xFFFFFFFFFFFFFFFF，这是一个非常巨大的地址空间。而Linux实际上只用了低48位（256T），高16位作扩展。实际用到的地址空间为<strong>0x0000000000000000 ~ 0x00007FFFFFFFFFFF</strong>（用户空间）和<strong>0xFFFF800000000000 ~ 0xFFFFFFFFFFFFFFFF</strong>（内核空间）。</p>
+<p>64位系统（x86_64）上，内存地址可用空间为0x0000000000000000 ~ 0xFFFFFFFFFFFFFFFF，这是一个非常巨大的地址空间。而Linux实际上只用了低47位（128T），高17位作扩展。实际用到的地址空间为<strong>0x0000000000000000 ~ 0x00007FFFFFFFFFFF</strong>（用户空间）和<strong>0xFFFF800000000000 ~ 0xFFFFFFFFFFFFFFFF</strong>（内核空间）。</p>
 <p>在64位处理器中，由于有足够的内核空间可以线性映射物理内存，所以就不需要高端内存这个管理区了。更详细的信息可以参考<a href="https://www.kernel.org/doc/Documentation/x86/x86_64/mm.txt">内核文档</a>。</p>
 <h3 id="VMA"><a href="#VMA" class="headerlink" title="VMA"></a>VMA</h3><p>进程地址空间在Linux内核中使用<code>struct vm_area_struct</code>来描述，简称<strong>VMA</strong>。由于这些地址空间归属于各个用户进程，所以在用户进程的<code>struct mm_struct</code>中也有相应的成员。进程可以通过内核的内存管理机制动态地添加或删除这些内存区域。</p>
 <p>每个内存区域具有相关的权限，比如可读、可写、可执行。如果进程访问了不在有效范围内的内存区域、或非法访问了内存，那么处理器会报缺页异常，严重的会出现段错误。</p>
