@@ -6,7 +6,7 @@
   <link href="https://catbro666.github.io/atom.xml" rel="self"/>
   
   <link href="https://catbro666.github.io/"/>
-  <updated>2022-01-24T09:59:43.067Z</updated>
+  <updated>2022-03-05T15:11:20.544Z</updated>
   <id>https://catbro666.github.io/</id>
   
   <author>
@@ -17,11 +17,38 @@
   <generator uri="https://hexo.io/">Hexo</generator>
   
   <entry>
+    <title>Nginx的共享内存管理--slab算法</title>
+    <link href="https://catbro666.github.io/posts/2dc32e47/"/>
+    <id>https://catbro666.github.io/posts/2dc32e47/</id>
+    <published>2022-03-05T08:50:42.000Z</published>
+    <updated>2022-03-05T15:11:20.544Z</updated>
+    
+    
+    <summary type="html">&lt;div class=&quot;note primary&quot;&gt;
+            &lt;p&gt;初次了解到slab算法，是在学习Linux内核时。内核中采用了伙伴系统（Buddy System）算法对内存页面进行管理。但是对于小对象，还用页面分配器就显得有些浪费了，于是slab就应运而生了，内核的kmalloc()就是使用slab进行管理的。nginx中的共享内存管理使用了相同的思想，当然它没有Linux内核中的slab那么复杂。&lt;/p&gt;
+          &lt;/div&gt;</summary>
+    
+    
+    
+    <category term="编程开发" scheme="https://catbro666.github.io/categories/%E7%BC%96%E7%A8%8B%E5%BC%80%E5%8F%91/"/>
+    
+    <category term="Nginx/OpenResty" scheme="https://catbro666.github.io/categories/%E7%BC%96%E7%A8%8B%E5%BC%80%E5%8F%91/Nginx-OpenResty/"/>
+    
+    
+    <category term="Nginx" scheme="https://catbro666.github.io/tags/Nginx/"/>
+    
+    <category term="slab" scheme="https://catbro666.github.io/tags/slab/"/>
+    
+    <category term="共享内存" scheme="https://catbro666.github.io/tags/%E5%85%B1%E4%BA%AB%E5%86%85%E5%AD%98/"/>
+    
+  </entry>
+  
+  <entry>
     <title>C语言中的函数调用约定</title>
     <link href="https://catbro666.github.io/posts/657c24ad/"/>
     <id>https://catbro666.github.io/posts/657c24ad/</id>
     <published>2022-01-23T12:09:28.000Z</published>
-    <updated>2022-01-24T09:59:43.067Z</updated>
+    <updated>2022-03-05T10:36:03.300Z</updated>
     
     
     <summary type="html">&lt;div class=&quot;note primary&quot;&gt;
@@ -30,12 +57,12 @@
     
     
     
-    <category term="理论向" scheme="https://catbro666.github.io/categories/%E7%90%86%E8%AE%BA%E5%90%91/"/>
+    <category term="理解计算机" scheme="https://catbro666.github.io/categories/%E7%90%86%E8%A7%A3%E8%AE%A1%E7%AE%97%E6%9C%BA/"/>
     
     
-    <category term="汇编" scheme="https://catbro666.github.io/tags/%E6%B1%87%E7%BC%96/"/>
+    <category term="调用约定" scheme="https://catbro666.github.io/tags/%E8%B0%83%E7%94%A8%E7%BA%A6%E5%AE%9A/"/>
     
-    <category term="C语言" scheme="https://catbro666.github.io/tags/C%E8%AF%AD%E8%A8%80/"/>
+    <category term="C/C++" scheme="https://catbro666.github.io/tags/C-C/"/>
     
   </entry>
   
@@ -44,7 +71,7 @@
     <link href="https://catbro666.github.io/posts/8054db72/"/>
     <id>https://catbro666.github.io/posts/8054db72/</id>
     <published>2022-01-17T12:42:17.000Z</published>
-    <updated>2022-01-20T14:58:09.532Z</updated>
+    <updated>2022-03-05T10:43:30.687Z</updated>
     
     
     <summary type="html">&lt;div class=&quot;note primary&quot;&gt;
@@ -53,12 +80,12 @@
     
     
     
-    <category term="技术向" scheme="https://catbro666.github.io/categories/%E6%8A%80%E6%9C%AF%E5%90%91/"/>
+    <category term="理解计算机" scheme="https://catbro666.github.io/categories/%E7%90%86%E8%A7%A3%E8%AE%A1%E7%AE%97%E6%9C%BA/"/>
     
-    
-    <category term="汇编" scheme="https://catbro666.github.io/tags/%E6%B1%87%E7%BC%96/"/>
     
     <category term="8086" scheme="https://catbro666.github.io/tags/8086/"/>
+    
+    <category term="汇编" scheme="https://catbro666.github.io/tags/%E6%B1%87%E7%BC%96/"/>
     
     <category term="DOS" scheme="https://catbro666.github.io/tags/DOS/"/>
     
@@ -69,7 +96,7 @@
     <link href="https://catbro666.github.io/posts/d6ca5270/"/>
     <id>https://catbro666.github.io/posts/d6ca5270/</id>
     <published>2021-12-12T10:25:29.000Z</published>
-    <updated>2021-12-12T10:46:14.736Z</updated>
+    <updated>2022-03-05T10:44:58.143Z</updated>
     
     
     <summary type="html">&lt;div class=&quot;note primary&quot;&gt;
@@ -78,10 +105,10 @@
     
     
     
-    <category term="工具向" scheme="https://catbro666.github.io/categories/%E5%B7%A5%E5%85%B7%E5%90%91/"/>
+    <category term="工具" scheme="https://catbro666.github.io/categories/%E5%B7%A5%E5%85%B7/"/>
     
     
-    <category term="vim" scheme="https://catbro666.github.io/tags/vim/"/>
+    <category term="Vim" scheme="https://catbro666.github.io/tags/Vim/"/>
     
   </entry>
   
@@ -90,7 +117,7 @@
     <link href="https://catbro666.github.io/posts/5ec4fb12/"/>
     <id>https://catbro666.github.io/posts/5ec4fb12/</id>
     <published>2021-12-11T13:06:53.000Z</published>
-    <updated>2022-02-18T05:38:06.107Z</updated>
+    <updated>2022-03-05T10:36:54.048Z</updated>
     
     
     <summary type="html">&lt;div class=&quot;note primary&quot;&gt;
@@ -99,7 +126,7 @@
     
     
     
-    <category term="技术向" scheme="https://catbro666.github.io/categories/%E6%8A%80%E6%9C%AF%E5%90%91/"/>
+    <category term="操作系统" scheme="https://catbro666.github.io/categories/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/"/>
     
     
     <category term="Linux" scheme="https://catbro666.github.io/tags/Linux/"/>
@@ -115,7 +142,7 @@
     <link href="https://catbro666.github.io/posts/1fdd30ce/"/>
     <id>https://catbro666.github.io/posts/1fdd30ce/</id>
     <published>2021-11-11T16:51:24.000Z</published>
-    <updated>2021-11-11T16:53:30.392Z</updated>
+    <updated>2022-03-05T10:39:18.100Z</updated>
     
     
     <summary type="html">&lt;div class=&quot;note primary&quot;&gt;
@@ -124,7 +151,9 @@
     
     
     
-    <category term="技术向" scheme="https://catbro666.github.io/categories/%E6%8A%80%E6%9C%AF%E5%90%91/"/>
+    <category term="编程开发" scheme="https://catbro666.github.io/categories/%E7%BC%96%E7%A8%8B%E5%BC%80%E5%8F%91/"/>
+    
+    <category term="Lua" scheme="https://catbro666.github.io/categories/%E7%BC%96%E7%A8%8B%E5%BC%80%E5%8F%91/Lua/"/>
     
     
     <category term="Lua" scheme="https://catbro666.github.io/tags/Lua/"/>
@@ -138,7 +167,7 @@
     <link href="https://catbro666.github.io/posts/4198933e/"/>
     <id>https://catbro666.github.io/posts/4198933e/</id>
     <published>2021-11-07T09:52:11.000Z</published>
-    <updated>2022-01-20T14:41:00.771Z</updated>
+    <updated>2022-03-05T10:41:05.459Z</updated>
     
     
     <summary type="html">&lt;div class=&quot;note primary&quot;&gt;
@@ -147,7 +176,11 @@
     
     
     
-    <category term="技术向" scheme="https://catbro666.github.io/categories/%E6%8A%80%E6%9C%AF%E5%90%91/"/>
+    <category term="编程开发" scheme="https://catbro666.github.io/categories/%E7%BC%96%E7%A8%8B%E5%BC%80%E5%8F%91/"/>
+    
+    <category term="Nginx/OpenResty" scheme="https://catbro666.github.io/categories/%E7%BC%96%E7%A8%8B%E5%BC%80%E5%8F%91/Nginx-OpenResty/"/>
+    
+    <category term="性能" scheme="https://catbro666.github.io/categories/%E6%80%A7%E8%83%BD/"/>
     
     
     <category term="Nginx" scheme="https://catbro666.github.io/tags/Nginx/"/>
@@ -161,7 +194,7 @@
     <link href="https://catbro666.github.io/posts/59c71edb/"/>
     <id>https://catbro666.github.io/posts/59c71edb/</id>
     <published>2021-11-01T13:01:32.000Z</published>
-    <updated>2021-11-01T19:05:20.248Z</updated>
+    <updated>2022-03-05T10:44:06.163Z</updated>
     
     
     <summary type="html">&lt;div class=&quot;note primary&quot;&gt;
@@ -170,7 +203,7 @@
     
     
     
-    <category term="理论向" scheme="https://catbro666.github.io/categories/%E7%90%86%E8%AE%BA%E5%90%91/"/>
+    <category term="加密与安全" scheme="https://catbro666.github.io/categories/%E5%8A%A0%E5%AF%86%E4%B8%8E%E5%AE%89%E5%85%A8/"/>
     
     
     <category term="SSL/TLS" scheme="https://catbro666.github.io/tags/SSL-TLS/"/>
@@ -182,7 +215,7 @@
     <link href="https://catbro666.github.io/posts/357ad3ec/"/>
     <id>https://catbro666.github.io/posts/357ad3ec/</id>
     <published>2021-10-17T08:10:15.000Z</published>
-    <updated>2021-10-17T15:48:17.799Z</updated>
+    <updated>2022-03-05T10:37:27.191Z</updated>
     
     
     <summary type="html">&lt;div class=&quot;note primary&quot;&gt;
@@ -191,7 +224,7 @@
     
     
     
-    <category term="工具向" scheme="https://catbro666.github.io/categories/%E5%B7%A5%E5%85%B7%E5%90%91/"/>
+    <category term="操作系统" scheme="https://catbro666.github.io/categories/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/"/>
     
     
     <category term="Linux" scheme="https://catbro666.github.io/tags/Linux/"/>
@@ -207,7 +240,7 @@
     <link href="https://catbro666.github.io/posts/5c25711/"/>
     <id>https://catbro666.github.io/posts/5c25711/</id>
     <published>2021-09-12T10:38:31.000Z</published>
-    <updated>2021-11-11T16:43:56.215Z</updated>
+    <updated>2022-03-05T10:39:11.569Z</updated>
     
     
     <summary type="html">&lt;div class=&quot;note primary&quot;&gt;
@@ -216,7 +249,9 @@
     
     
     
-    <category term="技术向" scheme="https://catbro666.github.io/categories/%E6%8A%80%E6%9C%AF%E5%90%91/"/>
+    <category term="编程开发" scheme="https://catbro666.github.io/categories/%E7%BC%96%E7%A8%8B%E5%BC%80%E5%8F%91/"/>
+    
+    <category term="Lua" scheme="https://catbro666.github.io/categories/%E7%BC%96%E7%A8%8B%E5%BC%80%E5%8F%91/Lua/"/>
     
     
     <category term="Lua" scheme="https://catbro666.github.io/tags/Lua/"/>
@@ -230,7 +265,7 @@
     <link href="https://catbro666.github.io/posts/acdf52b7/"/>
     <id>https://catbro666.github.io/posts/acdf52b7/</id>
     <published>2021-08-26T16:09:50.000Z</published>
-    <updated>2021-08-26T18:03:15.685Z</updated>
+    <updated>2022-03-05T10:38:56.644Z</updated>
     
     
     <summary type="html">&lt;div class=&quot;note primary&quot;&gt;
@@ -238,7 +273,9 @@
     
     
     
-    <category term="技术向" scheme="https://catbro666.github.io/categories/%E6%8A%80%E6%9C%AF%E5%90%91/"/>
+    <category term="编程开发" scheme="https://catbro666.github.io/categories/%E7%BC%96%E7%A8%8B%E5%BC%80%E5%8F%91/"/>
+    
+    <category term="Lua" scheme="https://catbro666.github.io/categories/%E7%BC%96%E7%A8%8B%E5%BC%80%E5%8F%91/Lua/"/>
     
     
     <category term="Lua" scheme="https://catbro666.github.io/tags/Lua/"/>
@@ -252,7 +289,7 @@
     <link href="https://catbro666.github.io/posts/fa52978d/"/>
     <id>https://catbro666.github.io/posts/fa52978d/</id>
     <published>2021-08-18T12:55:57.000Z</published>
-    <updated>2021-08-20T16:50:19.830Z</updated>
+    <updated>2022-03-05T10:38:45.092Z</updated>
     
     
     <summary type="html">&lt;div class=&quot;note primary&quot;&gt;
@@ -260,7 +297,9 @@
     
     
     
-    <category term="技术向" scheme="https://catbro666.github.io/categories/%E6%8A%80%E6%9C%AF%E5%90%91/"/>
+    <category term="编程开发" scheme="https://catbro666.github.io/categories/%E7%BC%96%E7%A8%8B%E5%BC%80%E5%8F%91/"/>
+    
+    <category term="Lua" scheme="https://catbro666.github.io/categories/%E7%BC%96%E7%A8%8B%E5%BC%80%E5%8F%91/Lua/"/>
     
     
     <category term="Lua" scheme="https://catbro666.github.io/tags/Lua/"/>
@@ -274,7 +313,7 @@
     <link href="https://catbro666.github.io/posts/2e777dd3/"/>
     <id>https://catbro666.github.io/posts/2e777dd3/</id>
     <published>2021-08-17T12:40:09.000Z</published>
-    <updated>2021-08-18T12:49:42.679Z</updated>
+    <updated>2022-03-05T10:38:21.976Z</updated>
     
     
     <summary type="html">&lt;div class=&quot;note primary&quot;&gt;
@@ -282,7 +321,9 @@
     
     
     
-    <category term="技术向" scheme="https://catbro666.github.io/categories/%E6%8A%80%E6%9C%AF%E5%90%91/"/>
+    <category term="编程开发" scheme="https://catbro666.github.io/categories/%E7%BC%96%E7%A8%8B%E5%BC%80%E5%8F%91/"/>
+    
+    <category term="Lua" scheme="https://catbro666.github.io/categories/%E7%BC%96%E7%A8%8B%E5%BC%80%E5%8F%91/Lua/"/>
     
     
     <category term="Lua" scheme="https://catbro666.github.io/tags/Lua/"/>
@@ -296,7 +337,7 @@
     <link href="https://catbro666.github.io/posts/c1ecd715/"/>
     <id>https://catbro666.github.io/posts/c1ecd715/</id>
     <published>2021-08-16T11:52:15.000Z</published>
-    <updated>2021-08-17T12:45:36.647Z</updated>
+    <updated>2022-03-05T10:37:04.044Z</updated>
     
     
     <summary type="html">&lt;div class=&quot;note primary&quot;&gt;
@@ -304,7 +345,9 @@
     
     
     
-    <category term="技术向" scheme="https://catbro666.github.io/categories/%E6%8A%80%E6%9C%AF%E5%90%91/"/>
+    <category term="编程开发" scheme="https://catbro666.github.io/categories/%E7%BC%96%E7%A8%8B%E5%BC%80%E5%8F%91/"/>
+    
+    <category term="Lua" scheme="https://catbro666.github.io/categories/%E7%BC%96%E7%A8%8B%E5%BC%80%E5%8F%91/Lua/"/>
     
     
     <category term="Lua" scheme="https://catbro666.github.io/tags/Lua/"/>
@@ -318,7 +361,7 @@
     <link href="https://catbro666.github.io/posts/a05a2f5f/"/>
     <id>https://catbro666.github.io/posts/a05a2f5f/</id>
     <published>2021-08-15T04:41:09.000Z</published>
-    <updated>2021-08-15T04:56:36.440Z</updated>
+    <updated>2022-03-05T10:38:00.203Z</updated>
     
     
     <summary type="html">&lt;div class=&quot;note primary&quot;&gt;
@@ -326,7 +369,9 @@
     
     
     
-    <category term="技术向" scheme="https://catbro666.github.io/categories/%E6%8A%80%E6%9C%AF%E5%90%91/"/>
+    <category term="编程开发" scheme="https://catbro666.github.io/categories/%E7%BC%96%E7%A8%8B%E5%BC%80%E5%8F%91/"/>
+    
+    <category term="Lua" scheme="https://catbro666.github.io/categories/%E7%BC%96%E7%A8%8B%E5%BC%80%E5%8F%91/Lua/"/>
     
     
     <category term="Lua" scheme="https://catbro666.github.io/tags/Lua/"/>
@@ -340,7 +385,7 @@
     <link href="https://catbro666.github.io/posts/f6e9079c/"/>
     <id>https://catbro666.github.io/posts/f6e9079c/</id>
     <published>2021-08-15T04:19:48.000Z</published>
-    <updated>2021-08-15T04:29:50.188Z</updated>
+    <updated>2022-03-05T10:37:53.287Z</updated>
     
     
     <summary type="html">&lt;div class=&quot;note primary&quot;&gt;
@@ -348,7 +393,9 @@
     
     
     
-    <category term="技术向" scheme="https://catbro666.github.io/categories/%E6%8A%80%E6%9C%AF%E5%90%91/"/>
+    <category term="编程开发" scheme="https://catbro666.github.io/categories/%E7%BC%96%E7%A8%8B%E5%BC%80%E5%8F%91/"/>
+    
+    <category term="Lua" scheme="https://catbro666.github.io/categories/%E7%BC%96%E7%A8%8B%E5%BC%80%E5%8F%91/Lua/"/>
     
     
     <category term="Lua" scheme="https://catbro666.github.io/tags/Lua/"/>
@@ -362,7 +409,7 @@
     <link href="https://catbro666.github.io/posts/f9a188a7/"/>
     <id>https://catbro666.github.io/posts/f9a188a7/</id>
     <published>2021-08-12T16:52:46.000Z</published>
-    <updated>2021-08-14T09:58:25.352Z</updated>
+    <updated>2022-03-05T10:37:46.002Z</updated>
     
     
     <summary type="html">&lt;div class=&quot;note primary&quot;&gt;
@@ -371,7 +418,9 @@
     
     
     
-    <category term="技术向" scheme="https://catbro666.github.io/categories/%E6%8A%80%E6%9C%AF%E5%90%91/"/>
+    <category term="编程开发" scheme="https://catbro666.github.io/categories/%E7%BC%96%E7%A8%8B%E5%BC%80%E5%8F%91/"/>
+    
+    <category term="Lua" scheme="https://catbro666.github.io/categories/%E7%BC%96%E7%A8%8B%E5%BC%80%E5%8F%91/Lua/"/>
     
     
     <category term="Lua" scheme="https://catbro666.github.io/tags/Lua/"/>
@@ -385,7 +434,7 @@
     <link href="https://catbro666.github.io/posts/e92ef4b4/"/>
     <id>https://catbro666.github.io/posts/e92ef4b4/</id>
     <published>2021-08-08T15:32:26.000Z</published>
-    <updated>2021-11-02T14:02:19.859Z</updated>
+    <updated>2022-03-05T10:44:18.639Z</updated>
     
     
     <summary type="html">&lt;div class=&quot;note primary&quot;&gt;
@@ -394,7 +443,7 @@
     
     
     
-    <category term="理论向" scheme="https://catbro666.github.io/categories/%E7%90%86%E8%AE%BA%E5%90%91/"/>
+    <category term="加密与安全" scheme="https://catbro666.github.io/categories/%E5%8A%A0%E5%AF%86%E4%B8%8E%E5%AE%89%E5%85%A8/"/>
     
     
     <category term="SSL/TLS" scheme="https://catbro666.github.io/tags/SSL-TLS/"/>
@@ -408,7 +457,7 @@
     <link href="https://catbro666.github.io/posts/74970c0e/"/>
     <id>https://catbro666.github.io/posts/74970c0e/</id>
     <published>2021-07-17T08:46:43.000Z</published>
-    <updated>2021-07-19T15:57:04.995Z</updated>
+    <updated>2022-03-05T10:36:24.292Z</updated>
     
     
     <summary type="html">&lt;div class=&quot;note primary&quot;&gt;
@@ -417,10 +466,14 @@
     
     
     
-    <category term="技术向" scheme="https://catbro666.github.io/categories/%E6%8A%80%E6%9C%AF%E5%90%91/"/>
+    <category term="编程开发" scheme="https://catbro666.github.io/categories/%E7%BC%96%E7%A8%8B%E5%BC%80%E5%8F%91/"/>
+    
+    <category term="Lua" scheme="https://catbro666.github.io/categories/%E7%BC%96%E7%A8%8B%E5%BC%80%E5%8F%91/Lua/"/>
     
     
     <category term="Lua" scheme="https://catbro666.github.io/tags/Lua/"/>
+    
+    <category term="TAILCALL" scheme="https://catbro666.github.io/tags/TAILCALL/"/>
     
   </entry>
   
@@ -429,7 +482,7 @@
     <link href="https://catbro666.github.io/posts/30b81f82/"/>
     <id>https://catbro666.github.io/posts/30b81f82/</id>
     <published>2021-07-03T18:05:36.000Z</published>
-    <updated>2021-08-12T12:04:21.878Z</updated>
+    <updated>2022-03-05T10:43:07.524Z</updated>
     
     
     <summary type="html">&lt;div class=&quot;note primary&quot;&gt;
@@ -438,7 +491,9 @@
     
     
     
-    <category term="技术向" scheme="https://catbro666.github.io/categories/%E6%8A%80%E6%9C%AF%E5%90%91/"/>
+    <category term="编程开发" scheme="https://catbro666.github.io/categories/%E7%BC%96%E7%A8%8B%E5%BC%80%E5%8F%91/"/>
+    
+    <category term="Nginx/OpenResty" scheme="https://catbro666.github.io/categories/%E7%BC%96%E7%A8%8B%E5%BC%80%E5%8F%91/Nginx-OpenResty/"/>
     
     
     <category term="Lua" scheme="https://catbro666.github.io/tags/Lua/"/>
@@ -448,33 +503,6 @@
     <category term="Nginx" scheme="https://catbro666.github.io/tags/Nginx/"/>
     
     <category term="钩子" scheme="https://catbro666.github.io/tags/%E9%92%A9%E5%AD%90/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Openresty Lua协程调度机制</title>
-    <link href="https://catbro666.github.io/posts/150430f0/"/>
-    <id>https://catbro666.github.io/posts/150430f0/</id>
-    <published>2021-07-03T10:52:24.000Z</published>
-    <updated>2021-08-12T12:12:11.209Z</updated>
-    
-    
-    <summary type="html">&lt;div class=&quot;note primary&quot;&gt;
-            &lt;h1 id=&quot;写在前面&quot;&gt;&lt;a href=&quot;#写在前面&quot; class=&quot;headerlink&quot; title=&quot;写在前面&quot;&gt;&lt;/a&gt;写在前面&lt;/h1&gt;&lt;p&gt;OpenResty（后面简称：OR）是一个基于Nginx和Lua的高性能Web平台，它内部集成大量的Lua API以及第三方模块，可以利用它快速搭建支持高并发、极具动态性和扩展性的Web应用、Web服务或动态网关。&lt;/p&gt;&lt;p&gt;OR最大的特点就是，将Lua协程与Nginx事件驱动模型及非阻塞I/O结合起来。使用户可以在handler中使用 &lt;strong&gt;同步但是依然是非阻塞&lt;/strong&gt; 的方式编写其应用代码，而无需关心底层的协程调度以及与Nginx事件驱动模型的交互。&lt;/p&gt;&lt;p&gt;本文将先从总体上介绍OR的协程调度机制，然后结合源码以及Lua栈的情况来详细了解各个部分是如何实现的，包括其异常保护、协程初始化、协程的恢复和执行、协程的挂起、协程的执行结束、协程出错的情况。&lt;/p&gt;&lt;p&gt;本文主要关注调度函数内部的逻辑，如果想了解外部的调用流程。可以参看&lt;a href=&quot;../30b81f82/&quot;&gt;Openresty Lua钩子调用完整流程&lt;/a&gt;&lt;/p&gt;
-          &lt;/div&gt;</summary>
-    
-    
-    
-    <category term="技术向" scheme="https://catbro666.github.io/categories/%E6%8A%80%E6%9C%AF%E5%90%91/"/>
-    
-    
-    <category term="Lua" scheme="https://catbro666.github.io/tags/Lua/"/>
-    
-    <category term="OpenResty" scheme="https://catbro666.github.io/tags/OpenResty/"/>
-    
-    <category term="Nginx" scheme="https://catbro666.github.io/tags/Nginx/"/>
-    
-    <category term="协程" scheme="https://catbro666.github.io/tags/%E5%8D%8F%E7%A8%8B/"/>
     
   </entry>
   
