@@ -6,7 +6,7 @@
   <link href="https://catbro666.github.io/atom.xml" rel="self"/>
   
   <link href="https://catbro666.github.io/"/>
-  <updated>2022-03-05T15:11:20.544Z</updated>
+  <updated>2022-03-12T11:23:53.730Z</updated>
   <id>https://catbro666.github.io/</id>
   
   <author>
@@ -17,11 +17,34 @@
   <generator uri="https://hexo.io/">Hexo</generator>
   
   <entry>
+    <title>Linux内核是如何启动的</title>
+    <link href="https://catbro666.github.io/posts/615fc0b5/"/>
+    <id>https://catbro666.github.io/posts/615fc0b5/</id>
+    <published>2022-03-12T11:01:39.000Z</published>
+    <updated>2022-03-12T11:23:53.730Z</updated>
+    
+    
+    <summary type="html">&lt;div class=&quot;note primary&quot;&gt;
+            &lt;p&gt;本文介绍Linux内核的引导启动以及初始化流程，从你按下电源开始到你最终进行终端登录，这期间到底发生了什么？&lt;/p&gt;
+          &lt;/div&gt;</summary>
+    
+    
+    
+    <category term="操作系统" scheme="https://catbro666.github.io/categories/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/"/>
+    
+    
+    <category term="Linux" scheme="https://catbro666.github.io/tags/Linux/"/>
+    
+    <category term="内核" scheme="https://catbro666.github.io/tags/%E5%86%85%E6%A0%B8/"/>
+    
+  </entry>
+  
+  <entry>
     <title>Nginx的共享内存管理--slab算法</title>
     <link href="https://catbro666.github.io/posts/2dc32e47/"/>
     <id>https://catbro666.github.io/posts/2dc32e47/</id>
     <published>2022-03-05T08:50:42.000Z</published>
-    <updated>2022-03-05T15:11:20.544Z</updated>
+    <updated>2022-03-10T11:27:29.774Z</updated>
     
     
     <summary type="html">&lt;div class=&quot;note primary&quot;&gt;
@@ -474,35 +497,6 @@
     <category term="Lua" scheme="https://catbro666.github.io/tags/Lua/"/>
     
     <category term="TAILCALL" scheme="https://catbro666.github.io/tags/TAILCALL/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>OpenResty Lua钩子调用完整流程</title>
-    <link href="https://catbro666.github.io/posts/30b81f82/"/>
-    <id>https://catbro666.github.io/posts/30b81f82/</id>
-    <published>2021-07-03T18:05:36.000Z</published>
-    <updated>2022-03-05T10:43:07.524Z</updated>
-    
-    
-    <summary type="html">&lt;div class=&quot;note primary&quot;&gt;
-            &lt;p&gt;前面一篇文章介绍了&lt;a href=&quot;../150430f0/&quot;&gt;Openresty Lua协程调度机制&lt;/a&gt;，主要关心的是核心调度函数&lt;code&gt;run_thread()&lt;/code&gt;内部发生的事情，而对于外部的事情我们并没有涉及。本篇作为其姊妹篇，准备补上剩余的部分。本篇将通过一个例子，完整介绍OpenResty中Lua钩子的调用流程，包括初始化阶段的工作、新连接进来时如何进入钩子、I/O等待时如何出去、事件触发时如何恢复、钩子正常执行结束时的操作、钩子内出错的情况。本文同样是基于&lt;code&gt;stream-lua&lt;/code&gt;模块的代码。&lt;/p&gt;
-          &lt;/div&gt;</summary>
-    
-    
-    
-    <category term="编程开发" scheme="https://catbro666.github.io/categories/%E7%BC%96%E7%A8%8B%E5%BC%80%E5%8F%91/"/>
-    
-    <category term="Nginx/OpenResty" scheme="https://catbro666.github.io/categories/%E7%BC%96%E7%A8%8B%E5%BC%80%E5%8F%91/Nginx-OpenResty/"/>
-    
-    
-    <category term="Lua" scheme="https://catbro666.github.io/tags/Lua/"/>
-    
-    <category term="OpenResty" scheme="https://catbro666.github.io/tags/OpenResty/"/>
-    
-    <category term="Nginx" scheme="https://catbro666.github.io/tags/Nginx/"/>
-    
-    <category term="钩子" scheme="https://catbro666.github.io/tags/%E9%92%A9%E5%AD%90/"/>
     
   </entry>
   

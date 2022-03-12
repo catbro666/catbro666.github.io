@@ -2196,6 +2196,8 @@
             <p>注：后面的代码都是基于Nginx-1.19.3</p>
           </div>
 
+<p>下图给出了几个主要结构体之间的关系，以及几个主要的指针指向的共享内存的位置。从addr到last是用于管理的元数据，从start到end则实际用于分配的内存。slots和stats分别是各个slot的半满链表头和统计信息。pages是页面头数组，跟后面实际分配的内存页面一一对应。通过页面头可以找到对应页，通过页面地址也可以找到它的页面头，连续的页块其页面头也是连续的。</p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/2dc32e47/nginx-slab-structures.svg" alt="nginx-slab-structures" loading="lazy"></p>
 <p><code>ngx_shm_zone_t</code>是用于描述共享内存的结构体，data是私有数据指针，init是私有的初始化函数，tag用于区别不同的共享内存。</p>
 <figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="comment">// ngx_shm_zone_t是共享内存的结构体，里面包含了shm，data是私有数据</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">ngx_shm_zone_s</span> &#123;</span></span><br><span class="line">    <span class="keyword">void</span>                     *data;</span><br><span class="line">    <span class="keyword">ngx_shm_t</span>                 shm;</span><br><span class="line">    ngx_shm_zone_init_pt      init;</span><br><span class="line">    <span class="keyword">void</span>                     *tag;</span><br><span class="line">    <span class="keyword">void</span>                     *sync;</span><br><span class="line">    <span class="keyword">ngx_uint_t</span>                noreuse;  <span class="comment">/* unsigned  noreuse:1; */</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
 
@@ -2211,8 +2213,8 @@
 <p><code>ngx_slab_stat_t</code>用于统计slot的信息</p>
 <figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 用于统计slot信息</span></span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> &#123;</span></span><br><span class="line">    <span class="keyword">ngx_uint_t</span>        total;  <span class="comment">// 总共有多少个对象</span></span><br><span class="line">    <span class="keyword">ngx_uint_t</span>        used;   <span class="comment">// 目前使用了多少个</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">ngx_uint_t</span>        reqs;   <span class="comment">// 请求该slot次数，累加计数器</span></span><br><span class="line">    <span class="keyword">ngx_uint_t</span>        fails;  <span class="comment">// 请求失败的次数，累加计数器</span></span><br><span class="line">&#125; <span class="keyword">ngx_slab_stat_t</span>;</span><br></pre></td></tr></table></figure>
 
-<p>下图给出了这几个结构体之间的关系，以及几个主要的指针指向的共享内存的位置。从addr到last是用于管理的元数据，从start到end则实际用于分配的内存。slots和stats分别是各个slot的半满链表头和统计信息。pages是页面头数组，跟后面实际分配的内存页面一一对应。通过页面头可以找到对应页，通过页面地址也可以找到它的页面头，连续的页块其页面头也是连续的。</p>
-<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/2dc32e47/nginx-slab-structures.svg" alt="nginx-slab-structures" loading="lazy"></p>
+
+
 <h2 id="初始化流程"><a href="#初始化流程" class="headerlink" title="初始化流程"></a>初始化流程</h2><h3 id="首次启动"><a href="#首次启动" class="headerlink" title="首次启动"></a>首次启动</h3><p>共享初始化的主要函数调用关系如下：</p>
 <figure class="highlight c"><table><tr><td class="code"><pre><span class="line">ngx_shared_memory_add()		<span class="comment">// 初始化ngx_shm_zone_t，并放到全局链表cf-&gt;cycle-&gt;shared_memory中</span></span><br><span class="line">ngx_init_cycle()</span><br><span class="line">  ngx_shm_alloc(&amp;shm_zone[i].shm)      <span class="comment">// 分配内存</span></span><br><span class="line">  ngx_init_zone_pool(cycle, &amp;shm_zone[i])     <span class="comment">// slab初始化</span></span><br><span class="line">    ngx_slab_init()</span><br><span class="line">  shm_zone[i].init(&amp;shm_zone[i], oshm_zone[n].data) <span class="comment">// 各共享内存私有的初始化函数，例如ngx_ssl_session_cache_init，主要负责初始化ngx_ssl_session_cache_t</span></span><br></pre></td></tr></table></figure>
 
@@ -4683,6 +4685,158 @@
         <tag>共享内存</tag>
         <tag>多进程</tag>
         <tag>信号</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Linux内核是如何启动的</title>
+    <url>/posts/615fc0b5/</url>
+    <content><![CDATA[<div class="note primary">
+            <p>本文介绍Linux内核的引导启动以及初始化流程，从你按下电源开始到你最终进行终端登录，这期间到底发生了什么？</p>
+          </div>
+
+<span id="more"></span>
+
+<div class="note default no-icon">
+            <p>注：本文讲述的内容基于Linux 0.11，相关内核源码可以从<a href="(http://oldlinux.org)">这里</a>下载。</p>
+          </div>
+
+
+
+
+
+<h1 id="前置知识"><a href="#前置知识" class="headerlink" title="前置知识"></a>前置知识</h1><p>再阅读本文之前，建议先对CPU保护模式、分段分页机制、GDT/LDT/IDT等概念有最基本的了解。这里仅做简单介绍：</p>
+<ul>
+<li>32位保护模式：支持多任务、支持4GB物理内存、支持虚拟内存、支持分段和分页机制、支持特权级。具体提供了哪些保护机制可以参考<a href="https://pdos.csail.mit.edu/6.828/2004/readings/i386/s06_02.htm">80386 Protection Mechanisms</a></li>
+<li>分段分页机制：保护模式下提供了虚拟内存机制，描述符中保存了段的基值、限长以及一些其他的保护参数。每个进程都使用独立的虚拟地址，通过段描述符的基址可以得到线性地址，再根据分页机制的页目录、页表可以转化为实际的物理地址。</li>
+<li>GDT：全局描述符表，存放内核的数据段、代码段描述符以及各个任务的局部表和状态段描述符。GDT地址可以通过gdtr寄存器定位。</li>
+<li>IDT：中断描述符表，指出发生中断时需要调用的代码信息，跟中断向量表有些类似，但是包含更多的信息。IDT地址可以通过idtr寄存器定位。</li>
+<li>LDT：任务的局部描述符表，第0项不用、第1第2项分别为任务的代码段和数据堆栈段描述符。LDT地址可以通过ldtr寄存器定位。</li>
+<li>TSS：任务状态段，主要保存两类信息。一类是任务切换时更新的动态信息：如通用寄存器、段寄存器、EFLAGS、EIP、前一个执行任务的TSS选择符。一类是静态信息级：任务的LDT选择符、页目录基地址寄存器CR3（PDBR）、0～2特权级的堆栈指针、调试跟踪位、I/O比特位图基地址。TSS地址可以通过tr寄存器定位。</li>
+<li>描述符表项：8个字节，包括段的最大长度限制（16位）、段的线形基址（32位）、段的特权级、段是否在内存、读写权限以及其他一些保护模式运行的标志。</li>
+<li>段选择符：2个字节，位0～1表示请求的特权级，Linux只用了两级，0表示系统级3表示用户级，位2用于全局(0)或局部(1)描述符表，位3～15是描述符表项的索引。</li>
+<li>中断描述符表项：8个字节，称为门描述符，0～1和6～7字节是处理程序所在段的段内偏移量，2～3字节是处理程序所在段的段选择符，4～5B是一些标志。包含3种门描述符：中断门DPL为0、关中断，陷阱门DPL为0、开中断，系统门(其实也是陷阱门)不过DPL为3、开中断。</li>
+<li>页表项：4个字节，低0～11位存放一些标志，如位0是否在内存中、位1读写标志位、位2普通用户还是超级用户、位6是否脏页，高12～31位是页框地址。</li>
+</ul>
+<h1 id="磁盘引导-bootsect-s"><a href="#磁盘引导-bootsect-s" class="headerlink" title="磁盘引导(bootsect.s)"></a>磁盘引导(bootsect.s)</h1><ol>
+<li><p>当计算机上电启动后，x86的CPU将自动<strong>进入实模式</strong>，并从0xffff0地址处开始执行程序，这里通常是ROM-BIOS的地址，BIOS将执行硬件系统检测，并在物理地址0处建立中断向量表，即将BIOS提供的中断例程的入口地址登记在中断向量表中。</p>
+<p>8086CPU的内存地址空间分配</p>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="number">0x0</span>                    <span class="number">0x9ffff</span> <span class="number">0xa0000</span>     <span class="number">0xbffff</span> <span class="number">0xc0000</span>  <span class="number">0xfffff</span></span><br><span class="line">|中断向量表 主储存器地址空间RAM   |     显存地址空间     | 各类ROM地址空间 |</span><br></pre></td></tr></table></figure></li>
+<li><p>随后BIOS将启动盘的第一个扇区（引导块，Linux0.11对应bootsect.s代码）读入内存0x7c00处，然后跳转到那里继续执行</p>
+</li>
+<li><p>从这里起，内核便开始接手CPU的控制权了。引导块的大小毕竟有限，所以它干的事情很简单，就是将引导块自己移到内存0x90000处，然后将内核程序剩余的部分读到内存中。其中setup.s对应的4个扇区读到了0x90200处，即紧跟在引导块之后。内核主体部分system则读到0x10000处，此时内存的布局如下：</p>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="number">0x0</span>         <span class="number">0x7c00</span>      <span class="number">0x10000</span>            <span class="number">0x90000</span> <span class="number">0x90200</span>      <span class="number">0xa0000</span></span><br><span class="line">|中断向量表| |引导块|     |system        |    |引导块  |setup.s|   ｜    </span><br></pre></td></tr></table></figure></li>
+<li><p>读完之后，便段间跳转到0x90200处，开始执行setup.s的代码</p>
+</li>
+</ol>
+<h1 id="系统设置-setup-s"><a href="#系统设置-setup-s" class="headerlink" title="系统设置(setup.s)"></a>系统设置(setup.s)</h1><ol>
+<li><p>setup.s程序的主要任务是利用ROM BIOS中断获取系统的信息，放到内存中合适的位置（0x90000开始），以提供后面的保护模式下的操作系统使用。因为保护模式下，操作系统将自己设置中断描述符表以处理中断，而不再使用实模式下的中断向量表。</p>
+</li>
+<li><p>读取的系统信息包括显示相关的、内存信息、硬盘信息、根文件系统设备号等。这些信息将被内核相关程序使用。</p>
+</li>
+<li><p>接下来就要为进入保护模式做准备了。<strong>关中断</strong>后，将system模块从0x10000～0x8ffff（512KB）整体移到0x00000处。</p>
+<p>这里有<span class="label primary">两个问题值得思考</span>：为什么前面bootsect.s中不直接将system读到0x00000处？为什么这里要关中断？</p>
+<p>第一个问题是因为我们从磁盘读system模块的时候还是需要用到BIOS的中断，所以不能覆盖位于0x0的中断向量表。</p>
+<p>第二个问题则是由于我们的system模块即将覆盖中断向量表，所以如果实模式发生了中断的话，得到的将是无效的中断向量，系统会崩溃。同样地，进入保护模式之后，在没有完成初始化之前，中断描述符项可能是无效的。</p>
+</li>
+<li><p>然后就是加载中断描述符表寄存器(idtr)和全局描述符表寄存器(gdtr)，然后开启A20地址线，对两个中断控制芯片8259A进行编程，设置其中断号为0x20-0x2f。</p>
+<p>临时idt表基址0，限长0，临时gdt表基址512+gdt，限长2048，即256项。</p>
+</li>
+<li><p>最后通过<code>lmsw</code>指令设置CPU的机器状态字（也称控制寄存器CR0），从而<strong>进入到保护模式</strong>，并跳转到代码段开头即system模块最开头的head.s继续执行。（保护模式下段寄存器的值不再表示段的基址，而是表示段选择符。）</p>
+</li>
+</ol>
+<p>此时内存的布局如下：</p>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="number">0x0</span>                             <span class="number">0x90000</span> <span class="number">0x90200</span></span><br><span class="line">|head.s|main.c|kernel|mm|lib|...|系统参数｜setup.s|临时gdt|...|</span><br><span class="line">\----------system-----------/</span><br></pre></td></tr></table></figure>
+
+<p>system被移到了0x0开始处，0x90000处则存放了系统信息(之前的引导块bootsect.s已经被覆盖)。临时gdt中第0项不用，第1项是系统代码段描述符、第2项是系统数据段描述符，两者的基址都是0。</p>
+<h1 id="启动程序-head-s"><a href="#启动程序-head-s" class="headerlink" title="启动程序(head.s)"></a>启动程序(head.s)</h1><p>从head.s开始，内核已经完全处于保护模式下运行了。不过在开始执行C代码前，还需要用汇编完成一些任务，主要包括：</p>
+<ol>
+<li>重新设置各个段寄存器为对应的段选择符（代码段0x08，数据段0x10）</li>
+<li>设置正式中断描述符表idt，256项，初始化每个门描述符都指向一个只报错误的哑中断程序</li>
+<li>设置正式全局描述符表gdt，256项。全局表第0项NULL，第1项系统代码段描述符、第2项是系统数据段描述符、第3项系统段不用，后面是留给各个任务的TSS描述符和LDT描述符。每个局部描述符表LDT含有三个描述符，第0个不用、第1个是任务代码段、第2个是任务数据/堆栈段。</li>
+<li>然后设置堆栈段位内核数据段(0x10)，堆栈指针esp指向<code>user_stack</code>数组尾部，保留了4KB空间作为堆栈使用。（此前bootsect.s中临时使用的栈顶位位置在0x9000:0xff00。）</li>
+<li>检查A20地址线是否真的开启</li>
+<li>测试机器是否含有数学协处理器芯片，并设置控制寄存器CR0中相应标志位。</li>
+<li>接下来是分页机制的相关设置，将从0x0开始的前5页内存清零，设置第一页为页目录，其余4页为页表，然后将页目录中的前4项以及所有页表项指向对应的物理内存地址，置最后3位标志，表示该页存在且用户可读写。</li>
+<li>设置页目录基址寄存器cr3的值，指向页目录表</li>
+<li>现在可以启动分页机制了，方法就是通过置控制寄存器cr0的第31位。</li>
+<li>最后通过<code>ret</code>指令将事先压栈的main函数入口地址弹出，开始运行main函数。</li>
+</ol>
+<div class="note default no-icon">
+            <p>注：Linux 0.11中，所以进程都使用同一个页目录表，但都有自己的页表。最多支持64个进程，每个进程的虚拟地址空间范围64MB，逻辑地址乘以任务号即可转换得到线性地址，合在一起正好是4GB。不过在Linux 0.99版之后，每个进程都有自己的页目录，可以单独享用4GB的虚拟地址了。</p>
+          </div>
+
+<p>此时内存布局如下：</p>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="number">0x0</span>                       <span class="number">0x5000</span></span><br><span class="line">|页目录(<span class="number">4</span>K)|pg0|pg1|pg2|pg3|软盘缓冲区(<span class="number">1</span>K)|head.s部分|idt(<span class="number">2</span>K)|gdt(<span class="number">2</span>K)|main.c|</span><br></pre></td></tr></table></figure>
+
+
+
+<h1 id="内核初始化-main-c"><a href="#内核初始化-main-c" class="headerlink" title="内核初始化(main.c)"></a>内核初始化(main.c)</h1><p>该程序代码不长，但包括了内核初始化的所有工作，主要的初始化流程如下（此时还处于关中断的状态）：</p>
+<ol>
+<li><p>首先设置根文件系统设备号及内存全局变量</p>
+<p>利用setup.s程序获取的系统参数设置系统的根文件系统设备号以及一些内存全局变量。这些内存全局变量指明了主内存的开始地址、系统的内存容量和作为高速缓冲区内存的末端地址。</p>
+<p>Linux 0.11内核默认最多支持16MB物理内存，其分布如下：</p>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line">  内核模块 /    高速缓冲区          \ 虚拟盘        主内存区</span><br><span class="line">|        |    ｜显存和BIOS ROM|    |      |                      |</span><br><span class="line"><span class="number">0</span>        end   <span class="number">640</span>K          <span class="number">1</span>MB  <span class="number">4</span>MB    <span class="number">4.5</span>MB                  <span class="number">16</span>MB</span><br></pre></td></tr></table></figure>
+
+<p>高速缓冲区要扣除显存和BIOS ROM部分，如果定义了虚拟盘(RAMDISK)，则主内存适当减少。内核程序可以自由访问高速缓冲区中的数据，而主内存则由mm模块通过分页机制进行管理分配。</p>
+</li>
+<li><p>接着是系统各个部分的初始化：</p>
+<p>内存、陷阱门、块设备、字符设备、tty、开机启动时间、调度程序（加载了任务0的tr和ldtr、时钟中断门和系统调用门）、缓冲区、硬盘、软驱。</p>
+<ul>
+<li>ramdisk虚拟盘：确定rd处理函数、内存起始地址和长度，对整个虚拟盘清零。</li>
+<li>mem内存：初始化mem_map，主内存页为0，其余为USED。</li>
+<li>trap陷阱门：设置陷阱门和系统门。（选择符0x0008表示系统级，全局表，第2项，即内核代码段cs。）</li>
+<li>blk块设备：初始化请求队列</li>
+<li>tty字符设备：包括rs_init和con_init。rs_init设置串口rs1和rs2中断门，初始化串口rs1和rs2（rs232），允许主8259A芯片的IRQ3和IRQ4。con_init初始化控制台中断，读取setup.s保存的信息，确定当前显示器类型并设置所有相关参数。设置键盘中断陷阱门，复位键盘。</li>
+<li>time时间：从CMOS读取时间，初始化启动时间startup_time</li>
+<li>sched调度：设置GDT中task0的tss和ldt描述符（init_task已经静态设置好），清任务数组及其在GDT中的描述符表项，清标志寄存器NT位（iret时不进行任务切换），将任务0的TSS加载到任务寄存器tr，将GDT中任务0的ldt描述符的选择符加载到ldtr（仅显式加载这一次，后续任务CPU根据TSS中的LDT项自动加载）。初始化8253定时器，设置定时器中断门，设置系统调用系统门。</li>
+<li>buffer高速缓冲区：初始化高速缓冲区，前面缓冲区低端是缓冲头结构，高端是缓冲块（每个1KB），第一个缓冲头指向最后一个缓冲块。空闲链表头指向第一个缓冲区头，第一个缓冲区头和最后一个相连形成环链。初始化hash表为空。</li>
+<li>hd硬盘：设置硬盘请求处理函数、中断门，允许硬盘控制器发送中断请求信号。</li>
+<li>floppy软驱：设置软盘请求处理函数、中断门，允许软盘控制器发送中断请求信号。</li>
+</ul>
+</li>
+<li><p>OK，所有初始化工作完毕，<strong>开中断</strong>。（从setup.s中移动system模块前关中断一直到这里为止）</p>
+</li>
+<li><p>接下来要变魔术了，<code>move_to_user_mode()</code>完成两个重要的历史任务：一是<strong>启动第一个任务（进程0）</strong>，二是<strong>将特权级切换到用户态</strong>（此前一直是工作在内核态）</p>
+<p>我们来看下这段关键的代码：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">#define move_to_user_mode() \</span><br><span class="line">__asm__ (&quot;movl %%esp,%%eax\n\t&quot; \</span><br><span class="line">    &quot;pushl $0x17\n\t&quot; \</span><br><span class="line">    &quot;pushl %%eax\n\t&quot; \</span><br><span class="line">    &quot;pushfl\n\t&quot; \</span><br><span class="line">    &quot;pushl $0x0f\n\t&quot; \</span><br><span class="line">    &quot;pushl $1f\n\t&quot; \</span><br><span class="line">    &quot;iret\n&quot; \</span><br><span class="line">    &quot;1:\tmovl $0x17,%%eax\n\t&quot; \</span><br><span class="line">    &quot;movw %%ax,%%ds\n\t&quot; \</span><br><span class="line">    &quot;movw %%ax,%%es\n\t&quot; \</span><br><span class="line">    &quot;movw %%ax,%%fs\n\t&quot; \</span><br><span class="line">    &quot;movw %%ax,%%gs&quot; \</span><br><span class="line">    :::&quot;ax&quot;)</span><br></pre></td></tr></table></figure>
+
+<p>前面几条指令是手动模拟中断过程的堆栈情况，我们来逐条解释一下：</p>
+<ol>
+<li>保存堆栈指针esp到eax</li>
+<li>将task0堆栈段选择符(0x17)入栈（此前ss是0x10）</li>
+<li>将eax中的堆栈指针值入栈</li>
+<li>将标志寄存器入栈</li>
+<li>将task0代码段选择符(0x0f)入栈（此前cs是0x08）</li>
+<li>将标号1的偏移地址入栈</li>
+<li>接下来执行<code>iret</code>，这是一个标志性的时刻。偏移地址、代码段选择符、标志寄存器出栈，接下来跳到task0中执行了。由于任务0的描述符特权级是3（即用户态），所以之前入栈的堆栈指针和堆栈段选择符也被弹出，也即恢复之前内核堆栈。这样就完成了任务0的人工启动，它是所有进程的祖先，但是它比较特殊，它的数据段和代码段直接映射内核代码和数据空间，也即从0开始，限长640KB。其内核态堆栈位于其task数据结构所在页面的末端，内核态堆栈指针是在其初始化任务数据结构中人工设置的。而它的用户态堆栈就是最前面两条指令设置的，esp仍然指向原来的位置，但是ss已经变成0x17，即用户态局部表中的数据段。</li>
+<li>接下来4个指令都是设置段寄存器，指向局部表的数据段。其中0x17是task0的数据/堆栈段选择符，00010111最后两位表示特权级为3，位2表示局部表，高15位表示索引，局部表的第2项是数据段和堆栈段描述符（0不用，1是代码段）。类似地，0x0f是代码段选择符。</li>
+</ol>
+</li>
+<li><p>任务0自己的事情已经安顿好了，接下来自然就是开始造孩子了。</p>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="keyword">if</span> (!fork()) &#123;      <span class="comment">/* we count on this going ok */</span></span><br><span class="line">    init();</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">for</span>(;;) pause();</span><br></pre></td></tr></table></figure>
+
+<p>这是main函数的最后几行代码，fork了一个子进程（即<strong>进程1</strong>）执行<code>init()</code>，进程0则循环执行<code>pause()</code>。每当系统没有其他可执行的进程时就会执行进程0。</p>
+<span class="label primary">值得一提的是</span>，为了确保fork创建的新进程没有进程0的多余信息，要求进程0在创建第一个新进程之前不要使用用户态堆栈，即要求进程0不能调用函数，所以这里`fork()`和`pause()`是采用gcc函数内嵌的形式来执行的。</li>
+<li><p>最后我们来看下进程1执行的<code>init()</code>函数</p>
+<ol>
+<li>它首先执行<code>setup()</code>函数，主要是初始化硬盘分区，最后执行<code>mount_root()</code>安装根文件系统：初始化超级块数组，读取根设备上的超级块和根i节点结构信息，设置根i节点引用次数，并作为进程1的当前工作目录pwd和根目录root的i节点。根据逻辑块位图统计空闲块数并显示，根据i节点位图统计空闲i节点数并显示。</li>
+<li>读写打开终端控制台<code>/dev/tty0</code>，文件句柄为0，并复制产生句柄1和2</li>
+<li>接下来fork出进程2，用<code>/bin/sh</code>程序执行<code>/etc/rc</code>脚本</li>
+<li>如果进程2执行失败或执行结束，则进入一个大的死循环：创建新进程、关闭遗留句柄、创建一个会话并设置进程组号、句柄0/1/2都读写打开终端控制台<code>/dev/tty0</code>、最后<code>execve()</code>执行<code>/bin/sh</code>程序。此时用户便可以开始操作终端了。</li>
+</ol>
+</li>
+</ol>
+<h1 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h1><ul>
+<li>《Linux 内核完全注释— 赵炯》</li>
+<li>《汇编语言—王爽》</li>
+</ul>
+]]></content>
+      <categories>
+        <category>操作系统</category>
+      </categories>
+      <tags>
+        <tag>Linux</tag>
+        <tag>内核</tag>
       </tags>
   </entry>
 </search>
