@@ -342,16 +342,16 @@ translateInitilization();
         <div class="note primary">
             <p>本文不会介绍基本的VIM使用方法，如果你对VIM的几种模式、基本的编辑、移动和选取等还不了解，推荐你先看一下这篇<a target="_blank" rel="noopener external nofollow noreferrer" href="https://coolshell.cn/articles/5426.html">简明 VIM 练级攻略</a>，写得还是不错的，基本上最常用的命令都有了。如果你不是vim重度用户的话，知道这些命令已经足够。只能说vim的水太深，根据自身情况在编辑效率和学习成本之间做个平衡吧。</p>
           </div>
-
 <span id="more"></span>
-
 <p>这里有一个vim cheat sheet图，可以作为快速查阅用。要了解具体的命令推荐查看vim的help文档，内容写得非常详细。</p>
-<p><img src="https://coolshell.cn/wp-content/uploads/2011/09/vim_cheat_sheet_for_programmers_print.png" alt="vim cheet sheet" loading="lazy"></p>
-<h2 id="Vim编辑命令一般格式"><a href="#Vim编辑命令一般格式" class="headerlink" title="Vim编辑命令一般格式"></a>Vim编辑命令一般格式</h2><p>vim中编辑命令的结构</p>
+<p><img src="https://coolshell.cn/wp-content/uploads/2011/09/vim_cheat_sheet_for_programmers_print.png" alt="vim cheet sheet"></p>
+<h2 id="Vim编辑命令一般格式">Vim编辑命令一般格式</h2>
+<p>vim中编辑命令的结构</p>
 <p><code>&lt;number&gt; &lt;operator&gt; &lt;number&gt; &lt;text object or motion&gt;</code></p>
 <p>motion或对象前可以包含一个数字，如果operator前也带了一个数字，两者是<strong>相乘</strong>的关系。</p>
 <p>例如<code>2d3w</code>，删除6个单词。</p>
-<h2 id="操作符"><a href="#操作符" class="headerlink" title="操作符"></a>操作符</h2><p>操作符也是可选的，如果没有则变成了移动命令，而非编辑命令。</p>
+<h2 id="操作符">操作符</h2>
+<p>操作符也是可选的，如果没有则变成了移动命令，而非编辑命令。</p>
 <p>vim默认的operator有</p>
 <table>
 <thead>
@@ -360,7 +360,8 @@ translateInitilization();
 <th>作用</th>
 </tr>
 </thead>
-<tbody><tr>
+<tbody>
+<tr>
 <td><strong>c</strong></td>
 <td>change</td>
 </tr>
@@ -420,7 +421,8 @@ translateInitilization();
 <td>g@</td>
 <td>call function set with the ‘operatorfunc’ option</td>
 </tr>
-</tbody></table>
+</tbody>
+</table>
 <p>操作要么影响整行，要么影响起止位置之间的字符。移动有inclusive和exclusive之分。</p>
 <p>如果操作pending了（即操作符已经输入了，motion还没有），有一些特殊映射可以使用（:omap）。</p>
 <p>motion也可以使用命令，例如<code>d:call FindEnd()</code>，如果命令多于一行不能重复。</p>
@@ -434,7 +436,8 @@ translateInitilization();
 <th>作用</th>
 </tr>
 </thead>
-<tbody><tr>
+<tbody>
+<tr>
 <td>nnoremap Y</td>
 <td>:CopyText&lt;cr&gt;</td>
 <td>拷贝到指定字符</td>
@@ -449,7 +452,8 @@ translateInitilization();
 <td>:ChangeText&lt;cr&gt;</td>
 <td>改写到某个字符</td>
 </tr>
-</tbody></table>
+</tbody>
+</table>
 <p>成对符号的操作：</p>
 <table>
 <thead>
@@ -459,25 +463,26 @@ translateInitilization();
 <th>作用</th>
 </tr>
 </thead>
-<tbody><tr>
-<td>cs”‘</td>
+<tbody>
+<tr>
+<td>cs&quot;’</td>
 <td>“Hello world!” -&gt; ‘Hello world!’</td>
 <td>“改成‘</td>
 </tr>
 <tr>
 <td>cs’&lt;q&gt;</td>
 <td>‘Hello world!’ -&gt; &lt;q&gt;Hello world!&lt;/q&gt;</td>
-<td>‘改成&lt;q&gt;对</td>
+<td>'改成&lt;q&gt;对</td>
 </tr>
 <tr>
-<td>cst”</td>
+<td>cst&quot;</td>
 <td>&lt;q&gt;Hello world!&lt;/q&gt; -&gt; “Hello world!”</td>
-<td>&lt;q&gt;对改成”，t表示完整匹配&lt;q&gt;</td>
+<td>&lt;q&gt;对改成&quot;，t表示完整匹配&lt;q&gt;</td>
 </tr>
 <tr>
-<td>ds”</td>
+<td>ds&quot;</td>
 <td>“Hello world!” -&gt; Hello world!</td>
-<td>去掉”</td>
+<td>去掉&quot;</td>
 </tr>
 <tr>
 <td>dst</td>
@@ -499,9 +504,11 @@ translateInitilization();
 <td>{ Hello } world! -&gt; ({ Hello } world!)</td>
 <td>整行加()对</td>
 </tr>
-</tbody></table>
+</tbody>
+</table>
 <p>可以跟vim-repeat配合，使用<code>.</code>重复之前的操作。</p>
-<h2 id="左右移动"><a href="#左右移动" class="headerlink" title="左右移动"></a>左右移动</h2><table>
+<h2 id="左右移动">左右移动</h2>
+<table>
 <thead>
 <tr>
 <th>操作符</th>
@@ -509,7 +516,8 @@ translateInitilization();
 <th>inclusive/exclusive</th>
 </tr>
 </thead>
-<tbody><tr>
+<tbody>
+<tr>
 <td><strong>h</strong></td>
 <td>左移</td>
 <td>e</td>
@@ -594,8 +602,10 @@ translateInitilization();
 <td>重复最近一个f,t,F,T 相反方向[count]次</td>
 <td></td>
 </tr>
-</tbody></table>
-<h2 id="上下移动"><a href="#上下移动" class="headerlink" title="上下移动"></a>上下移动</h2><table>
+</tbody>
+</table>
+<h2 id="上下移动">上下移动</h2>
+<table>
 <thead>
 <tr>
 <th>操作符</th>
@@ -603,7 +613,8 @@ translateInitilization();
 <th>inclusive/exclusive</th>
 </tr>
 </thead>
-<tbody><tr>
+<tbody>
+<tr>
 <td><strong>k</strong></td>
 <td>上移</td>
 <td>i</td>
@@ -653,8 +664,10 @@ translateInitilization();
 <td>跳到文件百分之{count}处，第一个非空字符</td>
 <td></td>
 </tr>
-</tbody></table>
-<h2 id="单词移动"><a href="#单词移动" class="headerlink" title="单词移动"></a>单词移动</h2><table>
+</tbody>
+</table>
+<h2 id="单词移动">单词移动</h2>
+<table>
 <thead>
 <tr>
 <th>操作符</th>
@@ -662,7 +675,8 @@ translateInitilization();
 <th>inclusive/exclusive</th>
 </tr>
 </thead>
-<tbody><tr>
+<tbody>
+<tr>
 <td><strong>w</strong></td>
 <td>往前[count]个words</td>
 <td>e</td>
@@ -707,7 +721,8 @@ translateInitilization();
 <td>跳到指定单词处</td>
 <td></td>
 </tr>
-</tbody></table>
+</tbody>
+</table>
 <p>其中<strong>word</strong>由字母、数字、下划线的序列组成，或者其他非空字符的序列，以空白符分隔。可以用<code>iskeyword</code>选项修改。空行也当成一个word。</p>
 <p><strong>WORD</strong>由非空字符序列组成，以空白符分隔。空行也当成一个WORD。</p>
 <p>特殊情况：</p>
@@ -715,7 +730,8 @@ translateInitilization();
 <li><code>cw</code>和<code>cW</code>当作<code>ce</code>和<code>cE</code>处理（如果光标在非空字符上的话）</li>
 <li>当<code>w</code>跟操作符一起使用，当最后一个移过的单词是一行最后时，单词尾部成为操作文本的尾部，不是下一行的开始。</li>
 </ul>
-<h2 id="文本对象移动"><a href="#文本对象移动" class="headerlink" title="文本对象移动"></a>文本对象移动</h2><table>
+<h2 id="文本对象移动">文本对象移动</h2>
+<table>
 <thead>
 <tr>
 <th>操作符</th>
@@ -723,7 +739,8 @@ translateInitilization();
 <th>inclusive/exclusive</th>
 </tr>
 </thead>
-<tbody><tr>
+<tbody>
+<tr>
 <td>(</td>
 <td>回移[count]个句子</td>
 <td>e</td>
@@ -745,7 +762,7 @@ translateInitilization();
 </tr>
 <tr>
 <td>]]</td>
-<td>前移[count]个小节或第1列中的下一个‘{’。如果和操作符一起使用，则也停在第一列的’}’下</td>
+<td>前移[count]个小节或第1列中的下一个‘{’。如果和操作符一起使用，则也停在第一列的’}'下</td>
 <td>e</td>
 </tr>
 <tr>
@@ -763,12 +780,14 @@ translateInitilization();
 <td>回移[count]个小节或第1列中的前一个‘}’</td>
 <td>e</td>
 </tr>
-</tbody></table>
-<p><strong>句子</strong>：由<code>.</code>或<code>!</code>或<code>?</code>结尾，后面要么时行尾、要么是空格或tab。<code>.</code>或<code>!</code>或<code>?</code>后面可以跟任意数目的’)’、’]’、’”‘、’’’。</p>
+</tbody>
+</table>
+<p><strong>句子</strong>：由<code>.</code>或<code>!</code>或<code>?</code>结尾，后面要么时行尾、要么是空格或tab。<code>.</code>或<code>!</code>或<code>?</code>后面可以跟任意数目的’)‘、’]‘、’&quot;‘、’‘’。</p>
 <p><strong>段落</strong>：由空行之后开始，或者由段落宏开始。小节的边界也是段落的边界。注意空行不是段落的边界。</p>
-<h2 id="文本的对象选取"><a href="#文本的对象选取" class="headerlink" title="文本的对象选取"></a>文本的对象选取</h2><p>这是一系列只能在visual模式或者操作符之后才能用的命令。<code>a</code>命令选取n个对象，包括空白。<code>i</code>命令选取一个内部对象不带空白或者只选取空白，所以<code>i</code>命令肯定比<code>a</code>命令选得少。</p>
+<h2 id="文本的对象选取">文本的对象选取</h2>
+<p>这是一系列只能在visual模式或者操作符之后才能用的命令。<code>a</code>命令选取n个对象，包括空白。<code>i</code>命令选取一个内部对象不带空白或者只选取空白，所以<code>i</code>命令肯定比<code>a</code>命令选得少。</p>
 <p><code>v3aw</code>，<code>d2iw</code>。</p>
-<p>可以跟各种文本对象组合。如aw, iw, aW, iW, as, is句子, ap, ip段落, a], a[, i], i[是[]块，a), a(, ab, i), i(, ib是块，a&gt;, a&lt;, i&gt;, i&lt;是尖括号块，at, it是tag块，a}, a{, aB, i}, i{, iB是块，a”, a’, a`,i”, i’, i`是引用的字符串。</p>
+<p>可以跟各种文本对象组合。如aw, iw, aW, iW, as, is句子, ap, ip段落, a], a[, i], i[是[]块，a), a(, ab, i), i(, ib是块，a&gt;, a&lt;, i&gt;, i&lt;是尖括号块，at, it是tag块，a}, a{, aB, i}, i{, iB是块，a&quot;, a’, a`,i&quot;, i’, i`是引用的字符串。</p>
 <p>扩展文本对象</p>
 <table>
 <thead>
@@ -778,7 +797,8 @@ translateInitilization();
 <th>inclusive/exclusive</th>
 </tr>
 </thead>
-<tbody><tr>
+<tbody>
+<tr>
 <td><strong>if</strong></td>
 <td>函数文件对象，内部代码块</td>
 <td></td>
@@ -808,30 +828,36 @@ translateInitilization();
 <td>参数，包含逗号和空格</td>
 <td></td>
 </tr>
-</tbody></table>
-<h3 id="当在操作符后面使用时"><a href="#当在操作符后面使用时" class="headerlink" title="当在操作符后面使用时"></a>当在操作符后面使用时</h3><ul>
-<li><p>对于非块对象</p>
+</tbody>
+</table>
+<h3 id="当在操作符后面使用时">当在操作符后面使用时</h3>
+<ul>
+<li>
+<p>对于非块对象</p>
 <p>a系列命令，作用于对象及其后面的空白。如果对象后面没有空白或光标在对象之前的空白上，对象前面的空白也包含进来。</p>
 <p>i系列命令，如果光标在对象上，作用于对象；如果光标在空白上，作用于空白</p>
 </li>
-<li><p>对于块对象</p>
+<li>
+<p>对于块对象</p>
 <p>作用于光标所在的块（光标在块内或括号上）。a系列命令包括括号，i系列不包括括号。</p>
 </li>
 </ul>
-<h3 id="当在Visual模式使用时"><a href="#当在Visual模式使用时" class="headerlink" title="当在Visual模式使用时"></a>当在Visual模式使用时</h3><ul>
-<li><p>如果是刚进入Visual模式</p>
+<h3 id="当在Visual模式使用时">当在Visual模式使用时</h3>
+<ul>
+<li>
+<p>如果是刚进入Visual模式</p>
 <p>选择一个对象，就跟前面使用操作符时一样</p>
 </li>
-<li><p>如果不是刚进入visual模式</p>
+<li>
+<p>如果不是刚进入visual模式</p>
 <p>对于非块对象，visual区域扩展一个对象或下一个对象前的空白，或者扩展两者。选取方法取决于光标运动方向。对于块对象，往外扩展一层。</p>
 </li>
 </ul>
-<h3 id="例子"><a href="#例子" class="headerlink" title="例子"></a>例子</h3><p>下面是删除命令为例的一个例子</p>
+<h3 id="例子">例子</h3>
+<p>下面是删除命令为例的一个例子</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">&quot;dl&quot;    delete character (alias: &quot;x&quot;)           dl</span><br><span class="line">&quot;diw&quot;   delete inner word                       diw</span><br><span class="line">&quot;daw&quot;   delete a word                           daw</span><br><span class="line">&quot;diW&quot;   delete inner WORD (see WORD)            diW</span><br><span class="line">&quot;daW&quot;   delete a WORD (see WORD)                daW</span><br><span class="line">&quot;dgn&quot;   delete the next search pattern match    dgn</span><br><span class="line">&quot;dd&quot;    delete one line                         dd</span><br><span class="line">&quot;dis&quot;   delete inner sentence                   dis</span><br><span class="line">&quot;das&quot;   delete a sentence                       das</span><br><span class="line">&quot;dib&quot;   delete inner &#x27;(&#x27; &#x27;)&#x27; block              dib</span><br><span class="line">&quot;dab&quot;   delete a &#x27;(&#x27; &#x27;)&#x27; block                  dab</span><br><span class="line">&quot;dip&quot;   delete inner paragraph                  dip</span><br><span class="line">&quot;dap&quot;   delete a paragraph                      dap</span><br><span class="line">&quot;diB&quot;   delete inner &#x27;&#123;&#x27; &#x27;&#125;&#x27; block              diB</span><br><span class="line">&quot;daB&quot;   delete a &#x27;&#123;&#x27; &#x27;&#125;&#x27; block                  daB</span><br></pre></td></tr></table></figure>
-
-
-
-<h2 id="搜索替换"><a href="#搜索替换" class="headerlink" title="搜索替换"></a>搜索替换</h2><p>也是光标的跳转。在按回车之前可以按<strong>ctrl+j/k</strong>来上下选择。</p>
+<h2 id="搜索替换">搜索替换</h2>
+<p>也是光标的跳转。在按回车之前可以按<strong>ctrl+j/k</strong>来上下选择。</p>
 <table>
 <thead>
 <tr>
@@ -840,7 +866,8 @@ translateInitilization();
 <th>作用</th>
 </tr>
 </thead>
-<tbody><tr>
+<tbody>
+<tr>
 <td>map /</td>
 <td>&lt;Plug&gt;(incsearch-forward)</td>
 <td>往下搜索</td>
@@ -855,7 +882,8 @@ translateInitilization();
 <td>&lt;Plug&gt;(incsearch-stay)</td>
 <td>按回车后光标不动</td>
 </tr>
-</tbody></table>
+</tbody>
+</table>
 <table>
 <thead>
 <tr>
@@ -864,7 +892,8 @@ translateInitilization();
 <th>作用</th>
 </tr>
 </thead>
-<tbody><tr>
+<tbody>
+<tr>
 <td>nnoremap &lt;leader&gt;f</td>
 <td>:LeaderfFile .&lt;cr&gt;</td>
 <td>当前目录下文件搜索，tab选择</td>
@@ -884,8 +913,10 @@ translateInitilization();
 <td>:ReplaceTo&lt;space&gt;</td>
 <td>全文替换单词</td>
 </tr>
-</tbody></table>
-<h2 id="文件跳转"><a href="#文件跳转" class="headerlink" title="文件跳转"></a>文件跳转</h2><table>
+</tbody>
+</table>
+<h2 id="文件跳转">文件跳转</h2>
+<table>
 <thead>
 <tr>
 <th>快捷键</th>
@@ -893,7 +924,8 @@ translateInitilization();
 <th>作用</th>
 </tr>
 </thead>
-<tbody><tr>
+<tbody>
+<tr>
 <td>nnoremap &lt;leader&gt;U</td>
 <td>:GoToFunImpl&lt;cr&gt;</td>
 <td>跳到函数实现</td>
@@ -923,7 +955,8 @@ translateInitilization();
 <td></td>
 <td>ctags返回跳转前的地方</td>
 </tr>
-</tbody></table>
+</tbody>
+</table>
 <p>buffer切换</p>
 <table>
 <thead>
@@ -933,7 +966,8 @@ translateInitilization();
 <th>作用</th>
 </tr>
 </thead>
-<tbody><tr>
+<tbody>
+<tr>
 <td>nnoremap &lt;c-p&gt;</td>
 <td>:PreviousBuffer&lt;cr&gt;</td>
 <td>切换到上一个buffer</td>
@@ -953,8 +987,10 @@ translateInitilization();
 <td>:BufOnly&lt;cr&gt;</td>
 <td>删除除当前buffer外的所有buffer</td>
 </tr>
-</tbody></table>
-<h2 id="git"><a href="#git" class="headerlink" title="git"></a>git</h2><p><code>:Git</code>后加对应git命令，还有一些扩展命令，如<code>:Gread</code>、<code>:Ggrep</code>等。</p>
+</tbody>
+</table>
+<h2 id="git">git</h2>
+<p><code>:Git</code>后加对应git命令，还有一些扩展命令，如<code>:Gread</code>、<code>:Ggrep</code>等。</p>
 <p>git commit浏览器。</p>
 <table>
 <thead>
@@ -964,7 +1000,8 @@ translateInitilization();
 <th>作用</th>
 </tr>
 </thead>
-<tbody><tr>
+<tbody>
+<tr>
 <td>nnoremap &lt;leader&gt;g</td>
 <td>:GV</td>
 <td>打开commit浏览器，可以加git log选项</td>
@@ -979,7 +1016,8 @@ translateInitilization();
 <td>:GV?</td>
 <td>当前文件revisions的位置列表</td>
 </tr>
-</tbody></table>
+</tbody>
+</table>
 <p><code>:GV</code>和<code>:GV?</code>可以用于visual模式，追踪选择行的变化。</p>
 <p>在列表中界面</p>
 <p><code>o</code>或<code>&lt;cr&gt;</code>，单个commit，显示其内容。</p>
@@ -987,7 +1025,8 @@ translateInitilization();
 <p><code>O</code>，打开一个新tab显示，而不是分隔窗口</p>
 <p><code>.</code>，当前光标所在commit，开始一条命令<code>:Git [CURSOR] SHA</code></p>
 <p><code>q</code>或<code>gq</code>关闭</p>
-<h2 id="自动生成与格式化"><a href="#自动生成与格式化" class="headerlink" title="自动生成与格式化"></a>自动生成与格式化</h2><p>CPP辅助</p>
+<h2 id="自动生成与格式化">自动生成与格式化</h2>
+<p>CPP辅助</p>
 <table>
 <thead>
 <tr>
@@ -996,7 +1035,8 @@ translateInitilization();
 <th>作用</th>
 </tr>
 </thead>
-<tbody><tr>
+<tbody>
+<tr>
 <td>nnoremap &lt;leader&gt;y</td>
 <td>:CopyCode&lt;cr&gt;</td>
 <td>拷贝函数或变量</td>
@@ -1021,7 +1061,8 @@ translateInitilization();
 <td>:GenTryCatch&lt;cr&gt;</td>
 <td>生成try-catch块</td>
 </tr>
-</tbody></table>
+</tbody>
+</table>
 <p>文本对齐。</p>
 <table>
 <thead>
@@ -1031,7 +1072,8 @@ translateInitilization();
 <th>作用</th>
 </tr>
 </thead>
-<tbody><tr>
+<tbody>
+<tr>
 <td>nnoremap &lt;leader&gt;=</td>
 <td>:Tab /=&lt;cr&gt;</td>
 <td>关于=号对齐</td>
@@ -1041,7 +1083,8 @@ translateInitilization();
 <td>:Tab /,/r1c1l0&lt;cr&gt;</td>
 <td>逗号分隔，右对齐空一个，中对齐空一格左对齐不空</td>
 </tr>
-</tbody></table>
+</tbody>
+</table>
 <p>快速注释</p>
 <table>
 <thead>
@@ -1051,7 +1094,8 @@ translateInitilization();
 <th>作用</th>
 </tr>
 </thead>
-<tbody><tr>
+<tbody>
+<tr>
 <td>gcc</td>
 <td></td>
 <td>单行注释</td>
@@ -1076,9 +1120,11 @@ translateInitilization();
 <td></td>
 <td>去掉所有相邻注释行的注释</td>
 </tr>
-</tbody></table>
+</tbody>
+</table>
 <p>新建文件时模版<code>~/.vim/plugged/prepare-code/snippet</code></p>
-<h2 id="vim与shell交互"><a href="#vim与shell交互" class="headerlink" title="vim与shell交互"></a>vim与shell交互</h2><ul>
+<h2 id="vim与shell交互">vim与shell交互</h2>
+<ul>
 <li><code>:!command</code></li>
 </ul>
 <p>不退出vim，执行shell命令，例如<code>:!ls -l</code></p>
@@ -1108,7 +1154,8 @@ translateInitilization();
 <li><code>:terminal</code>或<code>:vertical :term</code></li>
 </ul>
 <p>在新建的分割窗口中进入终端。可以用<code>Ctrl-W N</code>或<code>Ctrl-\ Ctrl-N</code>在终端buffer中进入Normal模式，注意前者的N是大写的，需要按住shift。Terminal-Normal模式下可以选择复制文本。点击<code>i</code>键可以返回到Terminal-Job模式。</p>
-<h2 id="其他命令"><a href="#其他命令" class="headerlink" title="其他命令"></a>其他命令</h2><table>
+<h2 id="其他命令">其他命令</h2>
+<table>
 <thead>
 <tr>
 <th>快捷键</th>
@@ -1116,7 +1163,8 @@ translateInitilization();
 <th>作用</th>
 </tr>
 </thead>
-<tbody><tr>
+<tbody>
+<tr>
 <td>nnoremap &lt;silent&gt;&lt;leader&gt;t</td>
 <td>:TagBarToggle .&lt;cr&gt;</td>
 <td>显式右边栏，方法变量</td>
@@ -1136,10 +1184,11 @@ translateInitilization();
 <td>:YcmDiags&lt;cr&gt;</td>
 <td>诊断错误</td>
 </tr>
-</tbody></table>
-<h2 id="快捷键映射"><a href="#快捷键映射" class="headerlink" title="快捷键映射"></a>快捷键映射</h2><p>map系列命令语法</p>
+</tbody>
+</table>
+<h2 id="快捷键映射">快捷键映射</h2>
+<p>map系列命令语法</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">[&lt;mode&gt;][nore]map [&lt;args&gt;] &#123;lhs&#125; &#123;rhs&#125;</span><br></pre></td></tr></table></figure>
-
 <p>第一个可选字符表示模式</p>
 <table>
 <thead>
@@ -1148,7 +1197,8 @@ translateInitilization();
 <th>模式</th>
 </tr>
 </thead>
-<tbody><tr>
+<tbody>
+<tr>
 <td>n</td>
 <td>normal only</td>
 </tr>
@@ -1180,25 +1230,24 @@ translateInitilization();
 <td>l</td>
 <td>insert, command-line, regexp-search</td>
 </tr>
-</tbody></table>
-<p>noremap    不递归映射</p>
+</tbody>
+</table>
+<p>noremap	不递归映射</p>
 <p>例如，下面的例子是正常的</p>
-<p>noremap    Y y</p>
-<p>noremap    y Y</p>
+<p>noremap	Y y</p>
+<p>noremap	y Y</p>
 <p>常用的参数有</p>
 <p><code>&lt;silent&gt;</code>表示静默映射，不会显示Vim在处理rhs过程中对界面产生的变化。</p>
 <p><code>&lt;buffer&gt;</code>表示这个映射只是在当前的buffer中定义，而不是定义全局的映射</p>
 <p><code>&lt;expr&gt;</code> 表示{rhs}是一个<code>Vim表达式</code> ，而不是按键序列，见下文</p>
 <p>表达式的例子如下：</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">noremap  &lt;expr&gt;0     col(&#x27;.&#x27;) == 1 ? &#x27;^&#x27;: &#x27;0&#x27;</span><br></pre></td></tr></table></figure>
-
 <p>在normal或visual模式下，按0键可以实现让光标在首列和首个非空白字符之间的切换。</p>
-<h2 id="插件整理"><a href="#插件整理" class="headerlink" title="插件整理"></a>插件整理</h2><p><a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/chxuan/vimplus">vimplus</a>是一个vim自动配置工具，基本上包含了下面所有的插件，可以傻瓜式一键安装使用。</p>
-<h3 id="ctags"><a href="#ctags" class="headerlink" title="ctags"></a>ctags</h3><p>跳转到标签定义处，需要事先生成索引文件</p>
+<h2 id="插件整理">插件整理</h2>
+<p><a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/chxuan/vimplus">vimplus</a>是一个vim自动配置工具，基本上包含了下面所有的插件，可以傻瓜式一键安装使用。</p>
+<h3 id="ctags">ctags</h3>
+<p>跳转到标签定义处，需要事先生成索引文件</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ctags -R .</span><br></pre></td></tr></table></figure>
-
-
-
 <table>
 <thead>
 <tr>
@@ -1206,7 +1255,8 @@ translateInitilization();
 <th>用法</th>
 </tr>
 </thead>
-<tbody><tr>
+<tbody>
+<tr>
 <td>Ctrl + ]</td>
 <td>跳转到函数或变量定义处</td>
 </tr>
@@ -1214,9 +1264,11 @@ translateInitilization();
 <td>Ctrl + t</td>
 <td>返回跳转前的地方</td>
 </tr>
-</tbody></table>
+</tbody>
+</table>
 <p>注意只有在索引所在目录下才能实现跳转</p>
-<h3 id="chxuan-cpp-mode"><a href="#chxuan-cpp-mode" class="headerlink" title="chxuan/cpp-mode"></a><a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/chxuan/cpp-mode">chxuan/cpp-mode</a></h3><p>提供生成函数实现、函数声明/实现跳转、.h .cpp切换等功能</p>
+<h3 id="chxuan-cpp-mode"><a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/chxuan/cpp-mode">chxuan/cpp-mode</a></h3>
+<p>提供生成函数实现、函数声明/实现跳转、.h .cpp切换等功能</p>
 <table>
 <thead>
 <tr>
@@ -1225,7 +1277,8 @@ translateInitilization();
 <th>作用</th>
 </tr>
 </thead>
-<tbody><tr>
+<tbody>
+<tr>
 <td>nnoremap &lt;leader&gt;y</td>
 <td>:CopyCode&lt;cr&gt;</td>
 <td>拷贝函数或变量</td>
@@ -1260,8 +1313,10 @@ translateInitilization();
 <td>:GenTryCatch&lt;cr&gt;</td>
 <td>生成try-catch块</td>
 </tr>
-</tbody></table>
-<h3 id="chxuan-vim-edit"><a href="#chxuan-vim-edit" class="headerlink" title="chxuan/vim-edit"></a><a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/chxuan/vim-edit">chxuan/vim-edit</a></h3><table>
+</tbody>
+</table>
+<h3 id="chxuan-vim-edit"><a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/chxuan/vim-edit">chxuan/vim-edit</a></h3>
+<table>
 <thead>
 <tr>
 <th>快捷键</th>
@@ -1269,7 +1324,8 @@ translateInitilization();
 <th>作用</th>
 </tr>
 </thead>
-<tbody><tr>
+<tbody>
+<tr>
 <td>nnoremap Y</td>
 <td>:CopyText&lt;cr&gt;</td>
 <td>拷贝到指定字符</td>
@@ -1294,9 +1350,12 @@ translateInitilization();
 <td>:ReplaceTo&lt;space&gt;</td>
 <td>全文替换单词</td>
 </tr>
-</tbody></table>
-<h3 id="chxuan-prepare-code"><a href="#chxuan-prepare-code" class="headerlink" title="chxuan/prepare-code"></a><a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/chxuan/prepare-code">chxuan/prepare-code</a></h3><p>新建文件时自动生成代码，模板在<code>~/.vim/plugged/prepare-code/snippet</code>目录下</p>
-<h3 id="chxuan-vim-buffer"><a href="#chxuan-vim-buffer" class="headerlink" title="chxuan/vim-buffer"></a><a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/chxuan/vim-buffer">chxuan/vim-buffer</a></h3><p>buffer切换</p>
+</tbody>
+</table>
+<h3 id="chxuan-prepare-code"><a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/chxuan/prepare-code">chxuan/prepare-code</a></h3>
+<p>新建文件时自动生成代码，模板在<code>~/.vim/plugged/prepare-code/snippet</code>目录下</p>
+<h3 id="chxuan-vim-buffer"><a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/chxuan/vim-buffer">chxuan/vim-buffer</a></h3>
+<p>buffer切换</p>
 <table>
 <thead>
 <tr>
@@ -1305,7 +1364,8 @@ translateInitilization();
 <th>作用</th>
 </tr>
 </thead>
-<tbody><tr>
+<tbody>
+<tr>
 <td>nnoremap &lt;c-p&gt;</td>
 <td>:PreviousBuffer&lt;cr&gt;</td>
 <td>切换到上一个buffer</td>
@@ -1325,8 +1385,10 @@ translateInitilization();
 <td>:BufOnly&lt;cr&gt;</td>
 <td>删除除当前buffer外的所有buffer</td>
 </tr>
-</tbody></table>
-<h3 id="preservim-tagbar"><a href="#preservim-tagbar" class="headerlink" title="preservim/tagbar"></a><a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/preservim/tagbar">preservim/tagbar</a></h3><p>右边栏，显式方法变量</p>
+</tbody>
+</table>
+<h3 id="preservim-tagbar"><a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/preservim/tagbar">preservim/tagbar</a></h3>
+<p>右边栏，显式方法变量</p>
 <table>
 <thead>
 <tr>
@@ -1335,13 +1397,16 @@ translateInitilization();
 <th>作用</th>
 </tr>
 </thead>
-<tbody><tr>
+<tbody>
+<tr>
 <td>nnoremap &lt;silent&gt;&lt;leader&gt;t</td>
 <td>:TagBarToggle .&lt;cr&gt;</td>
 <td>显式右边栏</td>
 </tr>
-</tbody></table>
-<h3 id="ycm-core-YouCompleteMe"><a href="#ycm-core-YouCompleteMe" class="headerlink" title="ycm-core/YouCompleteMe"></a><a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/ycm-core/YouCompleteMe">ycm-core/YouCompleteMe</a></h3><table>
+</tbody>
+</table>
+<h3 id="ycm-core-YouCompleteMe"><a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/ycm-core/YouCompleteMe">ycm-core/YouCompleteMe</a></h3>
+<table>
 <thead>
 <tr>
 <th>快捷键</th>
@@ -1349,7 +1414,8 @@ translateInitilization();
 <th>作用</th>
 </tr>
 </thead>
-<tbody><tr>
+<tbody>
+<tr>
 <td>nnoremap &lt;leader&gt;u</td>
 <td>:YcmCompleter GoToDeclaration&lt;cr&gt;</td>
 <td>跳转的函数声明</td>
@@ -1369,8 +1435,10 @@ translateInitilization();
 <td>:YcmDiags&lt;cr&gt;</td>
 <td>诊断错误</td>
 </tr>
-</tbody></table>
-<h3 id="Yggdroot-LeaderF"><a href="#Yggdroot-LeaderF" class="headerlink" title="Yggdroot/LeaderF"></a><a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/Yggdroot/LeaderF">Yggdroot/LeaderF</a></h3><p>文件模糊搜索，按tab进行选择</p>
+</tbody>
+</table>
+<h3 id="Yggdroot-LeaderF"><a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/Yggdroot/LeaderF">Yggdroot/LeaderF</a></h3>
+<p>文件模糊搜索，按tab进行选择</p>
 <table>
 <thead>
 <tr>
@@ -1379,13 +1447,16 @@ translateInitilization();
 <th>作用</th>
 </tr>
 </thead>
-<tbody><tr>
+<tbody>
+<tr>
 <td>nnoremap &lt;leader&gt;f</td>
 <td>:LeaderfFile .&lt;cr&gt;</td>
 <td>当前目录下文件搜索，tab选择</td>
 </tr>
-</tbody></table>
-<h3 id="mileszs-ack-vim"><a href="#mileszs-ack-vim" class="headerlink" title="mileszs/ack.vim"></a><a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/mileszs/ack.vim">mileszs/ack.vim</a></h3><p>ack文本搜索</p>
+</tbody>
+</table>
+<h3 id="mileszs-ack-vim"><a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/mileszs/ack.vim">mileszs/ack.vim</a></h3>
+<p>ack文本搜索</p>
 <table>
 <thead>
 <tr>
@@ -1394,15 +1465,18 @@ translateInitilization();
 <th>作用</th>
 </tr>
 </thead>
-<tbody><tr>
+<tbody>
+<tr>
 <td>nnoremap &lt;leader&gt;F</td>
 <td>:Ack!&lt;space&gt;</td>
 <td>文本正则匹配</td>
 </tr>
-</tbody></table>
+</tbody>
+</table>
 <p>!表示不自动跳到第一个匹配。</p>
 <p>可以考虑替换成[junegunn/fzf.vim]，使用rg/ag更快。</p>
-<h3 id="easymotion-vim-easymotion"><a href="#easymotion-vim-easymotion" class="headerlink" title="easymotion/vim-easymotion"></a><a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/easymotion/vim-easymotion">easymotion/vim-easymotion</a></h3><p>normal模式光标快速跳转，visual模式选择到指定位置。</p>
+<h3 id="easymotion-vim-easymotion"><a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/easymotion/vim-easymotion">easymotion/vim-easymotion</a></h3>
+<p>normal模式光标快速跳转，visual模式选择到指定位置。</p>
 <table>
 <thead>
 <tr>
@@ -1411,7 +1485,8 @@ translateInitilization();
 <th>作用</th>
 </tr>
 </thead>
-<tbody><tr>
+<tbody>
+<tr>
 <td>map &lt;leader&gt;w</td>
 <td>&lt;Plug&gt;(easymotion-bd-w)</td>
 <td>选取至指定位置</td>
@@ -1421,8 +1496,10 @@ translateInitilization();
 <td>&lt;Plug&gt;(easymotion-overwin-w)</td>
 <td>跳转到指定位置</td>
 </tr>
-</tbody></table>
-<h3 id="haya14busa-incsearch-vim"><a href="#haya14busa-incsearch-vim" class="headerlink" title="haya14busa/incsearch.vim"></a><a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/haya14busa/incsearch.vim">haya14busa/incsearch.vim</a></h3><p>文本搜索，其实跟前一个类似，也是光标的跳转。</p>
+</tbody>
+</table>
+<h3 id="haya14busa-incsearch-vim"><a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/haya14busa/incsearch.vim">haya14busa/incsearch.vim</a></h3>
+<p>文本搜索，其实跟前一个类似，也是光标的跳转。</p>
 <p>在按回车之前可以按ctrl+j/k来上下选择。</p>
 <table>
 <thead>
@@ -1432,7 +1509,8 @@ translateInitilization();
 <th>作用</th>
 </tr>
 </thead>
-<tbody><tr>
+<tbody>
+<tr>
 <td>map /</td>
 <td>&lt;Plug&gt;(incsearch-forward)</td>
 <td>往下搜索</td>
@@ -1447,9 +1525,12 @@ translateInitilization();
 <td>&lt;Plug&gt;(incsearch-stay)</td>
 <td>按回车后光标不动</td>
 </tr>
-</tbody></table>
-<h3 id="jiangmiao-auto-pairs"><a href="#jiangmiao-auto-pairs" class="headerlink" title="jiangmiao/auto-pairs"></a><a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/jiangmiao/auto-pairs">jiangmiao/auto-pairs</a></h3><p>自动补全成对符号</p>
-<h3 id="preservim-nerdtree"><a href="#preservim-nerdtree" class="headerlink" title="preservim/nerdtree"></a><a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/preservim/nerdtree">preservim/nerdtree</a></h3><p>显式左边栏，目录。</p>
+</tbody>
+</table>
+<h3 id="jiangmiao-auto-pairs"><a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/jiangmiao/auto-pairs">jiangmiao/auto-pairs</a></h3>
+<p>自动补全成对符号</p>
+<h3 id="preservim-nerdtree"><a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/preservim/nerdtree">preservim/nerdtree</a></h3>
+<p>显式左边栏，目录。</p>
 <table>
 <thead>
 <tr>
@@ -1458,14 +1539,18 @@ translateInitilization();
 <th>作用</th>
 </tr>
 </thead>
-<tbody><tr>
+<tbody>
+<tr>
 <td>nnoremap &lt;silent&gt;&lt;leader&gt;n</td>
 <td>:NERDTreeToggle .&lt;cr&gt;</td>
 <td>显式左边栏</td>
 </tr>
-</tbody></table>
-<h3 id="vim-nerdtree-syntax-highlight"><a href="#vim-nerdtree-syntax-highlight" class="headerlink" title="vim-nerdtree-syntax-highlight"></a><a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/tiagofumo/vim-nerdtree-syntax-highlight">vim-nerdtree-syntax-highlight</a></h3><p>左边栏文件类型高亮</p>
-<h3 id="godlygeek-tabular"><a href="#godlygeek-tabular" class="headerlink" title="godlygeek/tabular"></a><a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/godlygeek/tabular">godlygeek/tabular</a></h3><p>文本对齐。</p>
+</tbody>
+</table>
+<h3 id="vim-nerdtree-syntax-highlight"><a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/tiagofumo/vim-nerdtree-syntax-highlight">vim-nerdtree-syntax-highlight</a></h3>
+<p>左边栏文件类型高亮</p>
+<h3 id="godlygeek-tabular"><a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/godlygeek/tabular">godlygeek/tabular</a></h3>
+<p>文本对齐。</p>
 <table>
 <thead>
 <tr>
@@ -1474,7 +1559,8 @@ translateInitilization();
 <th>作用</th>
 </tr>
 </thead>
-<tbody><tr>
+<tbody>
+<tr>
 <td>nnoremap &lt;leader&gt;=</td>
 <td>:Tab /=&lt;cr&gt;</td>
 <td>关于=号对齐</td>
@@ -1484,10 +1570,13 @@ translateInitilization();
 <td>:Tab /,/r1c1l0&lt;cr&gt;</td>
 <td>逗号分隔，右对齐空一个，中对齐空一格左对齐不空</td>
 </tr>
-</tbody></table>
+</tbody>
+</table>
 <p>默认是左对齐，下一个字段前空一格。可以通过一个字母加数字指定格式，其中l/c/r分别表示左对齐/居中对齐/右对齐，紧跟的数字表示下一个字段前插入的空格数。如果指定了多个格式会依次使用，用完了再从第一个开始。注意这个分隔符本身也算一个字段。分隔符并不一定是单个字符，其实可以是正则表达式。</p>
-<h3 id="tpope-vim-fugitive"><a href="#tpope-vim-fugitive" class="headerlink" title="tpope/vim-fugitive"></a><a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/tpope/vim-fugitive">tpope/vim-fugitive</a></h3><p>集成Git，<code>:Git</code>后加对应git命令，还有一些扩展命令，如<code>:Gread</code>、<code>:Ggrep</code>等。</p>
-<h3 id="tpope-vim-surround"><a href="#tpope-vim-surround" class="headerlink" title="tpope/vim-surround"></a><a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/tpope/vim-surround">tpope/vim-surround</a></h3><table>
+<h3 id="tpope-vim-fugitive"><a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/tpope/vim-fugitive">tpope/vim-fugitive</a></h3>
+<p>集成Git，<code>:Git</code>后加对应git命令，还有一些扩展命令，如<code>:Gread</code>、<code>:Ggrep</code>等。</p>
+<h3 id="tpope-vim-surround"><a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/tpope/vim-surround">tpope/vim-surround</a></h3>
+<table>
 <thead>
 <tr>
 <th>快捷键</th>
@@ -1495,25 +1584,26 @@ translateInitilization();
 <th>作用</th>
 </tr>
 </thead>
-<tbody><tr>
-<td>cs”‘</td>
+<tbody>
+<tr>
+<td>cs&quot;’</td>
 <td>“Hello world!” -&gt; ‘Hello world!’</td>
 <td>“改成‘</td>
 </tr>
 <tr>
 <td>cs’&lt;q&gt;</td>
 <td>‘Hello world!’ -&gt; &lt;q&gt;Hello world!&lt;/q&gt;</td>
-<td>‘改成&lt;q&gt;对</td>
+<td>'改成&lt;q&gt;对</td>
 </tr>
 <tr>
-<td>cst”</td>
+<td>cst&quot;</td>
 <td>&lt;q&gt;Hello world!&lt;/q&gt; -&gt; “Hello world!”</td>
-<td>&lt;q&gt;对改成”，t表示完整匹配&lt;q&gt;</td>
+<td>&lt;q&gt;对改成&quot;，t表示完整匹配&lt;q&gt;</td>
 </tr>
 <tr>
-<td>ds”</td>
+<td>ds&quot;</td>
 <td>“Hello world!” -&gt; Hello world!</td>
-<td>去掉”</td>
+<td>去掉&quot;</td>
 </tr>
 <tr>
 <td>dst</td>
@@ -1535,9 +1625,11 @@ translateInitilization();
 <td>{ Hello } world! -&gt; ({ Hello } world!)</td>
 <td>整行加()对</td>
 </tr>
-</tbody></table>
+</tbody>
+</table>
 <p>可以跟vim-repeat配合，使用<code>.</code>重复之前的操作。</p>
-<h3 id="tpope-vim-commentary"><a href="#tpope-vim-commentary" class="headerlink" title="tpope/vim-commentary"></a><a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/tpope/vim-commentary">tpope/vim-commentary</a></h3><p>快速注释</p>
+<h3 id="tpope-vim-commentary"><a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/tpope/vim-commentary">tpope/vim-commentary</a></h3>
+<p>快速注释</p>
 <table>
 <thead>
 <tr>
@@ -1546,7 +1638,8 @@ translateInitilization();
 <th>作用</th>
 </tr>
 </thead>
-<tbody><tr>
+<tbody>
+<tr>
 <td>gcc</td>
 <td></td>
 <td>单行注释</td>
@@ -1571,15 +1664,24 @@ translateInitilization();
 <td></td>
 <td>去掉所有相邻注释行的注释</td>
 </tr>
-</tbody></table>
-<h3 id="tpope-vim-repeat"><a href="#tpope-vim-repeat" class="headerlink" title="tpope/vim-repeat"></a><a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/tpope/vim-repeat">tpope/vim-repeat</a></h3><p><code>.</code>操作支持map，支持tpope/vim-repeat等插件。</p>
-<h3 id="tpope-vim-endwise"><a href="#tpope-vim-endwise" class="headerlink" title="tpope/vim-endwise"></a><a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/tpope/vim-endwise">tpope/vim-endwise</a></h3><p>if do等尾部补全</p>
-<h3 id="octol-vim-cpp-enhanced-highlight"><a href="#octol-vim-cpp-enhanced-highlight" class="headerlink" title="octol/vim-cpp-enhanced-highlight"></a><a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/octol/vim-cpp-enhanced-highlight">octol/vim-cpp-enhanced-highlight</a></h3><p>cpp额外的语法高亮，增加了标准库/boost函数、容器、类型的高亮。</p>
-<h3 id="vim-airline-vim-airline"><a href="#vim-airline-vim-airline" class="headerlink" title="vim-airline/vim-airline"></a><a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/vim-airline/vim-airline">vim-airline/vim-airline</a></h3><p>状态栏美化</p>
-<h3 id="vim-airline-vim-airline-themes"><a href="#vim-airline-vim-airline-themes" class="headerlink" title="vim-airline/vim-airline-themes"></a><a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/vim-airline/vim-airline-themes">vim-airline/vim-airline-themes</a></h3><p>状态栏主题库</p>
-<h3 id="ryanoasis-vim-devicons"><a href="#ryanoasis-vim-devicons" class="headerlink" title="ryanoasis/vim-devicons"></a><a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/ryanoasis/vim-devicons">ryanoasis/vim-devicons</a></h3><p>显示文件类型图表</p>
-<h3 id="junegunn-vim-slash"><a href="#junegunn-vim-slash" class="headerlink" title="junegunn/vim-slash"></a><a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/junegunn/vim-slash">junegunn/vim-slash</a></h3><p>光标移动后清除搜索的高亮</p>
-<h3 id="junegunn-gv-vim"><a href="#junegunn-gv-vim" class="headerlink" title="junegunn/gv.vim"></a><a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/junegunn/gv.vim">junegunn/gv.vim</a></h3><p>git commit浏览器。</p>
+</tbody>
+</table>
+<h3 id="tpope-vim-repeat"><a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/tpope/vim-repeat">tpope/vim-repeat</a></h3>
+<p><code>.</code>操作支持map，支持tpope/vim-repeat等插件。</p>
+<h3 id="tpope-vim-endwise"><a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/tpope/vim-endwise">tpope/vim-endwise</a></h3>
+<p>if do等尾部补全</p>
+<h3 id="octol-vim-cpp-enhanced-highlight"><a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/octol/vim-cpp-enhanced-highlight">octol/vim-cpp-enhanced-highlight</a></h3>
+<p>cpp额外的语法高亮，增加了标准库/boost函数、容器、类型的高亮。</p>
+<h3 id="vim-airline-vim-airline"><a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/vim-airline/vim-airline">vim-airline/vim-airline</a></h3>
+<p>状态栏美化</p>
+<h3 id="vim-airline-vim-airline-themes"><a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/vim-airline/vim-airline-themes">vim-airline/vim-airline-themes</a></h3>
+<p>状态栏主题库</p>
+<h3 id="ryanoasis-vim-devicons"><a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/ryanoasis/vim-devicons">ryanoasis/vim-devicons</a></h3>
+<p>显示文件类型图表</p>
+<h3 id="junegunn-vim-slash"><a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/junegunn/vim-slash">junegunn/vim-slash</a></h3>
+<p>光标移动后清除搜索的高亮</p>
+<h3 id="junegunn-gv-vim"><a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/junegunn/gv.vim">junegunn/gv.vim</a></h3>
+<p>git commit浏览器。</p>
 <table>
 <thead>
 <tr>
@@ -1588,7 +1690,8 @@ translateInitilization();
 <th>作用</th>
 </tr>
 </thead>
-<tbody><tr>
+<tbody>
+<tr>
 <td>nnoremap &lt;leader&gt;g</td>
 <td>:GV</td>
 <td>打开commit浏览器，可以加git log选项</td>
@@ -1603,7 +1706,8 @@ translateInitilization();
 <td>:GV?</td>
 <td>当前文件revisions的位置列表</td>
 </tr>
-</tbody></table>
+</tbody>
+</table>
 <p><code>:GV</code>和<code>:GV?</code>可以用于visual模式，追踪选择行的变化。</p>
 <p>在列表中界面</p>
 <p><code>o</code>或<code>&lt;cr&gt;</code>，单个commit，显示其内容。</p>
@@ -1611,18 +1715,27 @@ translateInitilization();
 <p><code>O</code>，打开一个新tab显示，而不是分隔窗口</p>
 <p><code>.</code>，当前光标所在commit，开始一条命令<code>:Git [CURSOR] SHA</code></p>
 <p><code>q</code>或<code>gq</code>关闭</p>
-<h3 id="kana-vim-textobj-user"><a href="#kana-vim-textobj-user" class="headerlink" title="kana/vim-textobj-user"></a><a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/kana/vim-textobj-user">kana/vim-textobj-user</a></h3><p>自定义文本对象。例如下面定义了<code>ad</code>/<code>id</code>选取一个日期如<code>2013-03-16</code>，<code>at</code>/<code>it</code>选取一个时间如<code>22:04:21</code></p>
+<h3 id="kana-vim-textobj-user"><a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/kana/vim-textobj-user">kana/vim-textobj-user</a></h3>
+<p>自定义文本对象。例如下面定义了<code>ad</code>/<code>id</code>选取一个日期如<code>2013-03-16</code>，<code>at</code>/<code>it</code>选取一个时间如<code>22:04:21</code></p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">call textobj#user#plugin(&#x27;datetime&#x27;, &#123;</span><br><span class="line">\   &#x27;date&#x27;: &#123;</span><br><span class="line">\     &#x27;pattern&#x27;: &#x27;\&lt;\d\d\d\d-\d\d-\d\d\&gt;&#x27;,</span><br><span class="line">\     &#x27;select&#x27;: [&#x27;ad&#x27;, &#x27;id&#x27;],</span><br><span class="line">\   &#125;,</span><br><span class="line">\   &#x27;time&#x27;: &#123;</span><br><span class="line">\     &#x27;pattern&#x27;: &#x27;\&lt;\d\d:\d\d:\d\d\&gt;&#x27;,</span><br><span class="line">\     &#x27;select&#x27;: [&#x27;at&#x27;, &#x27;it&#x27;],</span><br><span class="line">\   &#125;,</span><br><span class="line">\ &#125;)</span><br></pre></td></tr></table></figure>
-
-<h3 id="kana-vim-textobj-indent"><a href="#kana-vim-textobj-indent" class="headerlink" title="kana/vim-textobj-indent"></a><a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/kana/vim-textobj-indent">kana/vim-textobj-indent</a></h3><p> indented blocks of lines的文本对象，不知道他指的啥</p>
-<h3 id="kana-vim-textobj-syntax"><a href="#kana-vim-textobj-syntax" class="headerlink" title="kana/vim-textobj-syntax"></a><a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/kana/vim-textobj-syntax">kana/vim-textobj-syntax</a></h3><p>语法高亮项目的文本对象</p>
-<h3 id="kana-vim-textobj-function"><a href="#kana-vim-textobj-function" class="headerlink" title="kana/vim-textobj-function"></a><a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/kana/vim-textobj-function">kana/vim-textobj-function</a></h3><p>函数的文本对象，af if aF iF</p>
-<h3 id="sgur-vim-textobj-parameter"><a href="#sgur-vim-textobj-parameter" class="headerlink" title="sgur/vim-textobj-parameter"></a><a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/sgur/vim-textobj-parameter">sgur/vim-textobj-parameter</a></h3><p>函数参数文本对象，默认是a, i,</p>
-<h3 id="Shougo-echodoc-vim"><a href="#Shougo-echodoc-vim" class="headerlink" title="Shougo/echodoc.vim"></a><a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/Shougo/echodoc.vim">Shougo/echodoc.vim</a></h3><p>补全时在命令行显示函数签名。</p>
-<h3 id="rhysd-clever-f-vim"><a href="#rhysd-clever-f-vim" class="headerlink" title="rhysd/clever-f.vim"></a><a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/rhysd/clever-f.vim">rhysd/clever-f.vim</a></h3><p>增强的f/F/t/T，多次连续可以只按一个字符，与第一大小写相同则同方向，否则反方向。</p>
-<h3 id="vim-scripts-indentpython-vim"><a href="#vim-scripts-indentpython-vim" class="headerlink" title="vim-scripts/indentpython.vim"></a><a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/vim-scripts/indentpython.vim">vim-scripts/indentpython.vim</a></h3><p>python缩进脚本</p>
-<h3 id="rhysd-github-complete-vim"><a href="#rhysd-github-complete-vim" class="headerlink" title="rhysd/github-complete.vim"></a><a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/rhysd/github-complete.vim">rhysd/github-complete.vim</a></h3><p>github补全，包括emoji、用户名、仓库名、issue号、链接URL补全。</p>
-<h3 id="DrwaIt"><a href="#DrwaIt" class="headerlink" title="DrwaIt"></a><a href="">DrwaIt</a></h3><p>vim画图工具，</p>
+<h3 id="kana-vim-textobj-indent"><a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/kana/vim-textobj-indent">kana/vim-textobj-indent</a></h3>
+<p>indented blocks of lines的文本对象，不知道他指的啥</p>
+<h3 id="kana-vim-textobj-syntax"><a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/kana/vim-textobj-syntax">kana/vim-textobj-syntax</a></h3>
+<p>语法高亮项目的文本对象</p>
+<h3 id="kana-vim-textobj-function"><a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/kana/vim-textobj-function">kana/vim-textobj-function</a></h3>
+<p>函数的文本对象，af if aF iF</p>
+<h3 id="sgur-vim-textobj-parameter"><a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/sgur/vim-textobj-parameter">sgur/vim-textobj-parameter</a></h3>
+<p>函数参数文本对象，默认是a, i,</p>
+<h3 id="Shougo-echodoc-vim"><a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/Shougo/echodoc.vim">Shougo/echodoc.vim</a></h3>
+<p>补全时在命令行显示函数签名。</p>
+<h3 id="rhysd-clever-f-vim"><a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/rhysd/clever-f.vim">rhysd/clever-f.vim</a></h3>
+<p>增强的f/F/t/T，多次连续可以只按一个字符，与第一大小写相同则同方向，否则反方向。</p>
+<h3 id="vim-scripts-indentpython-vim"><a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/vim-scripts/indentpython.vim">vim-scripts/indentpython.vim</a></h3>
+<p>python缩进脚本</p>
+<h3 id="rhysd-github-complete-vim"><a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/rhysd/github-complete.vim">rhysd/github-complete.vim</a></h3>
+<p>github补全，包括emoji、用户名、仓库名、issue号、链接URL补全。</p>
+<h3 id="DrwaIt"><a href="">DrwaIt</a></h3>
+<p>vim画图工具，</p>
 <table>
 <thead>
 <tr>
@@ -1631,7 +1744,8 @@ translateInitilization();
 <th>作用</th>
 </tr>
 </thead>
-<tbody><tr>
+<tbody>
+<tr>
 <td>&lt;leader&gt;di</td>
 <td>:DrawIt</td>
 <td>开始画图模式</td>
@@ -1696,8 +1810,10 @@ translateInitilization();
 <td></td>
 <td>插入箭头，前面加&lt;leader&gt;粗箭头</td>
 </tr>
-</tbody></table>
-<h3 id="dense-analysis-ale"><a href="#dense-analysis-ale" class="headerlink" title="dense-analysis/ale"></a><a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/dense-analysis/ale">dense-analysis/ale</a></h3>
+</tbody>
+</table>
+<h3 id="dense-analysis-ale"><a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/dense-analysis/ale">dense-analysis/ale</a></h3>
+
     </div>
 
     
@@ -1841,20 +1957,20 @@ translateInitilization();
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">27</span>
+          <span class="site-state-item-count">28</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
             <a href="/categories/">
           
-        <span class="site-state-item-count">9</span>
+        <span class="site-state-item-count">10</span>
         <span class="site-state-item-name">分类</span></a>
       </div>
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">30</span>
+        <span class="site-state-item-count">33</span>
         <span class="site-state-item-name">标签</span></a>
       </div>
   </nav>
@@ -2171,13 +2287,13 @@ if(canvas.getContext){
       <i class="fa fa-chart-area"></i>
     </span>
       <span class="post-meta-item-text">站点总字数：</span>
-    <span title="站点总字数">314k</span>
+    <span title="站点总字数">321k</span>
     <span class="post-meta-divider">|</span>
     <span class="post-meta-item-icon">
       <i class="fa fa-coffee"></i>
     </span>
       <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
-    <span title="站点阅读时长">4:46</span>
+    <span title="站点阅读时长">4:52</span>
 </div>
   <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener external nofollow noreferrer" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener external nofollow noreferrer" target="_blank">NexT.Gemini</a> 强力驱动
   </div>
@@ -2363,6 +2479,8 @@ if(canvas.getContext){
 
 
 
+
+  
 
   
 

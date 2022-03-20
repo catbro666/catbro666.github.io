@@ -1,0 +1,1308 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.4.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/images/hiking-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/images/hiking-16.png">
+  <link rel="mask-icon" href="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/images/logo.svg" color="#222">
+  <meta name="google-site-verification" content="JT1HKSsLR6ZiapLatX1c6-7k-OcEM8cAMdR5pgCSptk">
+  <meta name="yandex-verification" content="5ab41d9d91227789">
+  <meta name="baidu-site-verification" content="code-9Qi2zUhBf4">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="https://fonts.loli.net/css?family=Noto Serif SC:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="//cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"catbro666.github.io","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","width":240,"display":"post","padding":18,"offset":42,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":"mac"},"back2top":{"enable":true,"sidebar":true,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="本文介绍CVE-2022 0778漏洞及其复现方法，并精心构造了具有一个非法椭圆曲线参数的证书可以触发该漏洞。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="OpenSSL CVE-2022-0778漏洞问题复现与非法证书构造">
+<meta property="og:url" content="https://catbro666.github.io/posts/83951100/index.html">
+<meta property="og:site_name" content="CatBro&#39;s Blog">
+<meta property="og:description" content="本文介绍CVE-2022 0778漏洞及其复现方法，并精心构造了具有一个非法椭圆曲线参数的证书可以触发该漏洞。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/83951100/asn1-structure-of-x509-before.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/83951100/asn1-structure-of-x509-after.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/83951100/infinite-loop-when-parsing-invalid-cert.png">
+<meta property="article:published_time" content="2022-03-19T14:53:34.000Z">
+<meta property="article:modified_time" content="2022-03-20T07:37:46.257Z">
+<meta property="article:author" content="猫猫哥">
+<meta property="article:tag" content="OpenSSL">
+<meta property="article:tag" content="CVE">
+<meta property="article:tag" content="漏洞复现">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/83951100/asn1-structure-of-x509-before.png">
+
+<link rel="canonical" href="https://catbro666.github.io/posts/83951100/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <meta name="360-site-verification" content="e7586a6caf7e44316b4a27dfaf53e858"/>
+
+
+
+  <title>OpenSSL CVE-2022-0778漏洞问题复现与非法证书构造 | CatBro's Blog</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-6PKG8T836C"></script>
+    <script>
+      if (CONFIG.hostname === location.hostname) {
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-6PKG8T836C');
+      }
+    </script>
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?43ceb843b17e732b0a5dd658f624cac5";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+<link rel="alternate" href="/atom.xml" title="CatBro's Blog" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">CatBro's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">Volar con el viento</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+        <li class="menu-item menu-item-hot">
+
+    <a href="/hot/" rel="section"><i class="fa fa-thermometer-half fa-fw"></i>热度排行</a>
+
+  </li>
+        <li class="menu-item menu-item-commonweal">
+
+    <a href="/404.html" rel="section"><i class="fa fa-heartbeat fa-fw"></i>公益 404</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="reading-progress-bar"></div>
+
+  <a href="https://github.com/catbro666" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener external nofollow noreferrer" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://catbro666.github.io/posts/83951100/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/images/avatar.gif">
+      <meta itemprop="name" content="猫猫哥">
+      <meta itemprop="description" content="如果说根号二是无理数，那么我就是个无理人">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="CatBro's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          OpenSSL CVE-2022-0778漏洞问题复现与非法证书构造
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2022-03-19 22:53:34" itemprop="dateCreated datePublished" datetime="2022-03-19T22:53:34+08:00">2022-03-19</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2022-03-20 15:37:46" itemprop="dateModified" datetime="2022-03-20T15:37:46+08:00">2022-03-20</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E5%8A%A0%E5%AF%86%E4%B8%8E%E5%AE%89%E5%85%A8/" itemprop="url" rel="index"><span itemprop="name">加密与安全</span></a>
+                </span>
+                  ，
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E5%8A%A0%E5%AF%86%E4%B8%8E%E5%AE%89%E5%85%A8/OpenSSL/" itemprop="url" rel="index"><span itemprop="name">OpenSSL</span></a>
+                </span>
+            </span>
+
+          
+            <span id="/posts/83951100/" class="post-meta-item leancloud_visitors" data-flag-title="OpenSSL CVE-2022-0778漏洞问题复现与非法证书构造" title="阅读次数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span class="leancloud-visitors-count"></span>
+            </span>
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="far fa-comment"></i>
+      </span>
+      <span class="post-meta-item-text">评论数：</span>
+    
+    <a title="valine" href="/posts/83951100/#valine-comments" itemprop="discussionUrl">
+      <span class="post-comments-count valine-comment-count" data-xid="/posts/83951100/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  <br>
+  <span class="post-meta-item" title="繁/简：">
+    <span class="post-meta-item-icon">
+      <i class="fas fa-yin-yang"></i>
+    </span>
+      <span class="post-meta-item-text">繁/简：</span>
+    <a id="translateLink" href="javascript:translatePage();" rel="external nofollow noreferrer">繁體</a>
+  </span>
+
+<script type="text/javascript" src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/js/tw_cn.js"></script>
+<script type="text/javascript">
+var defaultEncoding = 2; //网站编写字体是否繁体，1-繁体，2-简体
+var translateDelay = 0; //延迟时间,若不在前, 要设定延迟翻译时间, 如100表示100ms,默认为0
+var cookieDomain = "https://catbro666.github.io/"; //Cookie地址, 一定要设定, 通常为你的网址
+var msgToTraditionalChinese = "繁體"; //此处可以更改为你想要显示的文字
+var msgToSimplifiedChinese = "简体"; //同上，但两处均不建议更改
+var translateButtonId = "translateLink"; //默认互换id
+translateInitilization();
+</script>
+<br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>6.4k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>6 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <div class="note primary">
+            <p>本文介绍CVE-2022 0778漏洞及其复现方法，并精心构造了具有一个非法椭圆曲线参数的证书可以触发该漏洞。</p>
+          </div>
+
+<span id="more"></span>
+
+
+
+<h1 id="漏洞描述-1"><a href="#漏洞描述-1" class="headerlink" title="漏洞描述[^1]"></a>漏洞描述[^1]</h1><p>漏洞出自<code>BN_mod_sqrt()</code>接口函数，它用于计算模平方根，且期望参数p应该是个质数，但是函数内并没有进行检查，这导致内部可能出现无限循环。这个函数在解析如下格式的证书时会被用到：</p>
+<ul>
+<li>证书包含压缩格式的椭圆曲线公钥时</li>
+<li>证书带有显式椭圆曲线参数，其基点是压缩格式编码的</li>
+</ul>
+<p>总之，在解析证书时需要对点坐标进行解压缩操作的就会调用到这个函数。所以外部可以通过精心构造一个具有非法的显式曲线参数的证书来触发无限循环，从而造成DoS拒绝服务攻击。</p>
+<div class="note default no-icon">
+            <p>官方补丁commit[^2] </p>
+          </div>
+
+<h1 id="函数分析"><a href="#函数分析" class="headerlink" title="函数分析"></a>函数分析</h1><p>我们先简单过一下这个函数的实现。实现函数签名如下，a是操作数，p是模数</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">BIGNUM *<span class="title">BN_mod_sqrt</span><span class="params">(BIGNUM *in, <span class="keyword">const</span> BIGNUM *a, <span class="keyword">const</span> BIGNUM *p, BN_CTX *ctx)</span></span></span><br></pre></td></tr></table></figure>
+
+<p>首先对p做了简单的检查，对p是偶数、1这两个显然不是质数的情况直接报错，对p为2的情况进行了特殊处理。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (!BN_is_odd(p) || BN_abs_is_word(p, <span class="number">1</span>)) &#123;</span><br><span class="line">    <span class="keyword">if</span> (BN_abs_is_word(p, <span class="number">2</span>)) &#123;</span><br><span class="line">    <span class="comment">// ...</span></span><br><span class="line">    &#125;</span><br><span class="line">    BNerr(BN_F_BN_MOD_SQRT, BN_R_P_IS_NOT_PRIME);</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">NULL</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>接下来对a是0或1的特殊情况做了特殊处理</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (BN_is_zero(a) || BN_is_one(a)) &#123;</span><br><span class="line">    <span class="comment">// ...</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>然后计算<code>A := a mod p</code>，就是计算非负余数</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (!BN_nnmod(A, a, p, ctx))</span><br></pre></td></tr></table></figure>
+
+<p>下面几行的字面意思是从p的第1位开始数有几个连续的0，其实是将|p| - 1表示成如下的格式：<code>|p| - 1 == 2^e * q</code>，即表示成2的幂次方的奇数倍，其中q是奇数。例如p为49，表示二进制是110001，那么e为4，q为3，<code>49 - 1 == 2^4 * 3</code></p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">e = <span class="number">1</span>;</span><br><span class="line"><span class="keyword">while</span> (!BN_is_bit_set(p, e))</span><br><span class="line">    e++;</span><br></pre></td></tr></table></figure>
+
+<p>接下来对e等于1或2的简单情况进行特殊处理，因为不会走到无限循环，我们跳过</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (e == <span class="number">1</span>) &#123;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">if</span> (e == <span class="number">2</span>) &#123;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>对于e &gt; 2的情况，就需要老老实实用Tonelli&#x2F;Shanks算法来计算了。首先需要找到一个不是平方数的y，且<code>0 &lt; y &lt; |p|</code>，因为不是重点我们跳过。</p>
+<p>接下来计算q的值，将p右移e位就得到了q</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">	<span class="keyword">if</span> (!BN_copy(q, p))</span><br><span class="line">   <span class="comment">// ...</span></span><br><span class="line"><span class="keyword">if</span> (!BN_rshift(q, q, e))</span><br></pre></td></tr></table></figure>
+
+<p><code>y := (y ^ q) mod p</code>，因为y是个非平方数，所以计算q次方可以得到一个阶为2^e的值。（Don’t ask me why ，注释这么写的🤷‍♂️）</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (!BN_mod_exp(y, y, q, p, ctx))</span><br></pre></td></tr></table></figure>
+
+<p>接下来是计算<code> x := a^((q-1)/2)</code></p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (!BN_rshift1(t, q))</span><br><span class="line">    </span><br><span class="line"><span class="keyword">if</span> (!BN_mod_exp(x, A, t, p, ctx))</span><br></pre></td></tr></table></figure>
+
+<p>下面两个计算<code>b := a*x^2  (= a^q) </code></p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (!BN_mod_sqr(b, x, p, ctx))</span><br><span class="line">    </span><br><span class="line"><span class="keyword">if</span> (!BN_mod_mul(b, b, A, p, ctx))</span><br></pre></td></tr></table></figure>
+
+<p>然后计算<code>x := a*x   (= a^((q+1)/2)) </code></p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (!BN_mod_mul(x, x, A, p, ctx))</span><br></pre></td></tr></table></figure>
+
+<p>终于要进入我们最关心的循环结构了，这里有两层循环，死循环是发生在内层的循环中。我们来看下修改前后的代码的区别，下面的是有问题的循环代码：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// before</span></span><br><span class="line">i = <span class="number">1</span>;</span><br><span class="line"><span class="keyword">if</span> (!BN_mod_sqr(t, b, p, ctx))</span><br><span class="line">    <span class="keyword">goto</span> end;</span><br><span class="line"><span class="keyword">while</span> (!BN_is_one(t)) &#123;</span><br><span class="line">    i++;</span><br><span class="line">    <span class="keyword">if</span> (i == e) &#123;</span><br><span class="line">        ERR_raise(ERR_LIB_BN, BN_R_NOT_A_SQUARE);</span><br><span class="line">        <span class="keyword">goto</span> end;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (!BN_mod_mul(t, t, t, p, ctx))</span><br><span class="line">        <span class="keyword">goto</span> end;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这个是修复后的循环代码：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// after</span></span><br><span class="line"><span class="keyword">for</span> (i = <span class="number">1</span>; i &lt; e; i++) &#123;</span><br><span class="line">    <span class="keyword">if</span> (i == <span class="number">1</span>) &#123;</span><br><span class="line">        <span class="keyword">if</span> (!BN_mod_sqr(t, b, p, ctx))</span><br><span class="line">            <span class="keyword">goto</span> end;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="keyword">if</span> (!BN_mod_mul(t, t, t, p, ctx))</span><br><span class="line">            <span class="keyword">goto</span> end;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (BN_is_one(t))</span><br><span class="line">        <span class="keyword">break</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>乍一看好像没什么区别，只是把while循环改成了for循环。区别非常细微，主要有两点：</p>
+<ol>
+<li>结束循环的判断条件不同，前者是判断t是否为1来正常结束，在循环内判断<code>i == e</code>来异常结束；而后者是判断<code>i &lt; e</code>来异常结束，循环中判断t是否为1来正常结束</li>
+<li>还有非常重要的一点区别，就是前者i为1的情况并不在循环中</li>
+</ol>
+<p>问题就是由于这点细微的区别产生的，考虑这样一种情况，如下内层循环一开始e就小于等于i（比如e&#x3D;1），那么<code>i == e</code>条件将永远不会满足。如果再使得t永远不等于1，那么就会进入死循环了。</p>
+<p>对于第一次进入外层循环，e肯定是大于2的，不会进入死循环，但是别忘了在外层循环最后会把i赋值给e，如下所示：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">while</span> (<span class="number">1</span>) &#123;</span><br><span class="line">       <span class="comment">// ...</span></span><br><span class="line">    	<span class="keyword">for</span> (i = <span class="number">1</span>; i &lt; e; i++) &#123;</span><br><span class="line">           <span class="comment">// ...</span></span><br><span class="line">       &#125;</span><br><span class="line">       <span class="comment">/* t := y^2^(e - i - 1) */</span></span><br><span class="line">       <span class="keyword">if</span> (!BN_copy(t, y))</span><br><span class="line">           <span class="keyword">goto</span> end;</span><br><span class="line">       <span class="keyword">for</span> (j = e - i - <span class="number">1</span>; j &gt; <span class="number">0</span>; j--) &#123;</span><br><span class="line">           <span class="keyword">if</span> (!BN_mod_sqr(t, t, p, ctx))</span><br><span class="line">               <span class="keyword">goto</span> end;</span><br><span class="line">       &#125;</span><br><span class="line">       <span class="keyword">if</span> (!BN_mod_mul(y, t, t, p, ctx))  <span class="comment">// y := t^2 = y^2^(e-i)</span></span><br><span class="line">           <span class="keyword">goto</span> end;</span><br><span class="line">       <span class="keyword">if</span> (!BN_mod_mul(x, x, t, p, ctx))  <span class="comment">// x = x*t</span></span><br><span class="line">           <span class="keyword">goto</span> end;</span><br><span class="line">       <span class="keyword">if</span> (!BN_mod_mul(b, b, y, p, ctx))  <span class="comment">// b = y^2^(e-i) y is the original</span></span><br><span class="line">           <span class="keyword">goto</span> end;</span><br><span class="line">       e = i;</span><br><span class="line">   &#125;</span><br></pre></td></tr></table></figure>
+
+<p>所以结合这些条件，就可以尝试构造出能够进入死循环的攻击方式：</p>
+<ol>
+<li>挑选合适的a和p，使得<code>b^2=1(mod p)</code>，其中b是由a计算出来的，这样外层循环在第一次迭代时不会进入while内层循环，i的值就为1，于是外层循环第二次迭代时e就变成了1</li>
+<li>外层循环进行第二次迭代时，只要使得<code>t != 1 (mod p)</code>永远满足，就会进入死循环了</li>
+</ol>
+<p><strong>注意</strong>：第1个条件在p为正常的质数时也是会发生的，但如果p是合数那么第二条也将满足。</p>
+<h1 id="复现问题"><a href="#复现问题" class="headerlink" title="复现问题"></a>复现问题</h1><p>要复现问题，其实就是挑选合适的参数a和p使得上面的条件成立。p的选取需要能够满通过函数前面的一些检查，不能是太明显的合数，必须是奇数，且e需要大于2，即二进制表示的p必须是<code>…001</code>形式。此外a的选取需要满足<code>a == -1 (mod p)</code>且<code>b == -1 (mod p)</code>，这样在第一次外层迭代后e就会设为1，使得第二次进入外层迭代进入死循环。</p>
+<p>确定a和p需要一定的数学知识，需要了解Tonelli&#x2F;Shanks算法的实现。我不是学数学的，没学过数论那些东西，所以要完全了解其数学原理需要花些时间。好在drago-96同学帮我们做了这个事情，他最终选取了p&#x3D;697，a&#x3D;696这个组合。有兴趣的可以看一下数学说明[^3]。</p>
+<p>有了a和p，然后写一个简单的测试程序就可以复现问题了</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;openssl/bn.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    BN_CTX *ctx;</span><br><span class="line">    ctx = BN_CTX_new();</span><br><span class="line">    BIGNUM *res, *a, *p;</span><br><span class="line">    BN_CTX_start(ctx);</span><br><span class="line">    res = BN_CTX_get(ctx);</span><br><span class="line">    a = BN_CTX_get(ctx);</span><br><span class="line">    p = BN_CTX_get(ctx);</span><br><span class="line"></span><br><span class="line">    BN_dec2bn(&amp;p, <span class="string">&quot;697&quot;</span>);</span><br><span class="line">    BN_dec2bn(&amp;a, <span class="string">&quot;696&quot;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;p = %s\n&quot;</span>, BN_bn2dec(p));</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;a = %s\n&quot;</span>, BN_bn2dec(a));</span><br><span class="line"></span><br><span class="line">    BIGNUM* check = BN_mod_sqrt(res, a, p, ctx);</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;%s\n&quot;</span>, BN_bn2dec(res));</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>对于修复前的代码，程序执行后会进入死循环</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">$ ./sqrt</span><br><span class="line">p = 697</span><br><span class="line">a = 696</span><br><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>而修改后可以正常结束。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">$ ./sqrt</span><br><span class="line">p = 697</span><br><span class="line">a = 696</span><br><span class="line">0</span><br><span class="line">$ </span><br></pre></td></tr></table></figure>
+
+<h1 id="构造非法证书"><a href="#构造非法证书" class="headerlink" title="构造非法证书"></a>构造非法证书</h1><p>接下来我们来尝试构造一个非法的证书，使证书带有显式椭圆曲线参数，且基点是压缩格式编码的。然后我们将证书中曲线参数修改成我们想要的值。</p>
+<h2 id="创建一个正常的带显式曲线参数的证书"><a href="#创建一个正常的带显式曲线参数的证书" class="headerlink" title="创建一个正常的带显式曲线参数的证书"></a>创建一个正常的带显式曲线参数的证书</h2><p>首先我们需要创建一个ec密钥，因为我们想要证书中包含显式的曲线参数，所以我们在生成密钥时也选择带显式参数</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ openssl ecparam -out ec.key -name prime256v1 -genkey -noout -param_enc explicit -conv_form compressed</span><br></pre></td></tr></table></figure>
+
+<p>接着为了方便起见，我们直接自签发一个证书。这里将输出格式设为DER也是为了方便我们后面的修改ASN1结构。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ openssl req -new -x509 -key ec.key -out cert.der -outform DER -days 360 -subj <span class="string">&quot;/CN=TEST/&quot;</span></span><br></pre></td></tr></table></figure>
+
+<p>确认一下证书信息，其中包含了曲线参数信息：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">$ openssl x509 -<span class="keyword">in</span> cert.der -text -noout -inform DER</span><br><span class="line">...</span><br><span class="line">                Field Type: prime-field</span><br><span class="line">                Prime:</span><br><span class="line">                    00:ff:ff:ff:ff:00:00:00:01:00:00:00:00:00:00:</span><br><span class="line">                    00:00:00:00:00:00:ff:ff:ff:ff:ff:ff:ff:ff:ff:</span><br><span class="line">                    ff:ff:ff</span><br><span class="line">                A:</span><br><span class="line">                    00:ff:ff:ff:ff:00:00:00:01:00:00:00:00:00:00:</span><br><span class="line">                    00:00:00:00:00:00:ff:ff:ff:ff:ff:ff:ff:ff:ff:</span><br><span class="line">                    ff:ff:<span class="built_in">fc</span></span><br><span class="line">                B:</span><br><span class="line">                    5a:c6:35:d8:aa:3a:93:e7:b3:eb:bd:55:76:98:86:</span><br><span class="line">                    bc:65:1d:06:b0:cc:53:b0:f6:3b:ce:3c:3e:27:d2:</span><br><span class="line">                    60:4b</span><br><span class="line">                Generator (compressed):</span><br><span class="line">                    03:6b:17:d1:f2:e1:2c:42:47:f8:bc:e6:e5:63:a4:</span><br><span class="line">                    40:f2:77:03:7d:81:2d:eb:33:a0:f4:a1:39:45:d8:</span><br><span class="line">                    98:c2:96</span><br><span class="line">                Order:</span><br><span class="line">                    00:ff:ff:ff:ff:00:00:00:00:ff:ff:ff:ff:ff:ff:</span><br><span class="line">                    ff:ff:bc:e6:fa:ad:a7:17:9e:84:f3:b9:ca:c2:<span class="built_in">fc</span>:</span><br><span class="line">                    63:25:51</span><br><span class="line">...                    </span><br></pre></td></tr></table></figure>
+
+<p>其中的Prime、A、B、Generator就是我们需要修改的目标参数。那么我们应该将其改成什么呢？然后又通过什么方法进行修改呢？</p>
+<h2 id="构造非法证书-1"><a href="#构造非法证书-1" class="headerlink" title="构造非法证书"></a>构造非法证书</h2><p>首先，在实际动手我们先需要搞清楚这几个值是什么意思、需要满足什么关系。定义在有限域上的椭圆曲线满足如下方程<br>$$<br>y^2 \equiv x^3+ax+b\quad (mod\ p)<br>$$<br>其中的a就是曲线参数A，b就是曲线参数B，p即为曲线参数Prime，a、b、p参数确定了一条椭圆曲线。解压缩点坐标就是根据x坐标来计算y坐标，从上面的公式可以看到这需要用到求平方根的运算：<br>$$<br>y&#x3D;\sqrt{x^3+ax+b}\quad (mod\ p)<br>$$<br>我们沿用之前使用的697&#x2F;696组合，即此时 p &#x3D; 697，$x^3+ax+b&#x3D;696$。我们只要选择合适的a、b、x是后面那个等式成立就可以了。</p>
+<p>我们令x&#x3D;8，a&#x3D;23，b&#x3D;0，等式成立。</p>
+<p>接下来就要着手修改我们的证书，徒手修改ASN1结构真的是要了我的老命，大家如果知道有什么方便的工具还请不吝赐教。因为这部分还没法自动化（至少目前没有），所以我就讲一下大概修改的方法。用到的工具主要是<code>xxd</code>转成hex格式进行编辑，完成之后再<code>xxd -r</code>转回去。</p>
+<ol>
+<li>你需要修改Prime、A、B、Generator4个目标字段的值<ol>
+<li>其中Prime为697，即十六进制的02b9</li>
+<li>A为23，即 十六进制的17</li>
+<li>B为0</li>
+<li>Generator的x为8，又因为是压缩格式，将其改成十六进制的020008（或030008）</li>
+</ol>
+</li>
+<li>因为ASN1是嵌套的结构，所以修改了内层长度之后，你还需要把外层的所以长度都进行相应的修正，这是个体力活。</li>
+<li>另外OpenSSL代码中会对ASN1_INTEGER进行padding格式的检查，所以Prime值的前面不能多余的0字节，所以我们必须修改Prime的长度</li>
+<li>而且OpenSSL还会对检查点字符串长度与Prime的长度的关系（对于压缩格式，点字符串的长度需要比Prime长度多1），这也是为什么我们将Genrator设置成030008，而不是0308的原因</li>
+<li>还有注意一点，就是<code>xxd -r</code>转回去之后可能会在文件末尾添加一个0a换行，你需要将其剔除。方法有很多，其中一种就是使用split命令。</li>
+</ol>
+<p>我们先来看下证书的ASN1结构，划红线的部分都是我们需要修改的部分</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ openssl asn1parse -<span class="keyword">in</span> cert.der -inform DER -i</span><br></pre></td></tr></table></figure>
+
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/83951100/asn1-structure-of-x509-before.png" alt="asn1-structure-of-x509-before" loading="lazy"></p>
+<p>Prime、A、B、Generator的目标值上面已经说了，相关长度的修改前后的值已经列在下表中了：</p>
+<table>
+<thead>
+<tr>
+<th align="center">from(dec)</th>
+<th align="center">from(hex)</th>
+<th align="center">to(dec)</th>
+<th align="center">to(hex)</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="center">549</td>
+<td align="center">225</td>
+<td align="center">488</td>
+<td align="center">1e8</td>
+</tr>
+<tr>
+<td align="center">460</td>
+<td align="center">1cc</td>
+<td align="center">399</td>
+<td align="center">18f</td>
+</tr>
+<tr>
+<td align="center">266</td>
+<td align="center">10a</td>
+<td align="center">205</td>
+<td align="center">cd</td>
+</tr>
+<tr>
+<td align="center">227</td>
+<td align="center">e3</td>
+<td align="center">166</td>
+<td align="center">a6</td>
+</tr>
+<tr>
+<td align="center">215</td>
+<td align="center">d7</td>
+<td align="center">154</td>
+<td align="center">9a</td>
+</tr>
+<tr>
+<td align="center">44</td>
+<td align="center">2c</td>
+<td align="center">13</td>
+<td align="center">0d</td>
+</tr>
+<tr>
+<td align="center">33 Prime</td>
+<td align="center">21</td>
+<td align="center">2</td>
+<td align="center">02</td>
+</tr>
+<tr>
+<td align="center">33 Generator</td>
+<td align="center">21</td>
+<td align="center">3</td>
+<td align="center">03</td>
+</tr>
+</tbody></table>
+<p>具体的修改过程如下，其中编辑文本的步骤已省略：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">$ cp cert.der cert.der.old</span><br><span class="line">$ xxd cert.der cert.der.hex</span><br><span class="line">$ cp cert.der.hex cert.der.hex.old</span><br><span class="line">$ vim cert.der.hex</span><br><span class="line"><span class="comment"># edit cert.der.hex</span></span><br><span class="line"><span class="comment"># ...</span></span><br><span class="line"><span class="comment"># complete</span></span><br><span class="line">$ xxd -r cert.der.hex cert.der.new</span><br></pre></td></tr></table></figure>
+
+
+
+<p>到这里我们的证书就构造好了，现在来看看修改后的ASN1结构：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ openssl asn1parse -<span class="keyword">in</span> cert.der.new -inform DER -i</span><br></pre></td></tr></table></figure>
+
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/83951100/asn1-structure-of-x509-after.png" alt="asn1-structure-of-x509-after" loading="lazy"></p>
+<p>划红线的部分都已经被我们修改了，且证书的ASN1编码是正常的。</p>
+<h2 id="使用非法证书测试"><a href="#使用非法证书测试" class="headerlink" title="使用非法证书测试"></a>使用非法证书测试</h2><p>OK，现在我们来解析这个构造的非法证书试试，不出意外的话就会进入无限循环了。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">openssl x509 -<span class="keyword">in</span> cert.der.new -inform DER -text -noout</span><br></pre></td></tr></table></figure>
+
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/83951100/infinite-loop-when-parsing-invalid-cert.png" alt="infinite-loop-when-parsing-invalid-cert" loading="lazy"></p>
+<p>可以看到openssl进程的CPU占用是100%，且调用栈是在<code>BN_mod_sqrt()</code>函数之中。</p>
+<p>如果恶意攻击方在与服务器进行SSL握手时使用类似这种精心构造的证书的话，服务器就会进入死循环，从而造成DoS攻击。</p>
+<p>构造的证书以及中间过程产物已经上传Github[^3]仓库，有需要的可以自行获取。</p>
+<h1 id="参考材料"><a href="#参考材料" class="headerlink" title="参考材料"></a>参考材料</h1><p>[^1]: <a target="_blank" rel="noopener external nofollow noreferrer" href="https://www.cve.org/CVERecord?id=CVE-2022-0778">CVE-2022-0778 Detail</a><br>[^2]: <a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/openssl/openssl/commit/3118eb64934499d93db3230748a452351d1d9a65">Patch commit</a><br>[^3]: <a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/catbro666/CVE-2022-0778">catbro666&#x2F;CVE-2022-0778</a></p>
+
+    </div>
+
+    
+    
+    
+      
+<div>
+    
+        <div style="text-align:center;font-size:22px;letter-spacing:10px;user-select:none;color:#bbb;">-------------本文结束<i class="fa fa-paw"></i>感谢您的阅读-------------</div>
+    
+</div>
+
+
+
+        
+
+<div>
+<ul class="post-copyright">
+  <li class="post-copyright-author">
+    <strong>本文作者： </strong>猫猫哥
+  </li>
+  <li class="post-copyright-link">
+    <strong>本文链接：</strong>
+    <a href="https://catbro666.github.io/posts/83951100/" title="OpenSSL CVE-2022-0778漏洞问题复现与非法证书构造">https://catbro666.github.io/posts/83951100/</a>
+  </li>
+  <li class="post-copyright-license">
+    <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/zh-CN" rel="noopener external nofollow noreferrer" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+        
+
+  <div class="followme">
+    <p>欢迎关注我的其它发布渠道</p>
+
+    <div class="social-list">
+
+        <div class="social-item">
+          <a target="_blank" class="social-link" href="/atom.xml">
+            <span class="icon">
+              <i class="fa fa-rss"></i>
+            </span>
+
+            <span class="label">RSS</span>
+          </a>
+        </div>
+    </div>
+  </div>
+
+
+      <footer class="post-footer">
+          
+          <div class="post-tags">
+              <a href="/tags/OpenSSL/" rel="tag"><i class="fa fa-tag"></i> OpenSSL</a>
+              <a href="/tags/CVE/" rel="tag"><i class="fa fa-tag"></i> CVE</a>
+              <a href="/tags/%E6%BC%8F%E6%B4%9E%E5%A4%8D%E7%8E%B0/" rel="tag"><i class="fa fa-tag"></i> 漏洞复现</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/posts/615fc0b5/" rel="prev" title="Linux内核是如何启动的">
+      <i class="fa fa-chevron-left"></i> Linux内核是如何启动的
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+    <div class="comments" id="valine-comments"></div>
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E6%BC%8F%E6%B4%9E%E6%8F%8F%E8%BF%B0-1"><span class="nav-number">1.</span> <span class="nav-text">漏洞描述[^1]</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%87%BD%E6%95%B0%E5%88%86%E6%9E%90"><span class="nav-number">2.</span> <span class="nav-text">函数分析</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%A4%8D%E7%8E%B0%E9%97%AE%E9%A2%98"><span class="nav-number">3.</span> <span class="nav-text">复现问题</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E6%9E%84%E9%80%A0%E9%9D%9E%E6%B3%95%E8%AF%81%E4%B9%A6"><span class="nav-number">4.</span> <span class="nav-text">构造非法证书</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%88%9B%E5%BB%BA%E4%B8%80%E4%B8%AA%E6%AD%A3%E5%B8%B8%E7%9A%84%E5%B8%A6%E6%98%BE%E5%BC%8F%E6%9B%B2%E7%BA%BF%E5%8F%82%E6%95%B0%E7%9A%84%E8%AF%81%E4%B9%A6"><span class="nav-number">4.1.</span> <span class="nav-text">创建一个正常的带显式曲线参数的证书</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%9E%84%E9%80%A0%E9%9D%9E%E6%B3%95%E8%AF%81%E4%B9%A6-1"><span class="nav-number">4.2.</span> <span class="nav-text">构造非法证书</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BD%BF%E7%94%A8%E9%9D%9E%E6%B3%95%E8%AF%81%E4%B9%A6%E6%B5%8B%E8%AF%95"><span class="nav-number">4.3.</span> <span class="nav-text">使用非法证书测试</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%8F%82%E8%80%83%E6%9D%90%E6%96%99"><span class="nav-number">5.</span> <span class="nav-text">参考材料</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">猫猫哥</p>
+  <div class="site-description" itemprop="description">如果说根号二是无理数，那么我就是个无理人</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">28</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">10</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">33</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/catbro666" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;catbro666" rel="noopener external nofollow noreferrer" target="_blank"><i class="fab fa-github fa-fw"></i></a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:chzf_zju@163.com" title="E-Mail → mailto:chzf_zju@163.com" rel="noopener external nofollow noreferrer" target="_blank"><i class="fa fa-envelope fa-fw"></i></a>
+      </span>
+  </div>
+  <div class="cc-license motion-element" itemprop="license">
+    <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/zh-CN" class="cc-opacity" rel="noopener external nofollow noreferrer" target="_blank"><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/images/cc-by-nc-sa.svg" alt="Creative Commons"></a>
+  </div>
+
+
+<div style="">
+  <canvas id="canvas" style="width:60%;">当前浏览器不支持canvas，请更换浏览器后再试</canvas>
+</div>
+<script>
+(function(){
+
+   var digit=
+    [
+        [
+            [0,0,1,1,1,0,0],
+            [0,1,1,0,1,1,0],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,0,1,1,0],
+            [0,0,1,1,1,0,0]
+        ],//0
+        [
+            [0,0,0,1,1,0,0],
+            [0,1,1,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [1,1,1,1,1,1,1]
+        ],//1
+        [
+            [0,1,1,1,1,1,0],
+            [1,1,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,0,0],
+            [0,0,1,1,0,0,0],
+            [0,1,1,0,0,0,0],
+            [1,1,0,0,0,0,0],
+            [1,1,0,0,0,1,1],
+            [1,1,1,1,1,1,1]
+        ],//2
+        [
+            [1,1,1,1,1,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,0,0,1,1,0],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,1,1,0]
+        ],//3
+        [
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,1,0],
+            [0,0,1,1,1,1,0],
+            [0,1,1,0,1,1,0],
+            [1,1,0,0,1,1,0],
+            [1,1,1,1,1,1,1],
+            [0,0,0,0,1,1,0],
+            [0,0,0,0,1,1,0],
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,1,1]
+        ],//4
+        [
+            [1,1,1,1,1,1,1],
+            [1,1,0,0,0,0,0],
+            [1,1,0,0,0,0,0],
+            [1,1,1,1,1,1,0],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,1,1,0]
+        ],//5
+        [
+            [0,0,0,0,1,1,0],
+            [0,0,1,1,0,0,0],
+            [0,1,1,0,0,0,0],
+            [1,1,0,0,0,0,0],
+            [1,1,0,1,1,1,0],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,1,1,0]
+        ],//6
+        [
+            [1,1,1,1,1,1,1],
+            [1,1,0,0,0,1,1],
+            [0,0,0,0,1,1,0],
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,1,1,0,0,0],
+            [0,0,1,1,0,0,0],
+            [0,0,1,1,0,0,0],
+            [0,0,1,1,0,0,0]
+        ],//7
+        [
+            [0,1,1,1,1,1,0],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,1,1,0],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,1,1,0]
+        ],//8
+        [
+            [0,1,1,1,1,1,0],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,0,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,0,0],
+            [0,1,1,0,0,0,0]
+        ],//9
+        [
+            [0,0,0,0,0,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,0,0,0,0,0]
+        ]//:
+    ];
+
+var canvas = document.getElementById('canvas');
+
+if(canvas.getContext){
+    var cxt = canvas.getContext('2d');
+    //声明canvas的宽高
+    var H = 100,W = 700;
+    canvas.height = H;
+    canvas.width = W;
+    cxt.fillStyle = '#f00';
+    cxt.fillRect(10,10,50,50);
+
+    //存储时间数据
+    var data = [];
+    //存储运动的小球
+    var balls = [];
+    //设置粒子半径
+    var R = canvas.height/20-1;
+    (function(){
+        var temp = /(\d)(\d):(\d)(\d):(\d)(\d)/.exec(new Date());
+        //存储时间数字，由十位小时、个位小时、冒号、十位分钟、个位分钟、冒号、十位秒钟、个位秒钟这7个数字组成
+        data.push(temp[1],temp[2],10,temp[3],temp[4],10,temp[5],temp[6]);
+    })();
+
+    /*生成点阵数字*/
+    function renderDigit(index,num){
+        for(var i = 0; i < digit[num].length; i++){
+            for(var j = 0; j < digit[num][i].length; j++){
+                if(digit[num][i][j] == 1){
+                    cxt.beginPath();
+                    cxt.arc(14*(R+2)*index + j*2*(R+1)+(R+1),i*2*(R+1)+(R+1),R,0,2*Math.PI);
+                    cxt.closePath();
+                    cxt.fill();
+                }
+            }
+        }
+    }
+
+    /*更新时钟*/
+    function updateDigitTime(){
+        var changeNumArray = [];
+        var temp = /(\d)(\d):(\d)(\d):(\d)(\d)/.exec(new Date());
+        var NewData = [];
+        NewData.push(temp[1],temp[2],10,temp[3],temp[4],10,temp[5],temp[6]);
+        for(var i = data.length-1; i >=0 ; i--){
+            //时间发生变化
+            if(NewData[i] !== data[i]){
+                //将变化的数字值和在data数组中的索引存储在changeNumArray数组中
+                changeNumArray.push(i+'_'+(Number(data[i])+1)%10);
+            }
+        }
+        //增加小球
+        for(var i = 0; i< changeNumArray.length; i++){
+            addBalls.apply(this,changeNumArray[i].split('_'));
+        }
+        data = NewData.concat();
+    }
+
+    /*更新小球状态*/
+    function updateBalls(){
+        for(var i = 0; i < balls.length; i++){
+            balls[i].stepY += balls[i].disY;
+            balls[i].x += balls[i].stepX;
+            balls[i].y += balls[i].stepY;
+            if(balls[i].x > W + R || balls[i].y > H + R){
+                balls.splice(i,1);
+                i--;
+            }
+        }
+    }
+
+    /*增加要运动的小球*/
+    function addBalls(index,num){
+        var numArray = [1,2,3];
+        var colorArray =  ["#3BE","#09C","#A6C","#93C","#9C0","#690","#FB3","#F80","#F44","#C00"];
+        for(var i = 0; i < digit[num].length; i++){
+            for(var j = 0; j < digit[num][i].length; j++){
+                if(digit[num][i][j] == 1){
+                    var ball = {
+                        x:14*(R+2)*index + j*2*(R+1)+(R+1),
+                        y:i*2*(R+1)+(R+1),
+                        stepX:Math.floor(Math.random() * 4 -2),
+                        stepY:-2*numArray[Math.floor(Math.random()*numArray.length)],
+                        color:colorArray[Math.floor(Math.random()*colorArray.length)],
+                        disY:1
+                    };
+                    balls.push(ball);
+                }
+            }
+        }
+    }
+
+    /*渲染*/
+    function render(){
+        //重置画布宽度，达到清空画布的效果
+        canvas.height = 100;
+        //渲染时钟
+        for(var i = 0; i < data.length; i++){
+            renderDigit(i,data[i]);
+        }
+        //渲染小球
+        for(var i = 0; i < balls.length; i++){
+            cxt.beginPath();
+            cxt.arc(balls[i].x,balls[i].y,R,0,2*Math.PI);
+            cxt.fillStyle = balls[i].color;
+            cxt.closePath();
+            cxt.fill();
+        }
+    }
+
+    clearInterval(oTimer);
+    var oTimer = setInterval(function(){
+        //更新时钟
+        updateDigitTime();
+        //更新小球状态
+        updateBalls();
+        //渲染
+        render();
+    },50);
+}
+
+})();
+</script>
+
+
+      </div>
+        <div class="back-to-top motion-element">
+          <i class="fa fa-arrow-up"></i>
+          <span>0%</span>
+        </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 2019 – 
+  <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">猫猫哥</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+      <span class="post-meta-item-text">站点总字数：</span>
+    <span title="站点总字数">321k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+      <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
+    <span title="站点阅读时长">4:52</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener external nofollow noreferrer" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener external nofollow noreferrer" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+<script>
+  (function() {
+    function leancloudSelector(url) {
+      url = encodeURI(url);
+      return document.getElementById(url).querySelector('.leancloud-visitors-count');
+    }
+
+    function addCount(Counter) {
+      var visitors = document.querySelector('.leancloud_visitors');
+      var url = decodeURI(visitors.id);
+      var title = visitors.dataset.flagTitle;
+
+      Counter('get', '/classes/Counter?where=' + encodeURIComponent(JSON.stringify({ url })))
+        .then(response => response.json())
+        .then(({ results }) => {
+          if (results.length > 0) {
+            var counter = results[0];
+            leancloudSelector(url).innerText = counter.time + 1;
+            Counter('put', '/classes/Counter/' + counter.objectId, { time: { '__op': 'Increment', 'amount': 1 } })
+              .catch(error => {
+                console.error('Failed to save visitor count', error);
+              });
+          } else {
+              leancloudSelector(url).innerText = 'Counter not initialized! More info at console err msg.';
+              console.error('ATTENTION! LeanCloud counter has security bug, see how to solve it here: https://github.com/theme-next/hexo-leancloud-counter-security. \n However, you can still use LeanCloud without security, by setting `security` option to `false`.');
+            
+          }
+        })
+        .catch(error => {
+          console.error('LeanCloud Counter Error', error);
+        });
+    }
+
+    function showTime(Counter) {
+      var visitors = document.querySelectorAll('.leancloud_visitors');
+      var entries = [...visitors].map(element => {
+        return decodeURI(element.id);
+      });
+
+      Counter('get', '/classes/Counter?where=' + encodeURIComponent(JSON.stringify({ url: { '$in': entries } })))
+        .then(response => response.json())
+        .then(({ results }) => {
+          for (let url of entries) {
+            let target = results.find(item => item.url === url);
+            leancloudSelector(url).innerText = target ? target.time : 0;
+          }
+        })
+        .catch(error => {
+          console.error('LeanCloud Counter Error', error);
+        });
+    }
+
+    let { app_id, app_key, server_url } = {"enable":true,"app_id":"0Syy5qyXX1qTBOGiD0vUzpHb-MdYXbMMI","app_key":"B3MuN4GIHf7ru1ojTSkjjI9a","server_url":null,"security":true,"betterPerformance":true};
+    function fetchData(api_server) {
+      var Counter = (method, url, data) => {
+        return fetch(`${api_server}/1.1${url}`, {
+          method,
+          headers: {
+            'X-LC-Id'     : app_id,
+            'X-LC-Key'    : app_key,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(data)
+        });
+      };
+      if (CONFIG.page.isPost) {
+        if (CONFIG.hostname !== location.hostname) return;
+        addCount(Counter);
+      } else if (document.querySelectorAll('.post-title-link').length >= 1) {
+        showTime(Counter);
+      }
+    }
+
+    let api_server = app_id.slice(-9) !== '-MdYXbMMI' ? server_url : `https://${app_id.slice(0, 8).toLowerCase()}.api.lncldglobal.com`;
+
+    if (api_server) {
+      fetchData(api_server);
+    } else {
+      fetch('https://app-router.leancloud.cn/2/route?appId=' + app_id)
+        .then(response => response.json())
+        .then(({ api_server }) => {
+          fetchData('https://' + api_server);
+        });
+    }
+  })();
+</script>
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="//cdn.jsdelivr.net/npm/animejs@3.1.0/lib/anime.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/velocity-animate@1/velocity.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/velocity-animate@1/velocity.ui.min.js"></script>
+
+<script src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/js/utils.js"></script>
+
+<script src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/js/motion.js"></script>
+
+
+<script src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/js/schemes/pisces.js"></script>
+
+
+<script src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/js/next-boot.js"></script>
+
+
+
+
+  
+  <script>
+    (function(){
+      var canonicalURL, curProtocol;
+      //Get the <link> tag
+      var x=document.getElementsByTagName("link");
+		//Find the last canonical URL
+		if(x.length > 0){
+			for (i=0;i<x.length;i++){
+				if(x[i].rel.toLowerCase() == 'canonical' && x[i].href){
+					canonicalURL=x[i].href;
+				}
+			}
+		}
+    //Get protocol
+	    if (!canonicalURL){
+	    	curProtocol = window.location.protocol.split(':')[0];
+	    }
+	    else{
+	    	curProtocol = canonicalURL.split(':')[0];
+	    }
+      //Get current URL if the canonical URL does not exist
+	    if (!canonicalURL) canonicalURL = window.location.href;
+	    //Assign script content. Replace current URL with the canonical URL
+      !function(){var e=/([http|https]:\/\/[a-zA-Z0-9\_\.]+\.baidu\.com)/gi,r=canonicalURL,t=document.referrer;if(!e.test(r)){var n=(String(curProtocol).toLowerCase() === 'https')?"https://sp0.baidu.com/9_Q4simg2RQJ8t7jm9iCKT-xh_/s.gif":"//api.share.baidu.com/s.gif";t?(n+="?r="+encodeURIComponent(document.referrer),r&&(n+="&l="+r)):r&&(n+="?l="+r);var i=new Image;i.src=n}}(window);})();
+  </script>
+
+
+
+
+  
+<script src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+      
+
+<script>
+  if (typeof MathJax === 'undefined') {
+    window.MathJax = {
+      loader: {
+        source: {
+          '[tex]/amsCd': '[tex]/amscd',
+          '[tex]/AMScd': '[tex]/amscd'
+        }
+      },
+      tex: {
+        inlineMath: {'[+]': [['$', '$']]},
+        tags: 'ams'
+      },
+      options: {
+        renderActions: {
+          findScript: [10, doc => {
+            document.querySelectorAll('script[type^="math/tex"]').forEach(node => {
+              const display = !!node.type.match(/; *mode=display/);
+              const math = new doc.options.MathItem(node.textContent, doc.inputJax[0], display);
+              const text = document.createTextNode('');
+              node.parentNode.replaceChild(text, node);
+              math.start = {node: text, delim: '', n: 0};
+              math.end = {node: text, delim: '', n: 0};
+              doc.math.push(math);
+            });
+          }, '', false],
+          insertedScript: [200, () => {
+            document.querySelectorAll('mjx-container').forEach(node => {
+              let target = node.parentNode;
+              if (target.nodeName.toLowerCase() === 'li') {
+                target.parentNode.classList.add('has-jax');
+              }
+            });
+          }, '', false]
+        }
+      }
+    };
+    (function () {
+      var script = document.createElement('script');
+      script.src = '//cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js';
+      script.defer = true;
+      document.head.appendChild(script);
+    })();
+  } else {
+    MathJax.startup.document.state(0);
+    MathJax.texReset();
+    MathJax.typeset();
+  }
+</script>
+
+    
+
+  
+
+
+<script>
+NexT.utils.loadComments(document.querySelector('#valine-comments'), () => {
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/valine@1/dist/Valine.min.js', () => {
+    var GUEST = ['nick', 'mail', 'link'];
+    var guest = 'nick,mail,link';
+    guest = guest.split(',').filter(item => {
+      return GUEST.includes(item);
+    });
+    new Valine({
+      el         : '#valine-comments',
+      verify     : false,
+      notify     : true,
+      appId      : '0Syy5qyXX1qTBOGiD0vUzpHb-MdYXbMMI',
+      appKey     : 'B3MuN4GIHf7ru1ojTSkjjI9a',
+      placeholder: "欢迎留言讨论，记得在上方【邮箱】处填上邮箱地址，可以收到回复通知哦(^。^)",
+      avatar     : 'retro',
+      meta       : guest,
+      pageSize   : '10' || 10,
+      visitor    : false,
+      lang       : '' || 'zh-cn',
+      path       : location.pathname,
+      recordIP   : false,
+      serverURLs : 'https://0syy5qyx.api.lncldglobal.com'
+    });
+  }, window.Valine);
+});
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/jquery/dist/jquery.min.js"></script>
+
+
+
+  <script async src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/js/cursor/fireworks.js"></script>
+
+
+
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/js/fold_action.js"></script>
+
+
+</body>
+</html>

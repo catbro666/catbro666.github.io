@@ -6,7 +6,7 @@
   <link href="https://catbro666.github.io/atom.xml" rel="self"/>
   
   <link href="https://catbro666.github.io/"/>
-  <updated>2022-03-12T13:02:05.190Z</updated>
+  <updated>2022-03-20T07:37:46.257Z</updated>
   <id>https://catbro666.github.io/</id>
   
   <author>
@@ -17,11 +17,38 @@
   <generator uri="https://hexo.io/">Hexo</generator>
   
   <entry>
+    <title>OpenSSL CVE-2022-0778漏洞问题复现与非法证书构造</title>
+    <link href="https://catbro666.github.io/posts/83951100/"/>
+    <id>https://catbro666.github.io/posts/83951100/</id>
+    <published>2022-03-19T14:53:34.000Z</published>
+    <updated>2022-03-20T07:37:46.257Z</updated>
+    
+    
+    <summary type="html">&lt;div class=&quot;note primary&quot;&gt;
+            &lt;p&gt;本文介绍CVE-2022 0778漏洞及其复现方法，并精心构造了具有一个非法椭圆曲线参数的证书可以触发该漏洞。&lt;/p&gt;
+          &lt;/div&gt;</summary>
+    
+    
+    
+    <category term="加密与安全" scheme="https://catbro666.github.io/categories/%E5%8A%A0%E5%AF%86%E4%B8%8E%E5%AE%89%E5%85%A8/"/>
+    
+    <category term="OpenSSL" scheme="https://catbro666.github.io/categories/%E5%8A%A0%E5%AF%86%E4%B8%8E%E5%AE%89%E5%85%A8/OpenSSL/"/>
+    
+    
+    <category term="OpenSSL" scheme="https://catbro666.github.io/tags/OpenSSL/"/>
+    
+    <category term="CVE" scheme="https://catbro666.github.io/tags/CVE/"/>
+    
+    <category term="漏洞复现" scheme="https://catbro666.github.io/tags/%E6%BC%8F%E6%B4%9E%E5%A4%8D%E7%8E%B0/"/>
+    
+  </entry>
+  
+  <entry>
     <title>Linux内核是如何启动的</title>
     <link href="https://catbro666.github.io/posts/615fc0b5/"/>
     <id>https://catbro666.github.io/posts/615fc0b5/</id>
     <published>2022-03-12T11:01:39.000Z</published>
-    <updated>2022-03-12T13:02:05.190Z</updated>
+    <updated>2022-03-13T13:31:33.474Z</updated>
     
     
     <summary type="html">&lt;div class=&quot;note primary&quot;&gt;
@@ -186,11 +213,11 @@
   </entry>
   
   <entry>
-    <title>是谁断了我的连接？—从压测碰到的一个奇怪问题聊聊Nginx的连接管理和性能调测</title>
+    <title>从压测碰到的诡异断连问题聊聊Nginx的连接管理和性能调测</title>
     <link href="https://catbro666.github.io/posts/4198933e/"/>
     <id>https://catbro666.github.io/posts/4198933e/</id>
     <published>2021-11-07T09:52:11.000Z</published>
-    <updated>2022-03-05T10:41:05.459Z</updated>
+    <updated>2022-03-17T09:29:41.886Z</updated>
     
     
     <summary type="html">&lt;div class=&quot;note primary&quot;&gt;
@@ -472,31 +499,6 @@
     <category term="SSL/TLS" scheme="https://catbro666.github.io/tags/SSL-TLS/"/>
     
     <category term="密码学" scheme="https://catbro666.github.io/tags/%E5%AF%86%E7%A0%81%E5%AD%A6/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>自己动手实现Lua--实现TAILCALL指令</title>
-    <link href="https://catbro666.github.io/posts/74970c0e/"/>
-    <id>https://catbro666.github.io/posts/74970c0e/</id>
-    <published>2021-07-17T08:46:43.000Z</published>
-    <updated>2022-03-05T10:36:24.292Z</updated>
-    
-    
-    <summary type="html">&lt;div class=&quot;note primary&quot;&gt;
-            &lt;p&gt;最近在看《自己动手实现Lua—虚拟机、编译器和标准库》。这是本挺不错的书，通过学习此书能够对Lua语言有比较深刻的理解，此外还可以对如何自己实现一门脚本语言有直观的认识。对于想学习Lua的同学，安利一下这本书。&lt;/p&gt;&lt;p&gt;废话不多说，书中留了一个作业，让读者自己实现&lt;code&gt;TAILCALL&lt;/code&gt;指令，实现尾调用的优化。本文就算是交作业吧。&lt;/p&gt;
-          &lt;/div&gt;</summary>
-    
-    
-    
-    <category term="编程开发" scheme="https://catbro666.github.io/categories/%E7%BC%96%E7%A8%8B%E5%BC%80%E5%8F%91/"/>
-    
-    <category term="Lua" scheme="https://catbro666.github.io/categories/%E7%BC%96%E7%A8%8B%E5%BC%80%E5%8F%91/Lua/"/>
-    
-    
-    <category term="Lua" scheme="https://catbro666.github.io/tags/Lua/"/>
-    
-    <category term="TAILCALL" scheme="https://catbro666.github.io/tags/TAILCALL/"/>
     
   </entry>
   
