@@ -481,7 +481,7 @@ translateInitilization();
 
       
           <div class="note primary">
-            <p>前面一篇文章介绍了<a href="../150430f0/">Openresty Lua协程调度机制</a>，主要关心的是核心调度函数<code>run_thread()</code>内部发生的事情，而对于外部的事情我们并没有涉及。本篇作为其姊妹篇，准备补上剩余的部分。本篇将通过一个例子，完整介绍OpenResty中Lua钩子的调用流程，包括初始化阶段的工作、新连接进来时如何进入钩子、I/O等待时如何出去、事件触发时如何恢复、钩子正常执行结束时的操作、钩子内出错的情况。本文同样是基于<code>stream-lua</code>模块的代码。</p>
+            <p>前面一篇文章介绍了<a href="../150430f0/">Openresty Lua协程调度机制</a>，主要关心的是核心调度函数<code>run_thread()</code>内部发生的事情，而对于外部的事情我们并没有涉及。本篇作为其姊妹篇，准备补上剩余的部分。本篇将通过一个例子，完整介绍OpenResty中Lua钩子的调用流程，包括初始化阶段的工作、新连接进来时如何进入钩子、I&#x2F;O等待时如何出去、事件触发时如何恢复、钩子正常执行结束时的操作、钩子内出错的情况。本文同样是基于<code>stream-lua</code>模块的代码。</p>
           </div>
           <!--noindex-->
             <div class="post-button">
@@ -622,7 +622,7 @@ translateInitilization();
 
       
           <div class="note primary">
-            <h1>写在前面</h1><p>OpenResty（后面简称：OR）是一个基于Nginx和Lua的高性能Web平台，它内部集成大量的Lua API以及第三方模块，可以利用它快速搭建支持高并发、极具动态性和扩展性的Web应用、Web服务或动态网关。</p><p>OR最大的特点就是，将Lua协程与Nginx事件驱动模型及非阻塞I/O结合起来。使用户可以在handler中使用 <strong>同步但是依然是非阻塞</strong> 的方式编写其应用代码，而无需关心底层的协程调度以及与Nginx事件驱动模型的交互。</p><p>本文将先从总体上介绍OR的协程调度机制，然后结合源码以及Lua栈的情况来详细了解各个部分是如何实现的，包括其异常保护、协程初始化、协程的恢复和执行、协程的挂起、协程的执行结束、协程出错的情况。</p><p>本文主要关注调度函数内部的逻辑，如果想了解外部的调用流程。可以参看<a href="../30b81f82/">Openresty Lua钩子调用完整流程</a></p>
+            <h1 id="写在前面"><a href="#写在前面" class="headerlink" title="写在前面"></a>写在前面</h1><p>OpenResty（后面简称：OR）是一个基于Nginx和Lua的高性能Web平台，它内部集成大量的Lua API以及第三方模块，可以利用它快速搭建支持高并发、极具动态性和扩展性的Web应用、Web服务或动态网关。</p><p>OR最大的特点就是，将Lua协程与Nginx事件驱动模型及非阻塞I&#x2F;O结合起来。使用户可以在handler中使用 <strong>同步但是依然是非阻塞</strong> 的方式编写其应用代码，而无需关心底层的协程调度以及与Nginx事件驱动模型的交互。</p><p>本文将先从总体上介绍OR的协程调度机制，然后结合源码以及Lua栈的情况来详细了解各个部分是如何实现的，包括其异常保护、协程初始化、协程的恢复和执行、协程的挂起、协程的执行结束、协程出错的情况。</p><p>本文主要关注调度函数内部的逻辑，如果想了解外部的调用流程。可以参看<a href="../30b81f82/">Openresty Lua钩子调用完整流程</a></p>
           </div>
           <!--noindex-->
             <div class="post-button">
@@ -763,7 +763,7 @@ translateInitilization();
 
       
           <div class="note primary">
-            <p>在工作中经常碰到需要写一些多进程/多线程的测试程序，用来测试接口的性能。本文将会从零开始一点点增加代码，最终完成一个简易的多进程测试程序编写。该程序支持实时打印测试进结果和最终测试结果的统计。</p><p>同时，本文还涵盖了以下知识点，可以作为学习参考：</p><ul><li>使用<code>getopt_long()</code>处理命令行选项和参数</li><li>使用<code>fork()</code>和<code>wait()</code>处理多进程</li><li>使用<code>sigaction()</code>配合<code>alarm()</code>处理定时信号<code>SIGALRM</code></li><li>使用<code>shmget()</code>、<code>shmat()</code>、<code>shmdt()</code>、<code>shmctl()</code>等通过共享内存进行进程间通信</li><li>使用<code>sigaction()</code>捕获<code>SIGINT</code>和<code>SIGQUIT</code>信号，在程序终止前做共享内存清理工作</li></ul>
+            <p>在工作中经常碰到需要写一些多进程&#x2F;多线程的测试程序，用来测试接口的性能。本文将会从零开始一点点增加代码，最终完成一个简易的多进程测试程序编写。该程序支持实时打印测试进结果和最终测试结果的统计。</p><p>同时，本文还涵盖了以下知识点，可以作为学习参考：</p><ul><li>使用<code>getopt_long()</code>处理命令行选项和参数</li><li>使用<code>fork()</code>和<code>wait()</code>处理多进程</li><li>使用<code>sigaction()</code>配合<code>alarm()</code>处理定时信号<code>SIGALRM</code></li><li>使用<code>shmget()</code>、<code>shmat()</code>、<code>shmdt()</code>、<code>shmctl()</code>等通过共享内存进行进程间通信</li><li>使用<code>sigaction()</code>捕获<code>SIGINT</code>和<code>SIGQUIT</code>信号，在程序终止前做共享内存清理工作</li></ul>
           </div>
           <!--noindex-->
             <div class="post-button">
@@ -1038,10 +1038,8 @@ translateInitilization();
     <div class="post-body" itemprop="articleBody">
 
       
-          <h2 id="1-题面">1 题面</h2>
-<p>编写类似<code>cp(1)</code>的程序，它复制包含空洞的文件，但是不将字节0写到输出文件中去。</p>
-<h2 id="2-基本思路">2 基本思路</h2>
-<ul>
+          <h2 id="1-题面"><a href="#1-题面" class="headerlink" title="1 题面"></a>1 题面</h2><p>编写类似<code>cp(1)</code>的程序，它复制包含空洞的文件，但是不将字节0写到输出文件中去。</p>
+<h2 id="2-基本思路"><a href="#2-基本思路" class="headerlink" title="2 基本思路"></a>2 基本思路</h2><ul>
 <li>首先要搞清楚空洞的性质以判断一个文件是否有空洞，以及空洞的位置</li>
 <li>知道了空洞的位置之后，读到源文件中的空洞部分时，在目标文件中<code>lseek</code>相应的长度</li>
 </ul>
@@ -1183,10 +1181,8 @@ translateInitilization();
     <div class="post-body" itemprop="articleBody">
 
       
-          <h2 id="题面">题面</h2>
-<p>编写与<code>dup2</code>功能相同的函数，要求不调用<code>fcntl</code>函数，并且要有正确的出错处理。</p>
-<h2 id="基本思路">基本思路</h2>
-<p>不能用<code>fcntl</code>，能够返回一个文件描述符的只有<code>open</code>和<code>dup</code>。而<code>open</code>会创建一个新的文件表项，返回的fd指向新的文件表项，与<code>dup2</code>的表现不符。<code>dup</code>基本能满足要求，但是返回的是最小的可用fd，需要进一步操作满足要求。另外需要自己添加错误处理，以及处理oldfd与newfd相等的情况等。具体地，</p>
+          <h2 id="题面"><a href="#题面" class="headerlink" title="题面"></a>题面</h2><p>编写与<code>dup2</code>功能相同的函数，要求不调用<code>fcntl</code>函数，并且要有正确的出错处理。</p>
+<h2 id="基本思路"><a href="#基本思路" class="headerlink" title="基本思路"></a>基本思路</h2><p>不能用<code>fcntl</code>，能够返回一个文件描述符的只有<code>open</code>和<code>dup</code>。而<code>open</code>会创建一个新的文件表项，返回的fd指向新的文件表项，与<code>dup2</code>的表现不符。<code>dup</code>基本能满足要求，但是返回的是最小的可用fd，需要进一步操作满足要求。另外需要自己添加错误处理，以及处理oldfd与newfd相等的情况等。具体地，</p>
           <!--noindex-->
             <div class="post-button">
               <a class="btn" href="/posts/2485f370/#more" rel="contents">
@@ -1734,13 +1730,13 @@ if(canvas.getContext){
       <i class="fa fa-chart-area"></i>
     </span>
       <span class="post-meta-item-text">站点总字数：</span>
-    <span title="站点总字数">321k</span>
+    <span title="站点总字数">322k</span>
     <span class="post-meta-divider">|</span>
     <span class="post-meta-item-icon">
       <i class="fa fa-coffee"></i>
     </span>
       <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
-    <span title="站点阅读时长">4:52</span>
+    <span title="站点阅读时长">4:53</span>
 </div>
   <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener external nofollow noreferrer" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener external nofollow noreferrer" target="_blank">NexT.Gemini</a> 强力驱动
   </div>

@@ -30,53 +30,53 @@
 <meta property="og:site_name" content="CatBro&#39;s Blog">
 <meta property="og:description" content="SSL协议是现代网络通信中重要的一环，它提供了传输层上的数据安全。为了方便大家的理解，本文将先从加密学的基础知识入手，然后展开对SSL协议原理、流程以及一些重要的特性的详解，最后会扩展介绍一下国密SSL协议的差异、安全性以及TLS 1.3的关键新特性。限于篇幅以及个人知识水平，本文不会涉及过于细节的内容。特别地，本文将不涉及算法的具体原理，也不涉及实际代码的实现。而是试图">
 <meta property="og:locale" content="zh_CN">
-<meta property="og:image" content="https://catbro666.github.io/Caesar3.svg">
-<meta property="og:image" content="https://catbro666.github.io/simple-substitution-cipher.png">
-<meta property="og:image" content="https://catbro666.github.io/Enigma.jpg">
-<meta property="og:image" content="https://catbro666.github.io/symmetric-cipher-flow.png">
-<meta property="og:image" content="https://catbro666.github.io/RijndaelEncrypt.png">
-<meta property="og:image" content="https://catbro666.github.io/Ecb_encryption.png">
-<meta property="og:image" content="https://catbro666.github.io/Ecb_decryption.png">
-<meta property="og:image" content="https://catbro666.github.io/ecb-penguin1.jpg">
-<meta property="og:image" content="https://catbro666.github.io/ecb-penguin2.jpeg">
-<meta property="og:image" content="https://catbro666.github.io/ecb-penguin3.jpg">
-<meta property="og:image" content="https://catbro666.github.io/Cbc_encryption.png">
-<meta property="og:image" content="https://catbro666.github.io/Cbc_decryption.png">
-<meta property="og:image" content="https://catbro666.github.io/CTR_encryption_2.svg">
-<meta property="og:image" content="https://catbro666.github.io/CTR_decryption_2.svg">
-<meta property="og:image" content="https://catbro666.github.io/GCM-Galois_Counter_Mode_with_IV.svg">
-<meta property="og:image" content="https://catbro666.github.io/Public_key_encryption.svg">
-<meta property="og:image" content="https://catbro666.github.io/Diffie-Hellman_Key_Exchange.svg">
-<meta property="og:image" content="https://catbro666.github.io/Cryptographic_Hash_Function.svg">
-<meta property="og:image" content="https://catbro666.github.io/MAC-vs-HASH.png">
-<meta property="og:image" content="https://catbro666.github.io/HMAC-use-scene.png">
-<meta property="og:image" content="https://catbro666.github.io/Private_key_signing.svg">
-<meta property="og:image" content="https://catbro666.github.io/DigitalSignature.png">
-<meta property="og:image" content="https://catbro666.github.io/Chain-of-trust-with-cert.svg">
-<meta property="og:image" content="https://catbro666.github.io/CA-signing-of-digital-certificates.svg">
-<meta property="og:image" content="https://catbro666.github.io/TLS-layered-structure.svg">
-<meta property="og:image" content="https://catbro666.github.io/TLS-record-structure.svg">
-<meta property="og:image" content="https://catbro666.github.io/CipherSuite1_2.png">
-<meta property="og:image" content="https://catbro666.github.io/CipherSuite1_3.png">
-<meta property="og:image" content="https://catbro666.github.io/TLS-full-handshake-flow.svg">
-<meta property="og:image" content="https://catbro666.github.io/SSL-keyexchange-RSA.jpeg">
-<meta property="og:image" content="https://catbro666.github.io/SSL-keyexchange-DH.jpeg">
-<meta property="og:image" content="https://catbro666.github.io/TLS1_2-Key-Calculation.png">
-<meta property="og:image" content="https://catbro666.github.io/TLS-half-handshake-flow.svg">
-<meta property="og:image" content="https://catbro666.github.io/session_resumption_with_session_id.jpeg">
-<meta property="og:image" content="https://catbro666.github.io/session_resumption_with_session_ticket.jpeg">
-<meta property="og:image" content="https://catbro666.github.io/renegotiation-attack.png">
-<meta property="og:image" content="https://catbro666.github.io/renegotiation-attack-fix1.png">
-<meta property="og:image" content="https://catbro666.github.io/renegotiation-attack-fix2.png">
-<meta property="og:image" content="https://catbro666.github.io/Simplified_Heartbleed_explanation.svg">
-<meta property="og:image" content="https://catbro666.github.io/TLS1_3-Key-Schedule.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/Caesar3.svg">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/simple-substitution-cipher.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/Enigma.jpg">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/symmetric-cipher-flow.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/RijndaelEncrypt.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/Ecb_encryption.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/Ecb_decryption.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/ecb-penguin1.jpg">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/ecb-penguin2.jpeg">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/ecb-penguin3.jpg">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/Cbc_encryption.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/Cbc_decryption.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/CTR_encryption_2.svg">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/CTR_decryption_2.svg">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/GCM-Galois_Counter_Mode_with_IV.svg">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/Public_key_encryption.svg">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/Diffie-Hellman_Key_Exchange.svg">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/Cryptographic_Hash_Function.svg">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/MAC-vs-HASH.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/HMAC-use-scene.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/Private_key_signing.svg">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/DigitalSignature.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/Chain-of-trust-with-cert.svg">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/CA-signing-of-digital-certificates.svg">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/TLS-layered-structure.svg">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/TLS-record-structure.svg">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/CipherSuite1_2.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/CipherSuite1_3.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/TLS-full-handshake-flow.svg">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/SSL-keyexchange-RSA.jpeg">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/SSL-keyexchange-DH.jpeg">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/TLS1_2-Key-Calculation.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/TLS-half-handshake-flow.svg">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/session_resumption_with_session_id.jpeg">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/session_resumption_with_session_ticket.jpeg">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/renegotiation-attack.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/renegotiation-attack-fix1.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/renegotiation-attack-fix2.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/Simplified_Heartbleed_explanation.svg">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/TLS1_3-Key-Schedule.png">
 <meta property="article:published_time" content="2021-08-08T15:32:26.000Z">
 <meta property="article:modified_time" content="2022-03-05T10:44:18.639Z">
 <meta property="article:author" content="猫猫哥">
 <meta property="article:tag" content="SSL&#x2F;TLS">
 <meta property="article:tag" content="密码学">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:image" content="https://catbro666.github.io/Caesar3.svg">
+<meta name="twitter:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/Caesar3.svg">
 
 <link rel="canonical" href="https://catbro666.github.io/posts/e92ef4b4/">
 
@@ -382,81 +382,63 @@ translateInitilization();
         <div class="note primary">
             <p>SSL协议是现代网络通信中重要的一环，它提供了传输层上的数据安全。为了方便大家的理解，本文将先从加密学的基础知识入手，然后展开对SSL协议原理、流程以及一些重要的特性的详解，最后会扩展介绍一下国密SSL协议的差异、安全性以及TLS 1.3的关键新特性。</p><p>限于篇幅以及个人知识水平，本文不会涉及过于细节的内容。特别地，本文将不涉及算法的具体原理，也不涉及实际代码的实现。而是试图以图表等直观的方式来了解基本的原理以及流程。</p>
           </div>
+
 <span id="more"></span>
-<h1>密码学基础</h1>
-<h2 id="古典的密码">古典的密码</h2>
-<p>密码学的历史可以追溯到很久以前，早在罗马共和国时期，据说凯撒就使用凯撒密码和他的将军进行通信。</p>
-<h3 id="凯撒密码">凯撒密码</h3>
-<p><img src="/Caesar3.svg" alt="Caesar Cipher"></p>
+
+<h1 id="密码学基础"><a href="#密码学基础" class="headerlink" title="密码学基础"></a>密码学基础</h1><h2 id="古典的密码"><a href="#古典的密码" class="headerlink" title="古典的密码"></a>古典的密码</h2><p>密码学的历史可以追溯到很久以前，早在罗马共和国时期，据说凯撒就使用凯撒密码和他的将军进行通信。</p>
+<h3 id="凯撒密码"><a href="#凯撒密码" class="headerlink" title="凯撒密码"></a>凯撒密码</h3><p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/Caesar3.svg" alt="Caesar Cipher" loading="lazy"></p>
 <p>凯撒密码就是一个简单地移位操作。凯撒密钥非常容易被破解，使用<strong>暴力破解</strong>的方式把密钥从0到25都尝试一遍就可以了。</p>
-<h3 id="简单替换密码">简单替换密码</h3>
-<p><img src="/simple-substitution-cipher.png" alt="Simple Substitution Cipher"></p>
+<h3 id="简单替换密码"><a href="#简单替换密码" class="headerlink" title="简单替换密码"></a>简单替换密码</h3><p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/simple-substitution-cipher.png" alt="Simple Substitution Cipher" loading="lazy"></p>
 <p>简单替换密码，其明文字母表和密文字母表之间是一种随机的映射关系。这种方式密钥空间为<code>26! ~= 4 * 10^26</code>，这已经无法使用暴力破解方式来找到正确的密钥。但是可以使用<strong>频率分析</strong>来破译。</p>
-<h3 id="Enigma密码机">Enigma密码机</h3>
-<p>二战时期德国使用的一系列转子机械加解密机器。尽管此机器的安全性较高，但盟军的密码学家们还是成功地破译了大量由这种机器加密的信息。</p>
-<p><img src="/Enigma.jpg" alt="Enigma"></p>
+<h3 id="Enigma密码机"><a href="#Enigma密码机" class="headerlink" title="Enigma密码机"></a>Enigma密码机</h3><p>二战时期德国使用的一系列转子机械加解密机器。尽管此机器的安全性较高，但盟军的密码学家们还是成功地破译了大量由这种机器加密的信息。</p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/Enigma.jpg" alt="Enigma" loading="lazy"></p>
 <p>主要弱点：</p>
 <ul>
 <li>将通信密码连续输入两次并加密</li>
 <li>通信密码是人为选定</li>
 <li>必须派发国防军密码本</li>
 </ul>
-<h2 id="对称密码">对称密码</h2>
-<h3 id="块密码和流密码">块密码和流密码</h3>
-<p>上面几种密码其实都属于对称密码的范畴，对称加密算法可以分为块密码和流密码两种：</p>
+<h2 id="对称密码"><a href="#对称密码" class="headerlink" title="对称密码"></a>对称密码</h2><h3 id="块密码和流密码"><a href="#块密码和流密码" class="headerlink" title="块密码和流密码"></a>块密码和流密码</h3><p>上面几种密码其实都属于对称密码的范畴，对称加密算法可以分为块密码和流密码两种：</p>
 <ul>
 <li>块密码（block cipher）：每次只能处理特定长度的数据块。一个块的长度就叫块长度（分组长度）</li>
 <li>流密码（stream cipher）：对数据流进行连续处理的一类密码算法。一般以1比特、8比特或32比特为单位进行加密和解密。</li>
 </ul>
-<h3 id="AES-Advanced-Encryption-Standard">AES (Advanced Encryption Standard)</h3>
-<p>AES是目前最常用的对称算法之一。对称加密算法，顾名思义，就是<strong>加密和解密使用相同的密钥</strong>。发送方使用密钥K对明文P进行加密得到密文C，然后将密文C发送给接收方，接收方使用相同的密钥K对密文进行解密，得到明文P。</p>
-<p><img src="/symmetric-cipher-flow.png" alt="symmetric-cipher-flow"></p>
+<h3 id="AES-Advanced-Encryption-Standard"><a href="#AES-Advanced-Encryption-Standard" class="headerlink" title="AES (Advanced Encryption Standard)"></a>AES (Advanced Encryption Standard)</h3><p>AES是目前最常用的对称算法之一。对称加密算法，顾名思义，就是<strong>加密和解密使用相同的密钥</strong>。发送方使用密钥K对明文P进行加密得到密文C，然后将密文C发送给接收方，接收方使用相同的密钥K对密文进行解密，得到明文P。</p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/symmetric-cipher-flow.png" alt="symmetric-cipher-flow" loading="lazy"></p>
 <p>AES采用的是Rijndael算法，下图是Rijndael加密中一轮的操作：</p>
-<p><img src="/RijndaelEncrypt.png" alt="RijndaelEncrypt"></p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/RijndaelEncrypt.png" alt="RijndaelEncrypt" loading="lazy"></p>
 <p>每一轮都会进行字节替换、行位移、列混合和轮密钥异或，使得输入的位得到充分的<strong>混淆</strong>。一个块的加密会经过很多轮的操作，最终得到密文。</p>
 <p>因为这4轮操作都是<strong>可逆</strong>的，解密的时候就是一个相反的过程。</p>
-<h2 id="块密码的模式">块密码的模式</h2>
-<h3 id="模式">模式</h3>
-<p>分组密码算法只能加密固定长度的分组，但是我们需要加密的明文长度可能会超过分组密码的分组长度，这时就需要对分组密码算法进行迭代，以便将一段很长的明文全部加密。而块与块之间进行<strong>迭代的方法</strong>就称为分组密码的<strong>模式（mode）</strong>。</p>
+<h2 id="块密码的模式"><a href="#块密码的模式" class="headerlink" title="块密码的模式"></a>块密码的模式</h2><h3 id="模式"><a href="#模式" class="headerlink" title="模式"></a>模式</h3><p>分组密码算法只能加密固定长度的分组，但是我们需要加密的明文长度可能会超过分组密码的分组长度，这时就需要对分组密码算法进行迭代，以便将一段很长的明文全部加密。而块与块之间进行<strong>迭代的方法</strong>就称为分组密码的<strong>模式（mode）</strong>。</p>
 <p>常用模式由：ECB、CBC、OFB、CFB、CTR等。这边限于篇幅，仅介绍ECB、CBC、CTR三种。</p>
-<h4 id="ECB模式">ECB模式</h4>
-<p>ECB是最简单的一种模式，每个块是独立进行加密的。将明文分组加密之后的结果直接成为密文分组。当最后一个明文分组的内容小于分组长度时，需要用一些特定的数据进行填充（padding）。</p>
-<p><img src="/Ecb_encryption.png" alt="Ecb_encryption"></p>
-<p><img src="/Ecb_decryption.png" alt="Ecb_decryption"></p>
+<h4 id="ECB模式"><a href="#ECB模式" class="headerlink" title="ECB模式"></a>ECB模式</h4><p>ECB是最简单的一种模式，每个块是独立进行加密的。将明文分组加密之后的结果直接成为密文分组。当最后一个明文分组的内容小于分组长度时，需要用一些特定的数据进行填充（padding）。</p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/Ecb_encryption.png" alt="Ecb_encryption" loading="lazy"></p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/Ecb_decryption.png" alt="Ecb_decryption" loading="lazy"></p>
 <p>ECB模式有非常显著的<strong>缺点</strong>：同样的明文块会被加密成相同的密文块；因此，它不能很好的隐藏数据模式。在某些场合，这种方法不能提供严格的数据保密性。</p>
 <p>比如下面的企鹅图，用ECB模式加密之后得到中间的图，还是能很明显地看出图片的轮廓，不能很好的保护数据的机密性。而用其他模式加密之后，就得到如第三个图所示的结果，已经看不出明显的特征。</p>
-<p><img src="/ecb-penguin1.jpg" alt="原图"> <img src="/ecb-penguin2.jpeg" alt="ECB模式"><img src="/ecb-penguin3.jpg" alt="其他模式"></p>
-<h4 id="CBC模式">CBC模式</h4>
-<p>CBC模式中，每个明文块先与前一个密文块进行异或，再进行加密。所以每个明文块都依赖于前面的所有明文块。同时，为了保证每条消息的唯一性，在第一个块中需要使用初始化向量（IV）。</p>
-<p><img src="/Cbc_encryption.png" alt="Cbc_encryption"></p>
-<p><img src="/Cbc_decryption.png" alt="Cbc_decryption"></p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/ecb-penguin1.jpg" alt="原图" loading="lazy"> <img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/ecb-penguin2.jpeg" alt="ECB模式" loading="lazy"><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/ecb-penguin3.jpg" alt="其他模式" loading="lazy"></p>
+<h4 id="CBC模式"><a href="#CBC模式" class="headerlink" title="CBC模式"></a>CBC模式</h4><p>CBC模式中，每个明文块先与前一个密文块进行异或，再进行加密。所以每个明文块都依赖于前面的所有明文块。同时，为了保证每条消息的唯一性，在第一个块中需要使用初始化向量（IV）。</p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/Cbc_encryption.png" alt="Cbc_encryption" loading="lazy"></p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/Cbc_decryption.png" alt="Cbc_decryption" loading="lazy"></p>
 <p>CBC是TLS1.2时代最为常用的工作模式。它没有ECB模式那个相同原文加密称相同密文的问题，但是也因此导致其并行计算能力不如ECB模式。</p>
-<h4 id="CTR模式">CTR模式</h4>
-<p>计数器模式其实是将块加密转换成了流加密，它对一个逐次累加的计数器进行加密，然后用加密的比特序列与明文进行XOR操作得到密文。</p>
-<p><img src="/CTR_encryption_2.svg" alt="CTR_encryption"></p>
-<p><img src="/CTR_decryption_2.svg" alt="CTR_decryption"></p>
+<h4 id="CTR模式"><a href="#CTR模式" class="headerlink" title="CTR模式"></a>CTR模式</h4><p>计数器模式其实是将块加密转换成了流加密，它对一个逐次累加的计数器进行加密，然后用加密的比特序列与明文进行XOR操作得到密文。</p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/CTR_encryption_2.svg" alt="CTR_encryption" loading="lazy"></p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/CTR_decryption_2.svg" alt="CTR_decryption" loading="lazy"></p>
 <p>计数器的作用跟CBC模式中的IV类似，保证相同的明文会加密成不同的密文。相比CBC等模式，CTR模式还有如下<strong>优点</strong>：它非常适合并行计算、错误密文中的对应比特只会影响明文中的对应比特。</p>
-<h3 id="AEAD（Authenticated-Encryption-with-Associated-Data）">AEAD（Authenticated Encryption with Associated Data）</h3>
-<p>前面的那些模式都已经被发现存在不同程序的缺点或问题。在TLS1.3时代，只保留了AEAD类型的加密模式。AEAD在加密的同时增加了认证的功能，常用的有GCM、CCM、Ploy1305。</p>
-<h4 id="GCM（Galois-Counter-Mode）">GCM（Galois/Counter Mode）</h4>
-<p>GCM中的G是指的GMAC（关于MAC我们稍后会讲到），C就是指的我们前面提到的CTR计数器模式。下图右上角的部分就是上面的Counter模式加密，剩余部分则是GMAC。最终的结果包含初始计数器值、加密密文和MAC值。</p>
-<p><img src="/GCM-Galois_Counter_Mode_with_IV.svg" alt="GCM-Galois_Counter_Mode_with_IV"></p>
-<h2 id="公钥密码（非对称密码）">公钥密码（非对称密码）</h2>
-<p>在使用对称加密时，一定会碰到**密钥分发（密钥交换）**的问题。使用预先共享密钥具有局限性，需要一种安全的方式将密钥交给对方。于是就引出了公钥密码。</p>
-<h3 id="公钥密码算法（RSA、国密SM2）">公钥密码算法（RSA、国密SM2）</h3>
-<p>最常用的公钥密钥算法要数大名鼎鼎的RSA了，国密中则有SM2算法。公钥密码有两个密钥，其中一个是公开密钥，公开密钥可以散布，另一个是私有密钥，需要自己严密保管。比如Bob要发消息给Alice，Bob用Alice的公钥对消息进行加密，然后发送给Alice，Alice则用自己的私钥进行解密。</p>
-<p><img src="/Public_key_encryption.svg" alt="Public_key_encryption"></p>
-<h3 id="Diffie-Hellman密钥交换">Diffie-Hellman密钥交换</h3>
-<p>另一种常用的公钥密码是DH类算法，可以用下图来形象地解释DH算法的原理。</p>
-<p><img src="/Diffie-Hellman_Key_Exchange.svg" alt="Diffie-Hellman_Key_Exchange"></p>
+<h3 id="AEAD（Authenticated-Encryption-with-Associated-Data）"><a href="#AEAD（Authenticated-Encryption-with-Associated-Data）" class="headerlink" title="AEAD（Authenticated Encryption with Associated Data）"></a>AEAD（Authenticated Encryption with Associated Data）</h3><p>前面的那些模式都已经被发现存在不同程序的缺点或问题。在TLS1.3时代，只保留了AEAD类型的加密模式。AEAD在加密的同时增加了认证的功能，常用的有GCM、CCM、Ploy1305。</p>
+<h4 id="GCM（Galois-x2F-Counter-Mode）"><a href="#GCM（Galois-x2F-Counter-Mode）" class="headerlink" title="GCM（Galois&#x2F;Counter Mode）"></a>GCM（Galois&#x2F;Counter Mode）</h4><p>GCM中的G是指的GMAC（关于MAC我们稍后会讲到），C就是指的我们前面提到的CTR计数器模式。下图右上角的部分就是上面的Counter模式加密，剩余部分则是GMAC。最终的结果包含初始计数器值、加密密文和MAC值。</p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/GCM-Galois_Counter_Mode_with_IV.svg" alt="GCM-Galois_Counter_Mode_with_IV" loading="lazy"></p>
+<h2 id="公钥密码（非对称密码）"><a href="#公钥密码（非对称密码）" class="headerlink" title="公钥密码（非对称密码）"></a>公钥密码（非对称密码）</h2><p>在使用对称加密时，一定会碰到<strong>密钥分发（密钥交换）</strong>的问题。使用预先共享密钥具有局限性，需要一种安全的方式将密钥交给对方。于是就引出了公钥密码。</p>
+<h3 id="公钥密码算法（RSA、国密SM2）"><a href="#公钥密码算法（RSA、国密SM2）" class="headerlink" title="公钥密码算法（RSA、国密SM2）"></a>公钥密码算法（RSA、国密SM2）</h3><p>最常用的公钥密钥算法要数大名鼎鼎的RSA了，国密中则有SM2算法。公钥密码有两个密钥，其中一个是公开密钥，公开密钥可以散布，另一个是私有密钥，需要自己严密保管。比如Bob要发消息给Alice，Bob用Alice的公钥对消息进行加密，然后发送给Alice，Alice则用自己的私钥进行解密。</p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/Public_key_encryption.svg" alt="Public_key_encryption" loading="lazy"></p>
+<h3 id="Diffie-Hellman密钥交换"><a href="#Diffie-Hellman密钥交换" class="headerlink" title="Diffie-Hellman密钥交换"></a>Diffie-Hellman密钥交换</h3><p>另一种常用的公钥密码是DH类算法，可以用下图来形象地解释DH算法的原理。</p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/Diffie-Hellman_Key_Exchange.svg" alt="Diffie-Hellman_Key_Exchange" loading="lazy"></p>
 <p>首先双方协商一个相同的底色（算法参数），然后各自生成自己私有的颜色（相当于私钥），并通过混合得到对应的公有颜色（相当于公钥）。随后双方交换各自的公有颜色，并与自己的私钥颜色混合，最终协商出一个相同的颜色（即交换的密钥）。窃听者就算得到了双方交换的这些信息，也无法生成相同的密钥，<strong>求解离散对象问题的困难度</strong>保证了DH算法的安全性。</p>
-<h3 id="ECDH和ECDHE">ECDH和ECDHE</h3>
-<p><code>ECDH</code>是基于椭圆曲线的DH算法，原理上跟DH基本一样，主要是把有限域上的模幂运算替换成了椭圆曲线上的点乘运算。相比DH算法速度更快，可逆更难。</p>
+<h3 id="ECDH和ECDHE"><a href="#ECDH和ECDHE" class="headerlink" title="ECDH和ECDHE"></a>ECDH和ECDHE</h3><p><code>ECDH</code>是基于椭圆曲线的DH算法，原理上跟DH基本一样，主要是把有限域上的模幂运算替换成了椭圆曲线上的点乘运算。相比DH算法速度更快，可逆更难。</p>
 <p>DH和ECDH都是使用的一个固定密钥，一旦密钥泄漏，以前所有的密文消息就都都破解了。<code>ECDHE</code>则提供了前向安全性，它每次使用一个临时的密钥，基于这个临时密钥进行密钥交换生成会话密钥。就算这个临时密钥泄漏了，也只影响本次SSL会话的消息。</p>
-<h2 id="单向散列函数（Hash）">单向散列函数（Hash）</h2>
-<p>前面的对称密钥和公钥密码解决了信息传输的<strong>机密性</strong>问题，使我们传输的信息不被窃听。但是还没有解决<strong>完整性</strong>的问题，消息有可能在中途被“<strong>篡改</strong>”。所以就轮到单向散列函数出场了。</p>
+<h2 id="单向散列函数（Hash）"><a href="#单向散列函数（Hash）" class="headerlink" title="单向散列函数（Hash）"></a>单向散列函数（Hash）</h2><p>前面的对称密钥和公钥密码解决了信息传输的<strong>机密性</strong>问题，使我们传输的信息不被窃听。但是还没有解决<strong>完整性</strong>的问题，消息有可能在中途被“<strong>篡改</strong>”。所以就轮到单向散列函数出场了。</p>
 <p><strong>单向散列函数</strong>可以根据输入的信息，计算出一个固定长度的散列值（摘要值），这个散列值可以作为消息的指纹用于检查消息的完整性。修改了原始消息的任意1个比特，最终生成的散列值可能就完全不同了。</p>
-<p><img src="/Cryptographic_Hash_Function.svg" alt="Cryptographic_Hash_Function"></p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/Cryptographic_Hash_Function.svg" alt="Cryptographic_Hash_Function" loading="lazy"></p>
 <p>理想的散列函数具有以下几个性质：</p>
 <ol>
 <li>确定性：同样的消息总是产生同样的散列值</li>
@@ -466,37 +448,33 @@ translateInitilization();
 <li><strong>强抗碰撞性</strong>：难以找到可以生成两条相同散列值的消息</li>
 <li>消息的一个小的改动会导致Hash值的巨大变化</li>
 </ol>
-<h2 id="消息认证码（MAC）">消息认证码（MAC）</h2>
-<p>单向散列函数虽然保证了消息的<strong>完整性</strong>，但是聪明的攻击者可以将消息连同其散列值一起篡改了，而接收方却无法进行识别。所以还需要对消息进行<strong>认证</strong>，传统的认证方法有手写签名、盖章、手印、身份证、口令（其实是个共享密钥）等。在密码领域则可以通过消息认证码的方法进行认证。消息认证码相比单向散列函数，多了一个共享密钥对消息进行认证。攻击者因为没有这个密钥，所以无法伪造出MAC值。</p>
-<p><img src="/MAC-vs-HASH.png" alt="MAC-vs-HASH"></p>
-<p><img src="/HMAC-use-scene.png" alt="HMAC-use-scene"></p>
-<h3 id="MAC的问题">MAC的问题</h3>
-<ul>
+<h2 id="消息认证码（MAC）"><a href="#消息认证码（MAC）" class="headerlink" title="消息认证码（MAC）"></a>消息认证码（MAC）</h2><p>单向散列函数虽然保证了消息的<strong>完整性</strong>，但是聪明的攻击者可以将消息连同其散列值一起篡改了，而接收方却无法进行识别。所以还需要对消息进行<strong>认证</strong>，传统的认证方法有手写签名、盖章、手印、身份证、口令（其实是个共享密钥）等。在密码领域则可以通过消息认证码的方法进行认证。消息认证码相比单向散列函数，多了一个共享密钥对消息进行认证。攻击者因为没有这个密钥，所以无法伪造出MAC值。</p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/MAC-vs-HASH.png" alt="MAC-vs-HASH" loading="lazy"></p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/HMAC-use-scene.png" alt="HMAC-use-scene" loading="lazy"></p>
+<h3 id="MAC的问题"><a href="#MAC的问题" class="headerlink" title="MAC的问题"></a>MAC的问题</h3><ul>
 <li>MAC跟对称密码一样需要一个共享密钥，所以也会有密钥分发的问题。</li>
 <li>无法对第三方证明</li>
 <li>无法防止否认</li>
 </ul>
-<h2 id="数字签名（RSA、ECDSA）">数字签名（RSA、ECDSA）</h2>
-<p>为了解决MAC的问题，又引入了数字签名。</p>
+<h2 id="数字签名（RSA、ECDSA）"><a href="#数字签名（RSA、ECDSA）" class="headerlink" title="数字签名（RSA、ECDSA）"></a>数字签名（RSA、ECDSA）</h2><p>为了解决MAC的问题，又引入了数字签名。</p>
 <p>数字签名同样属于公钥密码的范畴。跟之前不同的地方是，它使用私钥进行加密（该操作叫作签名），任何人都可以用公钥进行解密（该操作叫作验签）。因为公钥是公开的，所以解决了第三方证明的问题。又因为私钥只有本人具有，没有私钥的人事实上无法生成这段密文，所以也可以防止否认。所以MAC的三个问题都可以由数字签名解决。</p>
-<p><img src="/Private_key_signing.svg" alt="Private_key_signing"></p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/Private_key_signing.svg" alt="Private_key_signing" loading="lazy"></p>
 <p>通常配合散列函数使用，同时保证了完整性，也加快了速度。如下图所示，Alice发送消息给Bob。她先把自己的公钥发送给Bob，接着她对消息先计算一个散列值，然后用自己的私钥对这个散列值进行加密得到消息的签名值。然后她将初始的消息和签名一同发送给Bob。Bob收到之后，对消息进行同样的散列函数计算得到散列值，同时用Alice的公钥对签名数据进行解密，得到解密后散列值，然后在比较两个计算得到散列值是否一致，以验证签名的有效性。</p>
-<p><img src="/DigitalSignature.png" alt="DigitalSignature"></p>
-<h2 id="数字证书、-CA">数字证书、 CA</h2>
-<p>到目前为止，我们的公钥密码、数字签名解决了机密性、完整性、可以进行认证以及防止否认等。但其实这一切都是基于一个大前提：就是<strong>公钥是属于真正的发送者</strong>。如果公钥是伪造的、那么这一切就都失效了。前面提到的数字签名只能保证对方拥有这个公钥对应的私钥，但是没法认证公钥所有者本身的身份。</p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/DigitalSignature.png" alt="DigitalSignature" loading="lazy"></p>
+<h2 id="数字证书、-CA"><a href="#数字证书、-CA" class="headerlink" title="数字证书、 CA"></a>数字证书、 CA</h2><p>到目前为止，我们的公钥密码、数字签名解决了机密性、完整性、可以进行认证以及防止否认等。但其实这一切都是基于一个大前提：就是<strong>公钥是属于真正的发送者</strong>。如果公钥是伪造的、那么这一切就都失效了。前面提到的数字签名只能保证对方拥有这个公钥对应的私钥，但是没法认证公钥所有者本身的身份。</p>
 <p>为了解决这个问题，数字证书应运而出。它的解决方式就是让一个<strong>可信的第三方</strong>来对公钥进行签名。这个可信的第三方，我们一般称之为<strong>Certificate authorities（CA）</strong>。</p>
-<p><img src="/Chain-of-trust-with-cert.svg" alt=""></p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/Chain-of-trust-with-cert.svg" loading="lazy"></p>
 <p>我们来看看实际证书是什么样子的。其中<code>Subject</code>是证书拥有者的信息，<code>Issuer</code>就是其签发者的信息，<code>Subject Public Key Info</code>是实际的公钥信息，这里用的是RSA 2048位的密钥。证书最后就是CA用自己的私钥对这个证书的签名。任何拥有CA的证书（包含公钥）的人都可以对这个证书进行验证，从而验证公钥所有者的身份。<code>Validity</code>是这个证书的有效期。</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br></pre></td><td class="code"><pre><span class="line">$ openssl x509 -<span class="keyword">in</span> ~/sharefile/certs/rsa-user.pem -text -noout</span><br><span class="line">Certificate:</span><br><span class="line">    Data:</span><br><span class="line">        Version: 3 (0x2)</span><br><span class="line">        Serial Number:</span><br><span class="line">            a2:95:90:e8:e0:f6:3a:e4</span><br><span class="line">    Signature Algorithm: sha256WithRSAEncryption</span><br><span class="line">        Issuer: C=CN, ST=SH, L=Shanghai, O=Awesome Software, OU=SSL Group, CN=RSA_CA_Cert/emailAddress=ssl@ca.com</span><br><span class="line">        Validity</span><br><span class="line">            Not Before: Nov  5 01:47:05 2018 GMT</span><br><span class="line">            Not After : Nov  2 01:47:05 2028 GMT</span><br><span class="line">        Subject: C=CN, ST=SH, L=Shanghai, O=Awesome Software, OU=SSL Group, CN=RSA_USER/emailAddress=rsa@site.com</span><br><span class="line">        Subject Public Key Info:</span><br><span class="line">            Public Key Algorithm: rsaEncryption</span><br><span class="line">                Public-Key: (2048 bit)</span><br><span class="line">                Modulus:</span><br><span class="line">                    00:f4:a0:b6:57:e7:68:39:98:39:13:11:b9:61:ee:</span><br><span class="line">                    1d:5c:60:c6:53:51:ec:0e:59:53:0e:12:75:1c:5b:</span><br><span class="line">                    b1:b7:e4:dd:4d:c8:c1:b8:eb:07:32:12:a1:<span class="built_in">fc</span>:50:</span><br><span class="line">                    33:d9:63:4a:30:7f:b4:b5:e9:87:d9:71:33:65:ab:</span><br><span class="line">                    56:54:ba:34:92:06:9a:af:ff:84:8e:a3:29:af:46:</span><br><span class="line">                    61:3b:45:39:c5:a8:0a:f9:ae:fb:d4:2b:20:5a:9d:</span><br><span class="line">                    ce:00:fe:c9:87:b2:f4:d2:f8:bf:b7:2e:7a:79:5e:</span><br><span class="line">                    94:54:7d:f9:09:73:4a:ec:c7:22:01:79:4c:62:11:</span><br><span class="line">                    55:a9:d3:3b:f8:ef:3e:1d:56:e3:2f:34:ef:c6:0f:</span><br><span class="line">                    2c:94:40:01:a3:6f:1e:3b:61:bd:79:00:bf:26:f7:</span><br><span class="line">                    d6:c3:a6:22:22:50:f0:6e:aa:03:1e:ea:d9:e6:ad:</span><br><span class="line">                    4d:a9:60:4f:6d:81:80:f4:f9:a9:89:31:ab:f1:a3:</span><br><span class="line">                    9b:1a:a2:57:ed:44:30:39:<span class="built_in">fc</span>:3a:3a:c3:6e:c8:a6:</span><br><span class="line">                    db:2e:14:c1:3b:6b:5b:ca:ab:b7:0d:fb:85:39:08:</span><br><span class="line">                    bf:6b:41:c1:f6:42:b1:3f:9c:45:5c:4c:37:8e:7d:</span><br><span class="line">                    c6:18:f8:9b:87:16:80:7f:25:34:8f:14:a9:02:2e:</span><br><span class="line">                    7c:07:c9:8a:21:77:33:03:6a:9c:86:f1:73:9c:c8:</span><br><span class="line">                    2d:f1</span><br><span class="line">                Exponent: 65537 (0x10001)</span><br><span class="line">        X509v3 extensions:</span><br><span class="line">            X509v3 Basic Constraints:</span><br><span class="line">                CA:FALSE</span><br><span class="line">            X509v3 Key Usage:</span><br><span class="line">                Digital Signature, Non Repudiation, Key Encipherment</span><br><span class="line">    Signature Algorithm: sha256WithRSAEncryption</span><br><span class="line">         30:cf:b2:9f:50:ea:d7:0d:e2:87:50:e6:bd:d7:b0:17:12:31:</span><br><span class="line">         b1:9f:59:16:50:60:bc:52:c0:46:7a:43:d0:34:43:48:d0:bd:</span><br><span class="line">         e1:a0:dc:75:a2:60:a0:c9:8f:ed:d4:36:14:18:75:c0:ef:c3:</span><br><span class="line">         92:fa:43:fa:34:5a:12:77:2f:03:00:eb:a6:db:d9:6b:50:ff:</span><br><span class="line">         44:56:22:c6:51:73:73:9a:4b:fd:bb:53:ff:2b:7e:97:55:d3:</span><br><span class="line">         4d:bb:bd:26:69:37:8d:71:30:41:bf:fd:48:40:<span class="built_in">fc</span>:6f:<span class="built_in">cd</span>:e2:</span><br><span class="line">         b7:4a:90:6f:a2:11:85:a7:88:d3:61:d5:03:0a:50:98:cc:0e:</span><br><span class="line">         aa:d5:83:38:b4:d5:f0:06:ff:a5:eb:d4:e6:54:14:e9:65:af:</span><br><span class="line">         36:a5:e4:3e:8b:78:18:0b:d6:7c:cc:f1:a3:da:7a:03:fd:89:</span><br><span class="line">         23:f0:e1:3e:af:7b:b1:7a:53:82:11:4a:5e:1d:84:b6:0b:cc:</span><br><span class="line">         96:b4:3a:8a:43:cf:ff:b3:3a:be:47:e0:40:c0:48:15:b4:f3:</span><br><span class="line">         2d:2b:73:b8:07:d2:21:83:3c:c4:4c:c2:31:17:4e:4c:15:da:</span><br><span class="line">         66:fd:06:9a:b7:ed:b5:9e:71:a3:40:0b:39:12:3c:7b:cb:cb:</span><br><span class="line">         a0:af:d0:c7:fe:59:41:35:04:7f:f3:f3:38:d0:d0:ac:7a:15:</span><br><span class="line">         7e:fa:ee:fd</span><br></pre></td></tr></table></figure>
+
 <p>在实际使用中，通常会使用多级证书链，每一级证书由上一级CA签发，并由上一级CA的证书进行验签。最终的Root CA证书只能由它自己签发的，也即用自己的私钥对自己的公钥进行签名，否则就无限递归了。</p>
-<p><img src="/CA-signing-of-digital-certificates.svg" alt="CA-signing-of-digital-certificates"></p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/CA-signing-of-digital-certificates.svg" alt="CA-signing-of-digital-certificates" loading="lazy"></p>
 <p>所以数字证书实际上是一种信任链的传递，将对众多个体的身份认证转移到对少数几个CA的身份认证，可以减少遭到中间人攻击的风险。从公钥密码和证书这些出发就引出了<strong>公钥基础设置（PKI）</strong>：这是为了能够更有效地运用公钥而制定的一系列规范和规格的总称。</p>
-<h2 id="混合密码系统">混合密码系统</h2>
-<p>那么有了公钥密码，是不是就不需要对称密码了呢？公钥密码虽然解决了对称密码的密钥分发问题，但是在计算速度上却远低于对称密码，相差几个数量级。下面是用<code>openssl speed</code>测试RSA1024和AES128的结果。AES128（相同块大小）的速度大概是RSA1024签名的1200倍，是验签的70倍。</p>
+<h2 id="混合密码系统"><a href="#混合密码系统" class="headerlink" title="混合密码系统"></a>混合密码系统</h2><p>那么有了公钥密码，是不是就不需要对称密码了呢？公钥密码虽然解决了对称密码的密钥分发问题，但是在计算速度上却远低于对称密码，相差几个数量级。下面是用<code>openssl speed</code>测试RSA1024和AES128的结果。AES128（相同块大小）的速度大概是RSA1024签名的1200倍，是验签的70倍。</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">$ openssl speed rsa1024</span><br><span class="line">                  sign    verify    sign/s verify/s</span><br><span class="line">rsa 1024 bits 0.000103s 0.000006s   9732.8 162578.8</span><br><span class="line"></span><br><span class="line">$ openssl speed -evp aes128</span><br><span class="line"><span class="built_in">type</span>             16 bytes     64 bytes    256 bytes   1024 bytes   8192 bytes  16384 bytes</span><br><span class="line">aes-128-cbc    1075884.36k  1452740.12k  1510392.06k  1530545.83k  1537414.49k  1537114.11k</span><br></pre></td></tr></table></figure>
+
 <p>因为对称密码和非对称密码各有优缺点，所以在实际应用中通常将两者结合起来，使用非对称密码来完成密钥交换，然后生成会话密钥作为对称密码的密钥，使用对称密码对信息进行加解密。</p>
-<h2 id="随机数发生器">随机数发生器</h2>
-<p>截止目前，我们已经解决了很多问题，包括机密性、完整性、认证性、防抵赖，但其实还有一个大问题我们没有解决：即我们的<strong>会话密钥</strong>如何生成？一个安全的算法其所有的安全性应该都是基于其<strong>密钥的安全性</strong>，如果我们的密钥可以被轻易破解或预测，那我们前面构建的一切就都土崩瓦解了。所以随机数发生器就在这里起到了至关重要的作用。</p>
+<h2 id="随机数发生器"><a href="#随机数发生器" class="headerlink" title="随机数发生器"></a>随机数发生器</h2><p>截止目前，我们已经解决了很多问题，包括机密性、完整性、认证性、防抵赖，但其实还有一个大问题我们没有解决：即我们的<strong>会话密钥</strong>如何生成？一个安全的算法其所有的安全性应该都是基于其<strong>密钥的安全性</strong>，如果我们的密钥可以被轻易破解或预测，那我们前面构建的一切就都土崩瓦解了。所以随机数发生器就在这里起到了至关重要的作用。</p>
 <p>随机数同样在<strong>防重放攻击</strong>中具有重要的作用，所谓重放攻击，就是攻击者将窃听的数据保存下来，在后面再原样发送给接收者，以达到其特定的攻击目的。防重放的常用手段有使用序号、时间戳、随机数等。</p>
 <p>这里留个问题给大家思考，因为机密性和完整性的保护，攻击者既不能解密消息，又不能对消息进行篡改，那么重放有什么用呢？</p>
 <p>理想的随机数发生器具有以下特性：</p>
@@ -505,11 +483,8 @@ translateInitilization();
 <li>不可预测性：不能从过去的数列推测出下一个出现的数</li>
 <li>不可重现性：除非将数列本身保存下来，否则不能重现相同的数列</li>
 </ul>
-<h2 id="密钥派生函数-key-derivation-function">密钥派生函数 key derivation function</h2>
-<p>KDF可用于将密钥材料扩展为更长的密钥或获取所需格式的密钥。TLS 1.2中是用的PRF算法，TLS 1.3中则是用的HKDF算法。</p>
-<h1>SSL/TLS协议详解</h1>
-<h2 id="什么是SSL-TLS协议">什么是SSL/TLS协议</h2>
-<p>好了，有了前面的密码学基础，我们就可以正式进入TLS协议的介绍。前面介绍的基本都是独立的算法或者是几个算法结合起来的组件，而SSL/TLS协议则是基于这些底层的算法原语和组件，最终拼装而成的一个<strong>成品的密码学协议</strong>。</p>
+<h2 id="密钥派生函数-key-derivation-function"><a href="#密钥派生函数-key-derivation-function" class="headerlink" title="密钥派生函数 key derivation function"></a>密钥派生函数 key derivation function</h2><p>KDF可用于将密钥材料扩展为更长的密钥或获取所需格式的密钥。TLS 1.2中是用的PRF算法，TLS 1.3中则是用的HKDF算法。</p>
+<h1 id="SSL-x2F-TLS协议详解"><a href="#SSL-x2F-TLS协议详解" class="headerlink" title="SSL&#x2F;TLS协议详解"></a>SSL&#x2F;TLS协议详解</h1><h2 id="什么是SSL-x2F-TLS协议"><a href="#什么是SSL-x2F-TLS协议" class="headerlink" title="什么是SSL&#x2F;TLS协议"></a>什么是SSL&#x2F;TLS协议</h2><p>好了，有了前面的密码学基础，我们就可以正式进入TLS协议的介绍。前面介绍的基本都是独立的算法或者是几个算法结合起来的组件，而SSL&#x2F;TLS协议则是基于这些底层的算法原语和组件，最终拼装而成的一个<strong>成品的密码学协议</strong>。</p>
 <p>SSL全称是<code>Secure Sockets Layer</code>，安全套接字层，它是由网景公司(Netscape)设计的主要用于Web的安全传输协议，目的是为网络通信提供机密性、认证性及数据完整性保障。如今，SSL已经成为互联网保密通信的工业标准。</p>
 <p>SSL最初的几个版本(SSL 1.0、SSL2.0、SSL 3.0)由网景公司设计和维护，从3.1版本开始，SSL协议由因特网工程任务小组(IETF)正式接管，并更名为TLS(Transport Layer Security)，发展至今已有TLS 1.0、TLS1.1、TLS1.2这几个版本。目前主流的还是TLS1.2，不过TLS1.3即将是大势所趋。</p>
 <table>
@@ -520,8 +495,7 @@ translateInitilization();
 <th>Status</th>
 </tr>
 </thead>
-<tbody>
-<tr>
+<tbody><tr>
 <td>SSL 1.0</td>
 <td>Unpublished</td>
 <td>Unpublished</td>
@@ -556,28 +530,28 @@ translateInitilization();
 <td>2018</td>
 <td></td>
 </tr>
-</tbody>
-</table>
-<p>SSL/TLS协议能够提供的安全目标主要包括如下几个：</p>
+</tbody></table>
+<p>SSL&#x2F;TLS协议能够提供的安全目标主要包括如下几个：</p>
 <div class="note info no-icon">
             <ul><li><p><strong>机密性</strong>：借助加密防止第三方窃听</p></li><li><p><strong>认证性</strong>：借助数字证书认证服务器端和客户端身份，防止身份伪造</p></li><li><p><strong>完整性</strong>：借助消息认证码(MAC)保障数据完整性，防止消息篡改</p></li><li><p><strong>防重放</strong>：防止重放攻击</p></li></ul>
           </div>
-<h2 id="协议分层">协议分层</h2>
-<p>相信大家对TCP/IP 5层模型已经非常熟悉了，TLS协议就如其名字所说的（Transport Layer Security），用于保障传输层的安全。它位于传输层之上，应用层之下。</p>
-<p><img src="/TLS-layered-structure.svg" alt="TLS-layered-structure"></p>
-<p>SSL/TLS协议有一个高度模块化的架构，其内部又分为很多子协议：Handshake协议、Alert协议、ChangeCipherSpec协议、Application协议。它们底层都是基于Record协议，记录层协议负责识别不同的上层消息类型以及消息的分段加密认证等。</p>
+
+
+
+<h2 id="协议分层"><a href="#协议分层" class="headerlink" title="协议分层"></a>协议分层</h2><p>相信大家对TCP&#x2F;IP 5层模型已经非常熟悉了，TLS协议就如其名字所说的（Transport Layer Security），用于保障传输层的安全。它位于传输层之上，应用层之下。</p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/TLS-layered-structure.svg" alt="TLS-layered-structure" loading="lazy"></p>
+<p>SSL&#x2F;TLS协议有一个高度模块化的架构，其内部又分为很多子协议：Handshake协议、Alert协议、ChangeCipherSpec协议、Application协议。它们底层都是基于Record协议，记录层协议负责识别不同的上层消息类型以及消息的分段加密认证等。</p>
 <ul>
 <li>Handshake协议：包括协商安全参数和算法套件、服务器身份认证(客户端身份认证可选)、密钥交换</li>
 <li>Application协议：用于传输应用层数据</li>
 <li>ChangeCipherSpec 协议：一条消息表明握手协议已经完成</li>
 <li>Alert 协议：对握手协议中一些异常的错误提醒，分为fatal和warning两个级别，fatal类型的错误会直接中断SSL连接，而warning级别的错误一般情况下SSL连接会继续，只是会给出错误警告</li>
 </ul>
-<p>SSL/TLS协议被设计为一个两阶段协议，分为<strong>握手阶段</strong>和<strong>应用阶段</strong>。</p>
+<p>SSL&#x2F;TLS协议被设计为一个两阶段协议，分为<strong>握手阶段</strong>和<strong>应用阶段</strong>。</p>
 <p><strong>握手阶段</strong>：也称协商阶段，在这一阶段主要目标就是进行我们前面已经提到过的协商安全参数和算法套件、身份认证（基于数字证书）以及密钥交换生成后续加密通信所使用的密钥。</p>
 <p><strong>应用阶段</strong>：双方使用握手阶段协商好的密钥进行安全通信。</p>
-<h2 id="SSL-record">SSL record</h2>
-<p>SSL记录层包的格式，跟其下的IP或TCP层类似，所有在SSL会话上交换的数据都按如下格式封装成帧。记录层协议负责识别不同的消息类型，也负责对消息的分段、压缩、消息认证和完整性保护、加密等工作。</p>
-<p><img src="/TLS-record-structure.svg" alt="TLS-record-structure"></p>
+<h2 id="SSL-record"><a href="#SSL-record" class="headerlink" title="SSL record"></a>SSL record</h2><p>SSL记录层包的格式，跟其下的IP或TCP层类似，所有在SSL会话上交换的数据都按如下格式封装成帧。记录层协议负责识别不同的消息类型，也负责对消息的分段、压缩、消息认证和完整性保护、加密等工作。</p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/TLS-record-structure.svg" alt="TLS-record-structure" loading="lazy"></p>
 <p>一个典型的记录层工作流（分组密码算法）如下：</p>
 <ul>
 <li>记录层接收到应用层的数据</li>
@@ -590,10 +564,8 @@ translateInitilization();
 <p>对于握手阶段的消息，payload是明文，当然就没有MAC和Padding。其他消息的payload都是密文。</p>
 <p>对于<strong>流加密算法</strong>，没有后面的padding。对于<strong>块加密算法</strong>的记录，根据使用的算法在payload之前有可选的IV字段。</p>
 <p>对于<strong>AEAD算法</strong>，因为认证已经包含在算法里了，所以没有后面的MAC和Padding字段。payload之前有一个外部nonce字段。</p>
-<h2 id="算法套件CipherSuites">算法套件CipherSuites</h2>
-<p>在深入握手流程之前，我们先来了解一下算法套件的概念。前面在密码学基础部分我们已经了解到了各种算法，包括认证算法、密钥交换算法、对称密码算法、完整性认证的算法。</p>
-<h3 id="TLS-1-2">TLS 1.2-</h3>
-<p>一个<strong>算法套件</strong>是一个SSL连接中用到的这些算法类型的组合，包含如下几个部分：</p>
+<h2 id="算法套件CipherSuites"><a href="#算法套件CipherSuites" class="headerlink" title="算法套件CipherSuites"></a>算法套件CipherSuites</h2><p>在深入握手流程之前，我们先来了解一下算法套件的概念。前面在密码学基础部分我们已经了解到了各种算法，包括认证算法、密钥交换算法、对称密码算法、完整性认证的算法。</p>
+<h3 id="TLS-1-2"><a href="#TLS-1-2" class="headerlink" title="TLS 1.2-"></a>TLS 1.2-</h3><p>一个<strong>算法套件</strong>是一个SSL连接中用到的这些算法类型的组合，包含如下几个部分：</p>
 <ul>
 <li>Key Exchange（Kx）</li>
 <li>Authentication（Au）</li>
@@ -601,152 +573,119 @@ translateInitilization();
 <li>Message Authentication Code（Mac）</li>
 </ul>
 <p>常见的算法套件类型比如<code>TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256</code>，<code>TLS_RSA_WITH_AES_256_GCM_SHA384</code>、<code>TLS_ECDH_ECDSA_WITH_AES_256_CBC_SHA384</code>、<code>ECC_SM2_WITH_SM4_SM3</code>（国密）、<code>ECDHE_SM2_WITH_SM4_SM3</code>（国密）。</p>
-<p><img src="/CipherSuite1_2.png" alt="CipherSuite1_2"></p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/CipherSuite1_2.png" alt="CipherSuite1_2" loading="lazy"></p>
 <p>以<code>ECDHE-ECDSA-AES128-GCM-SHA256</code>为例，前面的<code>ECDHE</code>表示密钥交换算法，<code>ECDSA</code>表示身份认证算法，<code>AES128-GCM</code>表示对称加密算法，其中<code>128</code>表示块长度，<code>GCM</code>是其模式，<code>SHA256</code>表示哈希算法。对于<code>AEAD</code>因为消息认证和加密已经合并到一起了，最后的<code>SHA256</code>只表示密钥派生函数的算法，而对于传统的数据加密和认证分开的算法套件，它还表示<code>MAC</code>的算法。</p>
 <p>可以通过如下命令查看每种算法套件的详细情况：<code>openssl ciphers -V | column -t | less</code>。</p>
-<h3 id="TLS-1-3">TLS 1.3</h3>
-<p>对于TLSv1.3，因为已经将密钥交换和身份认证算法从算法套件中独立出去，算法套件只表示加密算法和密钥派生函数。之所以要独立出去，是因为支持的算法越来越多了，导致相乘之后算法套件数量庞大。</p>
-<p><img src="/CipherSuite1_3.png" alt="CipherSuite1_3"></p>
-<p>可以用如下命令查看当前支持哪些TLS 1.3算法套件：<code>openssl ciphers -V | column -t | grep 'TLSv1.3'</code>。</p>
-<h2 id="SSL-handshake">SSL handshake</h2>
-<p>终于进入核心的握手协议部分了。如前所述，SSL握手主要干以下几件事情：首先得商量双方用什么算法套件，然后根据需要认证对方的身份（基于数字证书），最后基于选择的算法套件进行密钥交换生成后续加密通信所使用的密钥。（本节描述的是TLS 1.2及以前版本的情况）</p>
+<h3 id="TLS-1-3"><a href="#TLS-1-3" class="headerlink" title="TLS 1.3"></a>TLS 1.3</h3><p>对于TLSv1.3，因为已经将密钥交换和身份认证算法从算法套件中独立出去，算法套件只表示加密算法和密钥派生函数。之所以要独立出去，是因为支持的算法越来越多了，导致相乘之后算法套件数量庞大。</p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/CipherSuite1_3.png" alt="CipherSuite1_3" loading="lazy"></p>
+<p>可以用如下命令查看当前支持哪些TLS 1.3算法套件：<code>openssl ciphers -V | column -t | grep &#39;TLSv1.3&#39;</code>。</p>
+<h2 id="SSL-handshake"><a href="#SSL-handshake" class="headerlink" title="SSL handshake"></a>SSL handshake</h2><p>终于进入核心的握手协议部分了。如前所述，SSL握手主要干以下几件事情：首先得商量双方用什么算法套件，然后根据需要认证对方的身份（基于数字证书），最后基于选择的算法套件进行密钥交换生成后续加密通信所使用的密钥。（本节描述的是TLS 1.2及以前版本的情况）</p>
 <p>下图是一个完整SSL握手的建立流程:</p>
-<p><img src="/TLS-full-handshake-flow.svg" alt="TLS-full-handshake-flow"></p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/TLS-full-handshake-flow.svg" alt="TLS-full-handshake-flow" loading="lazy"></p>
 <p>首先是TCP的3次握手建立TCP连接，然后客户端发起SSL握手。一次完整的SSL握手包含两次交互，第一次主要是完成算法套件的选择。第二次交互主要是完成身份认证以及密钥交换。这些都协商完成之后，SSL的安全通道就建立完成了。后续的应用数据就会在安全通道上进行加密传输。</p>
-<h3 id="密钥交换流程-RSA">密钥交换流程-RSA</h3>
-<p>基于RSA的密钥交换流程如下：</p>
-<p><img src="/SSL-keyexchange-RSA.jpeg" alt="SSL-keyexchange-RSA"></p>
+<h3 id="密钥交换流程-RSA"><a href="#密钥交换流程-RSA" class="headerlink" title="密钥交换流程-RSA"></a>密钥交换流程-RSA</h3><p>基于RSA的密钥交换流程如下：</p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/SSL-keyexchange-RSA.jpeg" alt="SSL-keyexchange-RSA" loading="lazy"></p>
 <p>我们来模拟下协商过程：</p>
 <ul>
-<li>
-<span class="label info">客户端</span>：Hi，服务端，我这边支持这些算法，这是我本次的随机数。
-</li>
-<li>
-<span class="label success">服务端</span>：好的，我看看，我们就选用这个算法套件吧，这是我本次的随机数，这是我的证书，你用这个证书里的公钥来加密预主密钥。
-</li>
-<li>
-<span class="label info">客户端</span>：稍等我验下证书，嗯，的确是服务端的证书。这是用证书中公钥加密的预主密钥。（使用两个随机数+预主密钥计算主密钥，然后生成会话密钥。。。）好了，我这边OK了。
-</li>
-<li>
-<span class="label success">服务端</span>：收到。（用私钥解密出预主密钥，使用两个随机数+预主密钥计算主密钥，然后生成会话密钥。。。）好了，我这边也OK了。
-</li>
-<li>
-<span class="label info">客户端</span>：这是加密的应用数据。。。
-</li>
-<li>
-<span class="label success">服务端</span>：这是加密的应用数据。。。
-</li>
+<li><span class="label info">客户端</span>：Hi，服务端，我这边支持这些算法，这是我本次的随机数。</li>
+<li><span class="label success">服务端</span>：好的，我看看，我们就选用这个算法套件吧，这是我本次的随机数，这是我的证书，你用这个证书里的公钥来加密预主密钥。</li>
+<li><span class="label info">客户端</span>：稍等我验下证书，嗯，的确是服务端的证书。这是用证书中公钥加密的预主密钥。（使用两个随机数+预主密钥计算主密钥，然后生成会话密钥。。。）好了，我这边OK了。</li>
+<li><span class="label success">服务端</span>：收到。（用私钥解密出预主密钥，使用两个随机数+预主密钥计算主密钥，然后生成会话密钥。。。）好了，我这边也OK了。</li>
+<li><span class="label info">客户端</span>：这是加密的应用数据。。。</li>
+<li><span class="label success">服务端</span>：这是加密的应用数据。。。</li>
 </ul>
 <p>注：上面的流程是单向认证（服务端没有验证客户端的身份），如果服务端也需要验客户端的身份，会在第一次交互中发送<code>Certificate Request</code>消息，客户端相应的在第二次交互中发送自己的<code>Certificate</code>以及<code>CertificateVerify</code>消息给服务端。</p>
-<h3 id="密钥交换流程-DH">密钥交换流程-DH</h3>
-<p>基于DH的密钥交换流程如下：</p>
-<p><img src="/SSL-keyexchange-DH.jpeg" alt="SSL-keyexchange-DH"></p>
+<h3 id="密钥交换流程-DH"><a href="#密钥交换流程-DH" class="headerlink" title="密钥交换流程-DH"></a>密钥交换流程-DH</h3><p>基于DH的密钥交换流程如下：</p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/SSL-keyexchange-DH.jpeg" alt="SSL-keyexchange-DH" loading="lazy"></p>
 <p>我们同样来模拟下协商过程：</p>
 <ul>
-<li>
-<span class="label info">客户端</span>：Hi，服务端，我这边支持这些算法，这是我本次的随机数。
+<li><span class="label info">客户端</span>：Hi，服务端，我这边支持这些算法，这是我本次的随机数。
 </li>
-<li>
-<span class="label success">服务端</span>：好的，我看看，我们就选用这个算法套件吧，这是我本次的随机数，给你我的证书。我这边用这个DH参数，这是对应的签名。
+<li><span class="label success">服务端</span>：好的，我看看，我们就选用这个算法套件吧，这是我本次的随机数，给你我的证书。我这边用这个DH参数，这是对应的签名。
 </li>
-<li>
-<span class="label info">客户端</span>：稍等我验下证书和签名，嗯，的确是服务端的证书，签名也没有问题。这是我这边的DH参数。（使用DH参数推导出预主密钥，再使用两个随机数+预主密钥计算主密钥，然后生成会话密钥。。。）好了，我这边OK了。
+<li><span class="label info">客户端</span>：稍等我验下证书和签名，嗯，的确是服务端的证书，签名也没有问题。这是我这边的DH参数。（使用DH参数推导出预主密钥，再使用两个随机数+预主密钥计算主密钥，然后生成会话密钥。。。）好了，我这边OK了。
 </li>
-<li>
-<span class="label success">服务端</span>：收到。（使用DH参数推导预主密钥，再使用两个随机数+预主密钥计算主密钥，然后生成会话密钥。。。）好了，我这边也OK了。
+<li><span class="label success">服务端</span>：收到。（使用DH参数推导预主密钥，再使用两个随机数+预主密钥计算主密钥，然后生成会话密钥。。。）好了，我这边也OK了。
 </li>
-<li>
-<span class="label info">客户端</span>：这是加密的应用数据。。。
+<li><span class="label info">客户端</span>：这是加密的应用数据。。。
 </li>
-<li>
-<span class="label success">服务端</span>：这是加密的应用数据。。。
-</li>
+<li><span class="label success">服务端</span>：这是加密的应用数据。。。</li>
 </ul>
-<h3 id="密钥生成">密钥生成</h3>
-<p>通过第一次ClientHello和ServerHello的交互、以及密钥交换的过程，客户端和服务端双方，都得到了client随机数、server随机数以及预主密钥。接下来就可以通过这些来计算主密钥了。</p>
+<h3 id="密钥生成"><a href="#密钥生成" class="headerlink" title="密钥生成"></a>密钥生成</h3><p>通过第一次ClientHello和ServerHello的交互、以及密钥交换的过程，客户端和服务端双方，都得到了client随机数、server随机数以及预主密钥。接下来就可以通过这些来计算主密钥了。</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">master_secret = PRF(pre_master_secret, &quot;master secret&quot;,</span><br><span class="line">                    ClientHello.random + ServerHello.random)</span><br><span class="line">                    [0..47];</span><br></pre></td></tr></table></figure>
+
 <p>得到主密钥之后，再将其扩展为一个安全字节序列。</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">key_block = PRF(SecurityParameters.master_secret,</span><br><span class="line">                     &quot;key expansion&quot;,</span><br><span class="line">                     SecurityParameters.server_random +</span><br><span class="line">                     SecurityParameters.client_random);</span><br></pre></td></tr></table></figure>
+
 <p>然后分别切分为MAC密钥、对称加密的key和IV。</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">client_write_MAC_key[SecurityParameters.mac_key_length]</span><br><span class="line">server_write_MAC_key[SecurityParameters.mac_key_length]</span><br><span class="line">client_write_key[SecurityParameters.enc_key_length]</span><br><span class="line">server_write_key[SecurityParameters.enc_key_length]</span><br><span class="line">client_write_IV[SecurityParameters.fixed_iv_length]</span><br><span class="line">server_write_IV[SecurityParameters.fixed_iv_length]</span><br></pre></td></tr></table></figure>
+
 <p>画成图的话大概是下面这个样子。</p>
-<p><img src="/TLS1_2-Key-Calculation.png" alt="TLS1_2-Key-Calculation"></p>
-<h2 id="Session重用">Session重用</h2>
-<p>SSL握手额外引入了<strong>两次交互</strong>以及<strong>CPU密集型</strong>的算法运算。每次连接都进行SSL握手时非常耗费性能的，有没有什么办法进行性能优化呢？显然提升硬件性能、软件性能都是有效的方法。其实SSL从协议层面也考虑了这个问题，它提供了“会话重用”的特性。双方在建立前一次SSL连接之后，可以将SSL会话保存下来。下一次想要在建立SSL连接的时候，可以直接恢复之前的SSL会话，从而简化SSL握手流程。Session重用的时候只需要进行一次SSL握手交互，而且不需要再进行身份认证和密钥交换，从而大幅减小了整个流程的延迟和计算开销。</p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/TLS1_2-Key-Calculation.png" alt="TLS1_2-Key-Calculation" loading="lazy"></p>
+<h2 id="Session重用"><a href="#Session重用" class="headerlink" title="Session重用"></a>Session重用</h2><p>SSL握手额外引入了<strong>两次交互</strong>以及<strong>CPU密集型</strong>的算法运算。每次连接都进行SSL握手时非常耗费性能的，有没有什么办法进行性能优化呢？显然提升硬件性能、软件性能都是有效的方法。其实SSL从协议层面也考虑了这个问题，它提供了“会话重用”的特性。双方在建立前一次SSL连接之后，可以将SSL会话保存下来。下一次想要在建立SSL连接的时候，可以直接恢复之前的SSL会话，从而简化SSL握手流程。Session重用的时候只需要进行一次SSL握手交互，而且不需要再进行身份认证和密钥交换，从而大幅减小了整个流程的延迟和计算开销。</p>
 <p>事实上，如果浏览器要对同个站点发起多个连接，它通常就会等第一个SSL握手完成后再发起其他的连接，这样其他的连接就可以复用之前的那个Session。</p>
-<p><img src="/TLS-half-handshake-flow.svg" alt="TLS-half-handshake-flow"></p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/TLS-half-handshake-flow.svg" alt="TLS-half-handshake-flow" loading="lazy"></p>
 <p>Session重用有两种机制，分别为Session IDs和Session tickets。</p>
-<h3 id="Session-ID-2">Session ID</h3>
-<p>我们来看下使用Session ID时的Session重用流程。从前面密钥交换的流程图中可以看到，服务端在<code>Server Hello</code>消息中会发送本次会话的<code>Session ID</code>给客户端。完成握手之后，服务端会保存本次的Session。</p>
-<p><img src="/session_resumption_with_session_id.jpeg" alt="session_resumption_with_session_id"></p>
+<h3 id="Session-ID"><a href="#Session-ID" class="headerlink" title="Session ID"></a>Session ID</h3><p>我们来看下使用Session ID时的Session重用流程。从前面密钥交换的流程图中可以看到，服务端在<code>Server Hello</code>消息中会发送本次会话的<code>Session ID</code>给客户端。完成握手之后，服务端会保存本次的Session。</p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/session_resumption_with_session_id.jpeg" alt="session_resumption_with_session_id" loading="lazy"></p>
 <p>后续客户端可以通过恢复这个Session来建立SSL连接。具体做法就是在<code>ClientHello</code>消息中带上要恢复的Session ID，然后服务端会根据Session ID去查找对应的会话，如果一切都OK的话，就会根据保存的会话恢复出会话密钥等信息。如果服务端不支持会话重用、或者没找到Session ID、或者会话已经过期了，那么就退化到完整的SSL握手。</p>
-<h3 id="Session-Ticket-2">Session Ticket</h3>
-<p>Session ID机制它要求服务端保存每个客户端的session cache，这会在服务端造成几个问题：内存的额外开销、要求Session的保存和淘汰策略、然后对有多个服务器的站点，如何高性能地共享session cache提出了挑战。</p>
-<p><img src="/session_resumption_with_session_ticket.jpeg" alt="session_resumption_with_session_ticket"></p>
+<h3 id="Session-Ticket"><a href="#Session-Ticket" class="headerlink" title="Session Ticket"></a>Session Ticket</h3><p>Session ID机制它要求服务端保存每个客户端的session cache，这会在服务端造成几个问题：内存的额外开销、要求Session的保存和淘汰策略、然后对有多个服务器的站点，如何高性能地共享session cache提出了挑战。</p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/session_resumption_with_session_ticket.jpeg" alt="session_resumption_with_session_ticket" loading="lazy"></p>
 <p>Session Ticket机制的提出就是为了解决Session ID的问题。Session Ticket不需要服务端保存每个客户端的会话。取而代之，如果客户端宣称它支持session ticket，服务端会发送给客户端一个<code>New Session Ticket</code>消息，其中包含了会话相关的加密数据，加密的密钥只有服务端知道。</p>
 <p>客户端会保存这个session ticket，当需要会话恢复的时候，它会在<code>ClientHello</code>消息的<code>SessionTicket</code>扩展中带上这个session ticket。服务端在收到之后解密出其中的session数据从而恢复上次的会话。</p>
 <p>所以Session Ticket机制对于服务端来说是一种无状态（stateless）的重用，不需要服务端保存session cache，当然也就没有多服务器同步的问题。</p>
-<h2 id="证书的吊销（黑名单）">证书的吊销（黑名单）</h2>
-<p>我们在介绍证书的时候已经看到了证书有一个有效期，在有效期外是无法验证通过的。但是如果我们想在有效期内就让证书失效该怎么办？比如公司员工离职了、或者私钥泄漏等，总不可能把发出去的证书收回来吧。</p>
+<h2 id="证书的吊销（黑名单）"><a href="#证书的吊销（黑名单）" class="headerlink" title="证书的吊销（黑名单）"></a>证书的吊销（黑名单）</h2><p>我们在介绍证书的时候已经看到了证书有一个有效期，在有效期外是无法验证通过的。但是如果我们想在有效期内就让证书失效该怎么办？比如公司员工离职了、或者私钥泄漏等，总不可能把发出去的证书收回来吧。</p>
 <p>所以就引入了证书的吊销，CA可以吊销某张证书，在验证证书有效性的时候进行额外的黑名单验证。黑名单的验证有如下几种机制：</p>
-<h3 id="Certificate-Revocation-List-CRL">Certificate Revocation List (CRL)</h3>
-<p>CRL，即证书吊销列表。CA机构维护一个被吊销证书的列表，里面是被吊销证书的信息。验证证书方需要下载这个列表，进行黑名单的验证。</p>
+<h3 id="Certificate-Revocation-List-CRL"><a href="#Certificate-Revocation-List-CRL" class="headerlink" title="Certificate Revocation List (CRL)"></a>Certificate Revocation List (CRL)</h3><p>CRL，即证书吊销列表。CA机构维护一个被吊销证书的列表，里面是被吊销证书的信息。验证证书方需要下载这个列表，进行黑名单的验证。</p>
 <p>CRL的缺陷也很明显：证书验证方必须下载这个列表，且下载的列表跟实际CA机构的列表之间可能不同步。如果一个证书实际已经被吊销，但是并没有在本地列表中，就可能形成安全隐患。</p>
-<h3 id="Online-Certificate-Status-Protocol-OCSP">Online Certificate Status Protocol (OCSP)</h3>
-<p>OCSP，即在线证书状态协议。它通过在线请求的方式来进行黑名单验证，不需要下载整个 list，只需要将该证书的序列号发送给 CA 进行验证。部署 OCSP 对 CA也引入了一定的要求，CA 需要搭建的一个高性能的服务器来提供验证服务。万一服务器挂掉了，那所有的黑名单验证就会当成是通过，有一定的安全隐患。</p>
-<h3 id="OCSP-Stapling">OCSP Stapling</h3>
-<p>OCSP Stapling是OCSP标准的一个扩展，主要目标就是提升性能和安全性。证书拥有者自己定期向OCSP服务器发送请求。获取OCSP响应，这个响应是基于时间戳的，而且由CA直接签名。</p>
+<h3 id="Online-Certificate-Status-Protocol-OCSP"><a href="#Online-Certificate-Status-Protocol-OCSP" class="headerlink" title="Online Certificate Status Protocol (OCSP)"></a>Online Certificate Status Protocol (OCSP)</h3><p>OCSP，即在线证书状态协议。它通过在线请求的方式来进行黑名单验证，不需要下载整个 list，只需要将该证书的序列号发送给 CA 进行验证。部署 OCSP 对 CA也引入了一定的要求，CA 需要搭建的一个高性能的服务器来提供验证服务。万一服务器挂掉了，那所有的黑名单验证就会当成是通过，有一定的安全隐患。</p>
+<h3 id="OCSP-Stapling"><a href="#OCSP-Stapling" class="headerlink" title="OCSP Stapling"></a>OCSP Stapling</h3><p>OCSP Stapling是OCSP标准的一个扩展，主要目标就是提升性能和安全性。证书拥有者自己定期向OCSP服务器发送请求。获取OCSP响应，这个响应是基于时间戳的，而且由CA直接签名。</p>
 <p>OCSP Stapling提升整体的性能，一方面证书验证方不需要再直接请求CA的服务器去查询状态，另一方面CA的OCSP服务器的压力也减小了。</p>
-<h2 id="Server-Name-Indication（SNI）">Server Name Indication（SNI）</h2>
-<p>当一个站点上部署了多个Server时（相当于一个IP映射了多个域名），不同的Server可能需要使用不同的证书。问题是如何在SSL握手阶段知道是访问那个host（还没到HTTP阶段，无法用请求头里的<code>HOST</code>字段），从而决定使用对应的证书呢？</p>
+<h2 id="Server-Name-Indication（SNI）"><a href="#Server-Name-Indication（SNI）" class="headerlink" title="Server Name Indication（SNI）"></a>Server Name Indication（SNI）</h2><p>当一个站点上部署了多个Server时（相当于一个IP映射了多个域名），不同的Server可能需要使用不同的证书。问题是如何在SSL握手阶段知道是访问那个host（还没到HTTP阶段，无法用请求头里的<code>HOST</code>字段），从而决定使用对应的证书呢？</p>
 <p>SNI就是为了解决这个问题，具体做法是在<code>ClientHello</code>扩展中带上SNI，服务端就能从中得知需要访问哪个host，从而选择相应的证书。</p>
-<h1>GMSSL协议差异</h1>
-<p>GMSSL修改自TLS1.1，总体上与TLS协议的差异不大。详见《GMT 0024-2014 SSL VPN技术规范》。</p>
-<h2 id="协议号">协议号</h2>
-<p>TLSv1.0, TSLv1.1, TLSv1.2、TLSv1.3的协议号分别为<code>0x0301</code>、<code>0x0302</code>、<code>0x0303</code>、<code>0x0304</code>。</p>
+<h1 id="GMSSL协议差异"><a href="#GMSSL协议差异" class="headerlink" title="GMSSL协议差异"></a>GMSSL协议差异</h1><p>GMSSL修改自TLS1.1，总体上与TLS协议的差异不大。详见《GMT 0024-2014 SSL VPN技术规范》。</p>
+<h2 id="协议号"><a href="#协议号" class="headerlink" title="协议号"></a>协议号</h2><p>TLSv1.0, TSLv1.1, TLSv1.2、TLSv1.3的协议号分别为<code>0x0301</code>、<code>0x0302</code>、<code>0x0303</code>、<code>0x0304</code>。</p>
 <p>而国密的版本号是<code>0x0101</code>。</p>
-<h2 id="算法套件">算法套件</h2>
-<p>新增了国密的SM1/2/3/4等算法，定义了多个算法套件，其中比较常用的如<code>ECC_SM4_SM3</code>和<code>ECDHE_SM4_SM3</code>。<code>ECDHE_SM4_SM3</code>要求必须双向认证。</p>
-<p>其中<code>ECC_SM4_SM3</code>的密钥交换过程类似RSA的密钥交换过程，由客户端用服务端的公钥对预主密钥进行加密后发送给服务端。<code>ECDHE_SM4_SM3</code>的密钥交换过程与普通TLS的ECDHE密钥交换类似，预主密钥由客户端和服务端双方推导得出。<code>ECC_SM4_SM3</code>和<code>ECDHE_SM4_SM3</code>的身份认证是都是通过SM2的签名/验签来完成。</p>
-<h2 id="双证书体系">双证书体系</h2>
-<h3 id="证书消息">证书消息</h3>
-<p>国密SSL采用双证书体系：一个签名证书、一个加密证书。其中签名证书用于身份认证、加密证书用于密钥交换。发送<code>Certificate</code>消息时需要同时发送两个证书，格式与标准TLS报文格式一样，第一个证书是签名证书、第二个证书是加密证书。</p>
-<h3 id="ECC-SM4-SM3密钥交换">ECC_SM4_SM3密钥交换</h3>
-<p>因为采用了双证书体系，在SSL状态机上略微有点不同。<code>ECC_SM4_SM3</code>的密钥交换过程如下：服务端发送<code>Certificate</code>消息之后，还要发送一个<code>ServerKeyExchange</code>消息（这跟RSA密钥交换有所不同），<code>ServerKeyExchange</code>中包含了一个签名值，签名由服务端签名证书对应的私钥（签名私钥）进行计算，签名的内容包括了ClientHello和ServerHello中的随机数以及加密证书。</p>
+<h2 id="算法套件"><a href="#算法套件" class="headerlink" title="算法套件"></a>算法套件</h2><p>新增了国密的SM1&#x2F;2&#x2F;3&#x2F;4等算法，定义了多个算法套件，其中比较常用的如<code>ECC_SM4_SM3</code>和<code>ECDHE_SM4_SM3</code>。<code>ECDHE_SM4_SM3</code>要求必须双向认证。</p>
+<p>其中<code>ECC_SM4_SM3</code>的密钥交换过程类似RSA的密钥交换过程，由客户端用服务端的公钥对预主密钥进行加密后发送给服务端。<code>ECDHE_SM4_SM3</code>的密钥交换过程与普通TLS的ECDHE密钥交换类似，预主密钥由客户端和服务端双方推导得出。<code>ECC_SM4_SM3</code>和<code>ECDHE_SM4_SM3</code>的身份认证是都是通过SM2的签名&#x2F;验签来完成。</p>
+<h2 id="双证书体系"><a href="#双证书体系" class="headerlink" title="双证书体系"></a>双证书体系</h2><h3 id="证书消息"><a href="#证书消息" class="headerlink" title="证书消息"></a>证书消息</h3><p>国密SSL采用双证书体系：一个签名证书、一个加密证书。其中签名证书用于身份认证、加密证书用于密钥交换。发送<code>Certificate</code>消息时需要同时发送两个证书，格式与标准TLS报文格式一样，第一个证书是签名证书、第二个证书是加密证书。</p>
+<h3 id="ECC-SM4-SM3密钥交换"><a href="#ECC-SM4-SM3密钥交换" class="headerlink" title="ECC_SM4_SM3密钥交换"></a>ECC_SM4_SM3密钥交换</h3><p>因为采用了双证书体系，在SSL状态机上略微有点不同。<code>ECC_SM4_SM3</code>的密钥交换过程如下：服务端发送<code>Certificate</code>消息之后，还要发送一个<code>ServerKeyExchange</code>消息（这跟RSA密钥交换有所不同），<code>ServerKeyExchange</code>中包含了一个签名值，签名由服务端签名证书对应的私钥（签名私钥）进行计算，签名的内容包括了ClientHello和ServerHello中的随机数以及加密证书。</p>
 <p>客户端验证证书和签名之后，使用服务端加密证书加密预主密钥，发送给服务端，服务端则由自己的加密私钥进行解密得到预主密钥。</p>
-<h3 id="ECDHE-SM4-SM3密钥交换">ECDHE_SM4_SM3密钥交换</h3>
-<p><code>ECDHE_SM4_SM3</code>的密钥交换过程如下：服务端发送<code>Certificate</code>消息之后，同样发送一个<code>ServerKeyExchange</code>消息，<code>ServerKeyExchange</code>中包含了一个签名值，签名由服务端签名证书对应的私钥（签名私钥）进行计算。签名的内容跟<code>ECC_SM4_SM3</code>时有所不同，包括了ClientHello和ServerHello中的随机数以及服务端ECDH参数（曲线、公钥）。国密ECDHE的密钥推导计算方式跟TLS也有所不同，TLS只需要对方的临时公钥和自己的临时私钥参与计算，而国密需要对方的临时公钥和固定公钥（即加密证书中的公钥）及自己的临时私钥和固定私钥（即加密私钥）参与计算。所以国密<code>ECDHE</code>必须是双向认证，因为服务端在进行密钥推导的时候也需要用到客户端的加密证书。</p>
+<h3 id="ECDHE-SM4-SM3密钥交换"><a href="#ECDHE-SM4-SM3密钥交换" class="headerlink" title="ECDHE_SM4_SM3密钥交换"></a>ECDHE_SM4_SM3密钥交换</h3><p><code>ECDHE_SM4_SM3</code>的密钥交换过程如下：服务端发送<code>Certificate</code>消息之后，同样发送一个<code>ServerKeyExchange</code>消息，<code>ServerKeyExchange</code>中包含了一个签名值，签名由服务端签名证书对应的私钥（签名私钥）进行计算。签名的内容跟<code>ECC_SM4_SM3</code>时有所不同，包括了ClientHello和ServerHello中的随机数以及服务端ECDH参数（曲线、公钥）。国密ECDHE的密钥推导计算方式跟TLS也有所不同，TLS只需要对方的临时公钥和自己的临时私钥参与计算，而国密需要对方的临时公钥和固定公钥（即加密证书中的公钥）及自己的临时私钥和固定私钥（即加密私钥）参与计算。所以国密<code>ECDHE</code>必须是双向认证，因为服务端在进行密钥推导的时候也需要用到客户端的加密证书。</p>
 <p>客户端验证证书和签名之后，发送自己的证书给服务端，接着根据<code>ServerKeyExchange</code>中ECDH参数信息生成自己的临时密钥，然后同自己的加密密钥、服务端临时公钥和加密公钥一起进行密钥推导得到预主密钥。并将自己的临时密钥参数通过<code>ClientKeyExchange</code>消息发送给服务端，服务端同样使用自己的临时密钥、加密密钥、客户端的临时公钥和加密公钥一起进行密钥推导得到预主密钥。</p>
 <p>因为是双向认证，客户端在发送<code>ClientKeyExchange</code>消息之后，还需要发送一个<code>CertificateVerify</code>消息，签名的内容为从ClientHello消息开始到目前为止的所有已经交换的握手消息。</p>
-<h1>安全性</h1>
-<h2 id="常见攻击">常见攻击</h2>
-<p>有些是针对协议设计上的漏洞，有些则是针对实现的bug，经常结合降级攻击手段一起使用。因为篇幅原因，这里仅挑选两个有代表性的重协商攻击和Heartbleed着重介绍一下，对于其余攻击感兴趣的可以参考<a target="_blank" rel="noopener external nofollow noreferrer" href="https://datatracker.ietf.org/doc/html/rfc7457">rfc7457-已知攻击总结</a></p>
+<h1 id="安全性"><a href="#安全性" class="headerlink" title="安全性"></a>安全性</h1><h2 id="常见攻击"><a href="#常见攻击" class="headerlink" title="常见攻击"></a>常见攻击</h2><p>有些是针对协议设计上的漏洞，有些则是针对实现的bug，经常结合降级攻击手段一起使用。因为篇幅原因，这里仅挑选两个有代表性的重协商攻击和Heartbleed着重介绍一下，对于其余攻击感兴趣的可以参考<a target="_blank" rel="noopener external nofollow noreferrer" href="https://datatracker.ietf.org/doc/html/rfc7457">rfc7457-已知攻击总结</a></p>
 <ul>
 <li>重协商攻击</li>
 </ul>
-<p><img src="/renegotiation-attack.png" alt=""></p>
-<p>中间人在不需要劫持、解密SSL/TLS连接的情况下，成功地将自己伪造的数据插入到用户真正数据之前。中间人如果了解APP协议（如HTTPS）的话，则会精心构造不完整的数据，让服务器的APP程序认为发生粘包，将数据暂缓不处理，继续等待后续的数据上来。例如攻击者先发送了如下的半拉子请求</p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/renegotiation-attack.png" loading="lazy"></p>
+<p>中间人在不需要劫持、解密SSL&#x2F;TLS连接的情况下，成功地将自己伪造的数据插入到用户真正数据之前。中间人如果了解APP协议（如HTTPS）的话，则会精心构造不完整的数据，让服务器的APP程序认为发生粘包，将数据暂缓不处理，继续等待后续的数据上来。例如攻击者先发送了如下的半拉子请求</p>
 <figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">GET</span> <span class="string">/bank/sendmoney.asp?acct=attacker&amp;amount=1000000</span> <span class="meta">HTTP/1.1</span></span><br><span class="line">X-Ignore-This:</span><br></pre></td></tr></table></figure>
+
 <p>后面当客户端发送过来真正的请求</p>
 <figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">GET</span> <span class="string">/ebanking</span> <span class="meta">HTTP/1.1</span></span><br><span class="line"><span class="attribute">Cookie</span><span class="punctuation">: </span>validcookie</span><br></pre></td></tr></table></figure>
+
 <p>APP程序将请求拼接，真正的请求头被屏蔽了，但是却保留了用户的Cookie信息，从而利用用户的Cookie去访问网站内容。服务端会以为前面发送的请求是真正的客户端发送的。</p>
 <figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">GET</span> <span class="string">/bank/sendmoney.asp?acct=attacker&amp;amount=1000000</span> <span class="meta">HTTP/1.1</span></span><br><span class="line"><span class="attribute">X-Ignore-This</span><span class="punctuation">: </span>GET /ebanking HTTP/1.1</span><br><span class="line"><span class="attribute">Cookie</span><span class="punctuation">: </span>validcookie</span><br></pre></td></tr></table></figure>
+
+
+
 <p>这个漏洞成因在于，客户端认为的首次协商却被服务器认为是重协商，以及首次协商和重协商之间缺少关联性。解决办法就是禁用重协商或者使用<a target="_blank" rel="noopener external nofollow noreferrer" href="https://datatracker.ietf.org/doc/html/rfc5746">安全重协商</a>。安全重协商会增加一个安全重协商标志，以及确认首次协商和重协商的关联性校验，从而确保中间人的攻击行为可以被识别并拒绝，保证重协商安全。</p>
 <p>我们来看看安全重协商是如何保证安全的，对于前面的ClientHello2里面不携带安全重协商表示的情况：</p>
-<p><img src="/renegotiation-attack-fix1.png" alt="renegotiation-attack-fix1"></p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/renegotiation-attack-fix1.png" alt="renegotiation-attack-fix1" loading="lazy"></p>
 <p>对于前面的ClientHello2里面携带安全重协商表示的情况：</p>
-<p><img src="/renegotiation-attack-fix2.png" alt="renegotiation-attack-fix2"></p>
-<p>无论哪种情况都能保证中间人无机可乘。而这个安全重协商的标识就是提供了一个新的扩展性<code>renegotiation_info</code>。因为SSLv3/TLS 1.0不支持扩展，所以提供了另一种方法，即在算法套件列表中加上<code>TLS_EMPTY_RENEGOTIATION_INFO_SCSV（0xFF）</code>，这个不是一个真正的算法套件，只是起标识作用。</p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/renegotiation-attack-fix2.png" alt="renegotiation-attack-fix2" loading="lazy"></p>
+<p>无论哪种情况都能保证中间人无机可乘。而这个安全重协商的标识就是提供了一个新的扩展性<code>renegotiation_info</code>。因为SSLv3&#x2F;TLS 1.0不支持扩展，所以提供了另一种方法，即在算法套件列表中加上<code>TLS_EMPTY_RENEGOTIATION_INFO_SCSV（0xFF）</code>，这个不是一个真正的算法套件，只是起标识作用。</p>
 <p>安全重协商的流程如下：</p>
-<pre><code>1. 在连接建立第一次SSL握手期间，双方通过`renegotiation_info`扩展或`SCSV`套件通知对方自己支持安全重协商
-2. 然后在握手结束之后，client和server都分别记录`Finish`消息之中的`client_verify_data`和`server_verify_data`
-3. 重协商时client在`ClientHello`中包含`client_verify_data`，server在`ServerHello`中包含`client_verify_data`和`server_verify_data`。对于受害者，如果协商中不会携带这些数据则连接无法建立。而Finished消息由于是加密的，攻击者无法得到client_verify_data和server_verify_data的值。
+<pre><code> 1. 在连接建立第一次SSL握手期间，双方通过`renegotiation_info`扩展或`SCSV`套件通知对方自己支持安全重协商
+ 2. 然后在握手结束之后，client和server都分别记录`Finish`消息之中的`client_verify_data`和`server_verify_data`
+ 3. 重协商时client在`ClientHello`中包含`client_verify_data`，server在`ServerHello`中包含`client_verify_data`和`server_verify_data`。对于受害者，如果协商中不会携带这些数据则连接无法建立。而Finished消息由于是加密的，攻击者无法得到client_verify_data和server_verify_data的值。
 </code></pre>
 <ul>
 <li><a target="_blank" rel="noopener external nofollow noreferrer" href="https://heartbleed.com/">Heartbleed</a></li>
 </ul>
 <p>这是OpenSSL库一个实现上的bug，而不是TLS协议本身的bug。这个bug是由于TLS heartbeat扩展的实现没有进行正确的输入验证（缺少边界检查）导致的。bug的命名也从heartbeat而来。由于没有进行边界检查，导致可以读取的数据超出允许的范围。</p>
-<p><img src="/Simplified_Heartbleed_explanation.svg" alt="Simplified_Heartbleed_explanation"></p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/Simplified_Heartbleed_explanation.svg" alt="Simplified_Heartbleed_explanation" loading="lazy"></p>
 <p>这个bug当前造成了非常广泛的影响，有调查显示在这个漏洞公布后几年，仍有许多网站暴露在此攻击之下。这个bug告诫我们就算协议是安全的，实现仍然可能引入安全问题。安全性就像一个木桶，整体的安全性取决于最短的那块木板。</p>
 <ul>
 <li>CRIME和BREACH攻击</li>
@@ -754,7 +693,7 @@ translateInitilization();
 <p>这两个攻击都是基于压缩算法，通过改变请求正文，对比被压缩后的密文长度，可以破解出某些信息。</p>
 <p>CRIME通过在受害者的浏览器中运行JavaScript代码并同时监听HTTPS传输数据，能够解密会话Cookie，主要针对TLS压缩。</p>
 <p>Javascript代码尝试一位一位的暴力破解Cookie的值。中间人组件能够观察到每次破解请求和响应的密文，寻找不同，一旦发现了一个，他会和执行破解的Javascript通信并继续破解下一位。</p>
-<p>BREACH攻击是CRIME攻击的升级版，攻击方法和CRIME相同，不同的是BREACH利用的不是SSL/TLS压缩，而是HTTP压缩。所以要抵御BREACH攻击必须禁用HTTP压缩。</p>
+<p>BREACH攻击是CRIME攻击的升级版，攻击方法和CRIME相同，不同的是BREACH利用的不是SSL&#x2F;TLS压缩，而是HTTP压缩。所以要抵御BREACH攻击必须禁用HTTP压缩。</p>
 <ul>
 <li>BEAST攻击</li>
 </ul>
@@ -771,13 +710,11 @@ translateInitilization();
 <li>降级攻击（版本回退攻击）</li>
 </ul>
 <p>欺骗服务器使用低版本的不安全的TLS协议，常和其他攻击手段结合使用。删除后向兼容性通常是防止降低攻击的唯一方法。</p>
-<h2 id="前向安全性">前向安全性</h2>
-<p>如果没有前向安全性，一旦私钥泄漏，不仅将来的会话会受影响，过去的会话也都会受影响。一个耐心的黑客，可以先把以前截获的数据先保存下来，一旦私钥泄露或被破解，就可以破解之前的所有密文。这就是所谓的<strong>今日截获，明日破解</strong>。</p>
+<h2 id="前向安全性"><a href="#前向安全性" class="headerlink" title="前向安全性"></a>前向安全性</h2><p>如果没有前向安全性，一旦私钥泄漏，不仅将来的会话会受影响，过去的会话也都会受影响。一个耐心的黑客，可以先把以前截获的数据先保存下来，一旦私钥泄露或被破解，就可以破解之前的所有密文。这就是所谓的<strong>今日截获，明日破解</strong>。</p>
 <p>TLS的实现之一就是通过使用临时的DH密钥交换来生成会话密钥，<strong>一次一密</strong>保证了即使黑客花大力气破解了这一次的会话密钥，也只是这次通信被攻击，之前的历史消息不会受到影响。这我们已经在第一部分中讲到了。</p>
 <p>但即使是使用了临时DH密钥交换，服务端的session管理机制也会影响到前向安全性。前面Session重用的部分我们讲到了session ticket，它的保护完全是依赖于对称加密，所以长时间有效的session ticket密钥会阻止前向安全性的实现。</p>
 <p>在实践中，应该优先使用临时DH密钥交换类算法套件，session的有效期不宜设置过长，session ticket的key也应该经常更换。</p>
-<h1>TLS 1.3新特性</h1>
-<p>TLS 1.3相比TLS 1.2改动巨大，它的主要改进目标是<strong>最大兼容</strong>、<strong>强化安全</strong>、<strong>提升性能</strong>。</p>
+<h1 id="TLS-1-3新特性"><a href="#TLS-1-3新特性" class="headerlink" title="TLS 1.3新特性"></a>TLS 1.3新特性</h1><p>TLS 1.3相比TLS 1.2改动巨大，它的主要改进目标是<strong>最大兼容</strong>、<strong>强化安全</strong>、<strong>提升性能</strong>。</p>
 <p>下面列举了相比TLS 1.3的<strong>主要差异</strong>：</p>
 <ul>
 <li>对称加密算法只保留了AEAD类算法，将密钥交换和认证算法从算法套件的概念中分离出去了</li>
@@ -789,56 +726,56 @@ translateInitilization();
 <li>使用统一的PSK模型，替代了之前的Session Resumption（包括Session ID和Session Ticket）及早期TLS版本基于PSK（rfc4279）的算法套件</li>
 </ul>
 <p>这里介绍几个关键的特性</p>
-<h2 id="密钥交换模式">密钥交换模式</h2>
-<p>TLS 1.3提出了3种密钥交换模式：</p>
+<h2 id="密钥交换模式"><a href="#密钥交换模式" class="headerlink" title="密钥交换模式"></a>密钥交换模式</h2><p>TLS 1.3提出了3种密钥交换模式：</p>
 <ul>
 <li>(EC)DHE</li>
 <li>PSK-only（pre-shared symmetric key）</li>
 <li>PSK with (EC)DHE 前两者的结合，具有前向安全性</li>
 </ul>
-<h2 id="1-RTT握手">1-RTT握手</h2>
-<p>如前所述，TLS 1.2的完整握手有2个RTT，第一个RTT是<code>ClientHello/ServerHello</code>，第二个RTT是<code>ServerKeyExchange/ClientKeyExchange</code>。之所以需要两个RTT是因为TLS 1.2支持多种密钥交换算法及各种不同的参数，这些都依赖第一个RTT去协商出来。TLS 1.3直接大刀阔斧，砍掉了各种自定义的group、curve，砍掉了RSA密钥交换，只剩下为数不多的几个密钥交换算法，实际应用中大部分使用<code>ECDH P-256</code>或<code>X25519</code>。所以干脆让客户端缓存服务器上一次用的是啥密钥交换算法，把<code>KeyExchange</code>直接合入第一个RTT。如果服务器发现客户端发上来的算法不对，那么再告诉它正确的，让客户端重试就好了。（这就引入了<code>HelloRetryRequest</code>消息）。这样基本没有副作用，就可以降到1-RTT了。</p>
+<h2 id="1-RTT握手"><a href="#1-RTT握手" class="headerlink" title="1-RTT握手"></a>1-RTT握手</h2><p>如前所述，TLS 1.2的完整握手有2个RTT，第一个RTT是<code>ClientHello/ServerHello</code>，第二个RTT是<code>ServerKeyExchange/ClientKeyExchange</code>。之所以需要两个RTT是因为TLS 1.2支持多种密钥交换算法及各种不同的参数，这些都依赖第一个RTT去协商出来。TLS 1.3直接大刀阔斧，砍掉了各种自定义的group、curve，砍掉了RSA密钥交换，只剩下为数不多的几个密钥交换算法，实际应用中大部分使用<code>ECDH P-256</code>或<code>X25519</code>。所以干脆让客户端缓存服务器上一次用的是啥密钥交换算法，把<code>KeyExchange</code>直接合入第一个RTT。如果服务器发现客户端发上来的算法不对，那么再告诉它正确的，让客户端重试就好了。（这就引入了<code>HelloRetryRequest</code>消息）。这样基本没有副作用，就可以降到1-RTT了。</p>
 <p>TLS 1.3的完整握手流程如下：</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line">       Client                                           Server</span><br><span class="line"></span><br><span class="line">Key  ^ ClientHello</span><br><span class="line">Exch | + key_share*</span><br><span class="line">     | + signature_algorithms*</span><br><span class="line">     | + psk_key_exchange_modes*</span><br><span class="line">     v + pre_shared_key*       --------&gt;</span><br><span class="line">                                                  ServerHello  ^ Key</span><br><span class="line">                                                 + key_share*  | Exch</span><br><span class="line">                                            + pre_shared_key*  v</span><br><span class="line">                                        &#123;EncryptedExtensions&#125;  ^  Server</span><br><span class="line">                                        &#123;CertificateRequest*&#125;  v  Params</span><br><span class="line">                                               &#123;Certificate*&#125;  ^</span><br><span class="line">                                         &#123;CertificateVerify*&#125;  | Auth</span><br><span class="line">                                                   &#123;Finished&#125;  v</span><br><span class="line">                               &lt;--------  [Application Data*]</span><br><span class="line">     ^ &#123;Certificate*&#125;</span><br><span class="line">Auth | &#123;CertificateVerify*&#125;</span><br><span class="line">     v &#123;Finished&#125;              --------&gt;</span><br><span class="line">       [Application Data]      &lt;-------&gt;  [Application Data]</span><br><span class="line"></span><br><span class="line">              +  Indicates noteworthy extensions sent in the</span><br><span class="line">                 previously noted message.</span><br><span class="line"></span><br><span class="line">              *  Indicates optional or situation-dependent</span><br><span class="line">                 messages/extensions that are not always sent.</span><br><span class="line"></span><br><span class="line">              &#123;&#125; Indicates messages protected using keys</span><br><span class="line">                 derived from a [sender]_handshake_traffic_secret.</span><br><span class="line"></span><br><span class="line">              [] Indicates messages protected using keys</span><br><span class="line">                 derived from [sender]_application_traffic_secret_N.</span><br><span class="line"></span><br><span class="line">               Figure 1: Message Flow for Full TLS Handshake</span><br></pre></td></tr></table></figure>
+
 <p>握手过程可以分成三个阶段：</p>
 <ul>
 <li>密钥交换：建立共享密钥材料，选择加密参数。此阶段后的所有信息都是加密的。</li>
 <li>服务端参数：建立其他握手参数，如客户端是否需要认证、应用层协议支持</li>
 <li>认证：身份认证，提供密钥确认和握手完整性</li>
 </ul>
-<h2 id="重用和PSK">重用和PSK</h2>
-<p>TLS的PSK可以直接在带外建立，也可以通过前一个连接的会话建立。一旦一个握手完成了之后，服务端就会给客户端发送一个PSK id，对应初始握手推导出的密钥。（对应TLS 1.2及之前版本的Session ID和Session Tickets，这两个机制在TLS 1.3中都弃用了）。</p>
+<h2 id="重用和PSK"><a href="#重用和PSK" class="headerlink" title="重用和PSK"></a>重用和PSK</h2><p>TLS的PSK可以直接在带外建立，也可以通过前一个连接的会话建立。一旦一个握手完成了之后，服务端就会给客户端发送一个PSK id，对应初始握手推导出的密钥。（对应TLS 1.2及之前版本的Session ID和Session Tickets，这两个机制在TLS 1.3中都弃用了）。</p>
 <p>PSK可以单独使用，或者跟(EC)DHE密钥交换结合使用以提供前向安全性。</p>
 <p>重用和PSK的握手流程如下：</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line">       Client                                               Server</span><br><span class="line"></span><br><span class="line">Initial Handshake:</span><br><span class="line">       ClientHello</span><br><span class="line">       + key_share               --------&gt;</span><br><span class="line">                                                       ServerHello</span><br><span class="line">                                                       + key_share</span><br><span class="line">                                             &#123;EncryptedExtensions&#125;</span><br><span class="line">                                             &#123;CertificateRequest*&#125;</span><br><span class="line">                                                    &#123;Certificate*&#125;</span><br><span class="line">                                              &#123;CertificateVerify*&#125;</span><br><span class="line">                                                        &#123;Finished&#125;</span><br><span class="line">                                 &lt;--------     [Application Data*]</span><br><span class="line">       &#123;Certificate*&#125;</span><br><span class="line">       &#123;CertificateVerify*&#125;</span><br><span class="line">       &#123;Finished&#125;                --------&gt;</span><br><span class="line">                                 &lt;--------      [NewSessionTicket]</span><br><span class="line">       [Application Data]        &lt;-------&gt;      [Application Data]</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">Subsequent Handshake:</span><br><span class="line">       ClientHello</span><br><span class="line">       + key_share*</span><br><span class="line">       + pre_shared_key          --------&gt;</span><br><span class="line">                                                       ServerHello</span><br><span class="line">                                                  + pre_shared_key</span><br><span class="line">                                                      + key_share*</span><br><span class="line">                                             &#123;EncryptedExtensions&#125;</span><br><span class="line">                                                        &#123;Finished&#125;</span><br><span class="line">                                 &lt;--------     [Application Data*]</span><br><span class="line">       &#123;Finished&#125;                --------&gt;</span><br><span class="line">       [Application Data]        &lt;-------&gt;      [Application Data]</span><br><span class="line"></span><br><span class="line">            Figure 3: Message Flow for Resumption and PSK</span><br></pre></td></tr></table></figure>
+
 <p>这种情况下服务端的身份通过PSK认证，所以服务端不发送<code>Certficate</code>和<code>CertificateVerify</code>消息。当客户端通过PSK提议重用的时候，也应该提供<code>key_share</code>扩展，以便服务端在拒绝重用的时候回退到全握手。</p>
-<h2 id="有副作用的0-RTT握手">有副作用的0-RTT握手</h2>
-<p>当客户端和服务端共享一个PSK的时候（无论是通过外部获得还是通过前面的握手获得），TLS 1.3允许客户端在第一个flight上就发送数据（early data）。客户端使用PSK来认证服务端及加密early data。</p>
+<h2 id="有副作用的0-RTT握手"><a href="#有副作用的0-RTT握手" class="headerlink" title="有副作用的0-RTT握手"></a>有副作用的0-RTT握手</h2><p>当客户端和服务端共享一个PSK的时候（无论是通过外部获得还是通过前面的握手获得），TLS 1.3允许客户端在第一个flight上就发送数据（early data）。客户端使用PSK来认证服务端及加密early data。</p>
 <p>0-RTT的握手流程如下，与PSK重用的1-RTT握手相比，增加<code>early_data</code>扩展以及第一个flight上的0-RTT应用数据。当接收到服务端的<code>Finished</code>消息之后，会发送一个<code>EndOfEarlyData</code>消息指示后面加密密钥的更换。</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line">Client                                               Server</span><br><span class="line"></span><br><span class="line">ClientHello</span><br><span class="line">+ early_data</span><br><span class="line">+ key_share*</span><br><span class="line">+ psk_key_exchange_modes</span><br><span class="line">+ pre_shared_key</span><br><span class="line">(Application Data*)     --------&gt;</span><br><span class="line">                                                ServerHello</span><br><span class="line">                                           + pre_shared_key</span><br><span class="line">                                               + key_share*</span><br><span class="line">                                      &#123;EncryptedExtensions&#125;</span><br><span class="line">                                              + early_data*</span><br><span class="line">                                                 &#123;Finished&#125;</span><br><span class="line">                        &lt;--------       [Application Data*]</span><br><span class="line">(EndOfEarlyData)</span><br><span class="line">&#123;Finished&#125;              --------&gt;</span><br><span class="line">[Application Data]      &lt;-------&gt;        [Application Data]</span><br><span class="line"></span><br><span class="line">      +  Indicates noteworthy extensions sent in the</span><br><span class="line">         previously noted message.</span><br><span class="line"></span><br><span class="line">      *  Indicates optional or situation-dependent</span><br><span class="line">         messages/extensions that are not always sent.</span><br><span class="line"></span><br><span class="line">      () Indicates messages protected using keys</span><br><span class="line">         derived from a client_early_traffic_secret.</span><br><span class="line"></span><br><span class="line">      &#123;&#125; Indicates messages protected using keys</span><br><span class="line">         derived from a [sender]_handshake_traffic_secret.</span><br><span class="line"></span><br><span class="line">      [] Indicates messages protected using keys</span><br><span class="line">         derived from [sender]_application_traffic_secret_N.</span><br><span class="line"></span><br><span class="line">      Figure 4: Message Flow for a 0-RTT Handshake</span><br></pre></td></tr></table></figure>
+
 <p>0-RTT的数据安全性较弱：</p>
 <ul>
 <li>0-RTT数据没有前向安全性，因为其加密密钥单纯是从PSK推导出来的</li>
 <li>跨连接可以重放0-RTT里的应用数据（常规的TLS 1.3 1-RTT数据通过服务端随机数来防重放）</li>
 </ul>
-<h2 id="密钥派生过程">密钥派生过程</h2>
-<p>密钥派生过程用到了HKDF-Extract和HKDF-Expand函数，以及如下的函数</p>
+<h2 id="密钥派生过程"><a href="#密钥派生过程" class="headerlink" title="密钥派生过程"></a>密钥派生过程</h2><p>密钥派生过程用到了HKDF-Extract和HKDF-Expand函数，以及如下的函数</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">HKDF-Expand-Label(Secret, Label, Context, Length) =</span><br><span class="line">      HKDF-Expand(Secret, HkdfLabel, Length)</span><br></pre></td></tr></table></figure>
+
 <p>其中<code>HkdfLabel</code>表示</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">struct &#123;</span><br><span class="line">  uint16 length = Length;</span><br><span class="line">  opaque label&lt;7..255&gt; = &quot;tls13 &quot; + Label;</span><br><span class="line">  opaque context&lt;0..255&gt; = Context;</span><br><span class="line">&#125; HkdfLabel;</span><br><span class="line"></span><br><span class="line">Derive-Secret(Secret, Label, Messages) = HKDF-Expand-Label(</span><br><span class="line">  Secret, Label, Transcript-Hash(Messages), Hash.length)</span><br></pre></td></tr></table></figure>
+
+
+
 <p>不管是哪种密钥交换模式都给走完下面的整个流程，当没有对应的输入密钥材料（IKM），对应的位置用Hash长度的0值字符串代替。例如没有PSK的话，Early Secret就是<code>HKDF-Extract(0, 0)</code>。</p>
-<p><img src="/TLS1_3-Key-Schedule.png" alt="TLS1_3-Key-Schedule"></p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/TLS1_3-Key-Schedule.png" alt="TLS1_3-Key-Schedule" loading="lazy"></p>
 <p>其中<code>exporter_secret</code>是导出密钥，用于用户自定义的其他用途。<code>resumption_master_secret</code>用于生成ticket。<code>client_early_traffic_secret</code>用于推导0-RTT的early-data密钥，<code>*_handshake_traffic_secret</code>用于推到握手消息的加密密钥，<code>*_application_traffic_secret_N</code>用于推导应用消息的加密密钥。</p>
-<h1>常见实现</h1>
-<p>OpenSSL：非常流行的开源实现、代码量最大、写得最烂？</p>
+<h1 id="常见实现"><a href="#常见实现" class="headerlink" title="常见实现"></a>常见实现</h1><p>OpenSSL：非常流行的开源实现、代码量最大、写得最烂？</p>
 <p>LibreSSL：也是OpenSSL的一个fork，OpenBSD项目</p>
-<p>BoringSSL：是OpenSSL的一个fork分支，主要用于Google的Chrome/Chromium、Android以及其他应用</p>
+<p>BoringSSL：是OpenSSL的一个fork分支，主要用于Google的Chrome&#x2F;Chromium、Android以及其他应用</p>
 <p>JSSE（Java Secure Socket Extension）：Java实现</p>
 <p>NSS：最初由网景开发的库，现在主要被浏览器和客户端软件使用，比如Firefox使用的就是NSS库（Mozilla开发）。</p>
 <p>go.crypto：Go语言的实现</p>
-<h1>参考资料</h1>
-<ul>
-<li><a target="_blank" rel="noopener external nofollow noreferrer" href="https://introspelliam.github.io/2018/03/20/crypto/%E6%B7%B1%E5%BA%A6%E8%A7%A3%E8%AF%BBSSL-TLS%E5%AE%9E%E7%8E%B0/">深度解读SSL/TLS实现</a></li>
+<h1 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h1><ul>
+<li><a target="_blank" rel="noopener external nofollow noreferrer" href="https://introspelliam.github.io/2018/03/20/crypto/%E6%B7%B1%E5%BA%A6%E8%A7%A3%E8%AF%BBSSL-TLS%E5%AE%9E%E7%8E%B0/">深度解读SSL&#x2F;TLS实现</a></li>
 <li><a target="_blank" rel="noopener external nofollow noreferrer" href="https://blog.helong.info/blog/2015/09/07/tls-protocol-analysis-and-crypto-protocol-design/#1-%E8%87%AA%E9%A1%B6%E5%90%91%E4%B8%8B%E5%88%86%E5%B1%82%E6%8A%BD%E8%B1%A1">TLS协议分析</a></li>
 <li><a target="_blank" rel="noopener external nofollow noreferrer" href="https://juejin.cn/post/6844903624640823310#heading-5">完全吃透</a></li>
 <li><a target="_blank" rel="noopener external nofollow noreferrer" href="https://blog.cloudflare.com/keyless-ssl-the-nitty-gritty-technical-details/">Keyless SSL</a></li>
@@ -990,7 +927,7 @@ translateInitilization();
 
       <!--noindex-->
       <div class="post-toc-wrap sidebar-panel">
-          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">1.</span> <span class="nav-text">密码学基础</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8F%A4%E5%85%B8%E7%9A%84%E5%AF%86%E7%A0%81"><span class="nav-number">1.1.</span> <span class="nav-text">古典的密码</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%87%AF%E6%92%92%E5%AF%86%E7%A0%81"><span class="nav-number">1.1.1.</span> <span class="nav-text">凯撒密码</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%AE%80%E5%8D%95%E6%9B%BF%E6%8D%A2%E5%AF%86%E7%A0%81"><span class="nav-number">1.1.2.</span> <span class="nav-text">简单替换密码</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Enigma%E5%AF%86%E7%A0%81%E6%9C%BA"><span class="nav-number">1.1.3.</span> <span class="nav-text">Enigma密码机</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AF%B9%E7%A7%B0%E5%AF%86%E7%A0%81"><span class="nav-number">1.2.</span> <span class="nav-text">对称密码</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%9D%97%E5%AF%86%E7%A0%81%E5%92%8C%E6%B5%81%E5%AF%86%E7%A0%81"><span class="nav-number">1.2.1.</span> <span class="nav-text">块密码和流密码</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#AES-Advanced-Encryption-Standard"><span class="nav-number">1.2.2.</span> <span class="nav-text">AES (Advanced Encryption Standard)</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%9D%97%E5%AF%86%E7%A0%81%E7%9A%84%E6%A8%A1%E5%BC%8F"><span class="nav-number">1.3.</span> <span class="nav-text">块密码的模式</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%A8%A1%E5%BC%8F"><span class="nav-number">1.3.1.</span> <span class="nav-text">模式</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#ECB%E6%A8%A1%E5%BC%8F"><span class="nav-number">1.3.1.1.</span> <span class="nav-text">ECB模式</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#CBC%E6%A8%A1%E5%BC%8F"><span class="nav-number">1.3.1.2.</span> <span class="nav-text">CBC模式</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#CTR%E6%A8%A1%E5%BC%8F"><span class="nav-number">1.3.1.3.</span> <span class="nav-text">CTR模式</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#AEAD%EF%BC%88Authenticated-Encryption-with-Associated-Data%EF%BC%89"><span class="nav-number">1.3.2.</span> <span class="nav-text">AEAD（Authenticated Encryption with Associated Data）</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#GCM%EF%BC%88Galois-Counter-Mode%EF%BC%89"><span class="nav-number">1.3.2.1.</span> <span class="nav-text">GCM（Galois&#x2F;Counter Mode）</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%85%AC%E9%92%A5%E5%AF%86%E7%A0%81%EF%BC%88%E9%9D%9E%E5%AF%B9%E7%A7%B0%E5%AF%86%E7%A0%81%EF%BC%89"><span class="nav-number">1.4.</span> <span class="nav-text">公钥密码（非对称密码）</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%85%AC%E9%92%A5%E5%AF%86%E7%A0%81%E7%AE%97%E6%B3%95%EF%BC%88RSA%E3%80%81%E5%9B%BD%E5%AF%86SM2%EF%BC%89"><span class="nav-number">1.4.1.</span> <span class="nav-text">公钥密码算法（RSA、国密SM2）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Diffie-Hellman%E5%AF%86%E9%92%A5%E4%BA%A4%E6%8D%A2"><span class="nav-number">1.4.2.</span> <span class="nav-text">Diffie-Hellman密钥交换</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#ECDH%E5%92%8CECDHE"><span class="nav-number">1.4.3.</span> <span class="nav-text">ECDH和ECDHE</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8D%95%E5%90%91%E6%95%A3%E5%88%97%E5%87%BD%E6%95%B0%EF%BC%88Hash%EF%BC%89"><span class="nav-number">1.5.</span> <span class="nav-text">单向散列函数（Hash）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%B6%88%E6%81%AF%E8%AE%A4%E8%AF%81%E7%A0%81%EF%BC%88MAC%EF%BC%89"><span class="nav-number">1.6.</span> <span class="nav-text">消息认证码（MAC）</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#MAC%E7%9A%84%E9%97%AE%E9%A2%98"><span class="nav-number">1.6.1.</span> <span class="nav-text">MAC的问题</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%95%B0%E5%AD%97%E7%AD%BE%E5%90%8D%EF%BC%88RSA%E3%80%81ECDSA%EF%BC%89"><span class="nav-number">1.7.</span> <span class="nav-text">数字签名（RSA、ECDSA）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%95%B0%E5%AD%97%E8%AF%81%E4%B9%A6%E3%80%81-CA"><span class="nav-number">1.8.</span> <span class="nav-text">数字证书、 CA</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%B7%B7%E5%90%88%E5%AF%86%E7%A0%81%E7%B3%BB%E7%BB%9F"><span class="nav-number">1.9.</span> <span class="nav-text">混合密码系统</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%9A%8F%E6%9C%BA%E6%95%B0%E5%8F%91%E7%94%9F%E5%99%A8"><span class="nav-number">1.10.</span> <span class="nav-text">随机数发生器</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AF%86%E9%92%A5%E6%B4%BE%E7%94%9F%E5%87%BD%E6%95%B0-key-derivation-function"><span class="nav-number">1.11.</span> <span class="nav-text">密钥派生函数 key derivation function</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">2.</span> <span class="nav-text">SSL&#x2F;TLS协议详解</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BB%80%E4%B9%88%E6%98%AFSSL-TLS%E5%8D%8F%E8%AE%AE"><span class="nav-number">2.1.</span> <span class="nav-text">什么是SSL&#x2F;TLS协议</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8D%8F%E8%AE%AE%E5%88%86%E5%B1%82"><span class="nav-number">2.2.</span> <span class="nav-text">协议分层</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#SSL-record"><span class="nav-number">2.3.</span> <span class="nav-text">SSL record</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%AE%97%E6%B3%95%E5%A5%97%E4%BB%B6CipherSuites"><span class="nav-number">2.4.</span> <span class="nav-text">算法套件CipherSuites</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#TLS-1-2"><span class="nav-number">2.4.1.</span> <span class="nav-text">TLS 1.2-</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#TLS-1-3"><span class="nav-number">2.4.2.</span> <span class="nav-text">TLS 1.3</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#SSL-handshake"><span class="nav-number">2.5.</span> <span class="nav-text">SSL handshake</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AF%86%E9%92%A5%E4%BA%A4%E6%8D%A2%E6%B5%81%E7%A8%8B-RSA"><span class="nav-number">2.5.1.</span> <span class="nav-text">密钥交换流程-RSA</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AF%86%E9%92%A5%E4%BA%A4%E6%8D%A2%E6%B5%81%E7%A8%8B-DH"><span class="nav-number">2.5.2.</span> <span class="nav-text">密钥交换流程-DH</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AF%86%E9%92%A5%E7%94%9F%E6%88%90"><span class="nav-number">2.5.3.</span> <span class="nav-text">密钥生成</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Session%E9%87%8D%E7%94%A8"><span class="nav-number">2.6.</span> <span class="nav-text">Session重用</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Session-ID-2"><span class="nav-number">2.6.1.</span> <span class="nav-text">Session ID</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Session-Ticket-2"><span class="nav-number">2.6.2.</span> <span class="nav-text">Session Ticket</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%AF%81%E4%B9%A6%E7%9A%84%E5%90%8A%E9%94%80%EF%BC%88%E9%BB%91%E5%90%8D%E5%8D%95%EF%BC%89"><span class="nav-number">2.7.</span> <span class="nav-text">证书的吊销（黑名单）</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Certificate-Revocation-List-CRL"><span class="nav-number">2.7.1.</span> <span class="nav-text">Certificate Revocation List (CRL)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Online-Certificate-Status-Protocol-OCSP"><span class="nav-number">2.7.2.</span> <span class="nav-text">Online Certificate Status Protocol (OCSP)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#OCSP-Stapling"><span class="nav-number">2.7.3.</span> <span class="nav-text">OCSP Stapling</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Server-Name-Indication%EF%BC%88SNI%EF%BC%89"><span class="nav-number">2.8.</span> <span class="nav-text">Server Name Indication（SNI）</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">3.</span> <span class="nav-text">GMSSL协议差异</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8D%8F%E8%AE%AE%E5%8F%B7"><span class="nav-number">3.1.</span> <span class="nav-text">协议号</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%AE%97%E6%B3%95%E5%A5%97%E4%BB%B6"><span class="nav-number">3.2.</span> <span class="nav-text">算法套件</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8F%8C%E8%AF%81%E4%B9%A6%E4%BD%93%E7%B3%BB"><span class="nav-number">3.3.</span> <span class="nav-text">双证书体系</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%AF%81%E4%B9%A6%E6%B6%88%E6%81%AF"><span class="nav-number">3.3.1.</span> <span class="nav-text">证书消息</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#ECC-SM4-SM3%E5%AF%86%E9%92%A5%E4%BA%A4%E6%8D%A2"><span class="nav-number">3.3.2.</span> <span class="nav-text">ECC_SM4_SM3密钥交换</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#ECDHE-SM4-SM3%E5%AF%86%E9%92%A5%E4%BA%A4%E6%8D%A2"><span class="nav-number">3.3.3.</span> <span class="nav-text">ECDHE_SM4_SM3密钥交换</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">4.</span> <span class="nav-text">安全性</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%B8%B8%E8%A7%81%E6%94%BB%E5%87%BB"><span class="nav-number">4.1.</span> <span class="nav-text">常见攻击</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%89%8D%E5%90%91%E5%AE%89%E5%85%A8%E6%80%A7"><span class="nav-number">4.2.</span> <span class="nav-text">前向安全性</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">5.</span> <span class="nav-text">TLS 1.3新特性</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AF%86%E9%92%A5%E4%BA%A4%E6%8D%A2%E6%A8%A1%E5%BC%8F"><span class="nav-number">5.1.</span> <span class="nav-text">密钥交换模式</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-RTT%E6%8F%A1%E6%89%8B"><span class="nav-number">5.2.</span> <span class="nav-text">1-RTT握手</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%87%8D%E7%94%A8%E5%92%8CPSK"><span class="nav-number">5.3.</span> <span class="nav-text">重用和PSK</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%9C%89%E5%89%AF%E4%BD%9C%E7%94%A8%E7%9A%840-RTT%E6%8F%A1%E6%89%8B"><span class="nav-number">5.4.</span> <span class="nav-text">有副作用的0-RTT握手</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AF%86%E9%92%A5%E6%B4%BE%E7%94%9F%E8%BF%87%E7%A8%8B"><span class="nav-number">5.5.</span> <span class="nav-text">密钥派生过程</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">6.</span> <span class="nav-text">常见实现</span></a></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">7.</span> <span class="nav-text">参考资料</span></a></li></ol></div>
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%AF%86%E7%A0%81%E5%AD%A6%E5%9F%BA%E7%A1%80"><span class="nav-number">1.</span> <span class="nav-text">密码学基础</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8F%A4%E5%85%B8%E7%9A%84%E5%AF%86%E7%A0%81"><span class="nav-number">1.1.</span> <span class="nav-text">古典的密码</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%87%AF%E6%92%92%E5%AF%86%E7%A0%81"><span class="nav-number">1.1.1.</span> <span class="nav-text">凯撒密码</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%AE%80%E5%8D%95%E6%9B%BF%E6%8D%A2%E5%AF%86%E7%A0%81"><span class="nav-number">1.1.2.</span> <span class="nav-text">简单替换密码</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Enigma%E5%AF%86%E7%A0%81%E6%9C%BA"><span class="nav-number">1.1.3.</span> <span class="nav-text">Enigma密码机</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AF%B9%E7%A7%B0%E5%AF%86%E7%A0%81"><span class="nav-number">1.2.</span> <span class="nav-text">对称密码</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%9D%97%E5%AF%86%E7%A0%81%E5%92%8C%E6%B5%81%E5%AF%86%E7%A0%81"><span class="nav-number">1.2.1.</span> <span class="nav-text">块密码和流密码</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#AES-Advanced-Encryption-Standard"><span class="nav-number">1.2.2.</span> <span class="nav-text">AES (Advanced Encryption Standard)</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%9D%97%E5%AF%86%E7%A0%81%E7%9A%84%E6%A8%A1%E5%BC%8F"><span class="nav-number">1.3.</span> <span class="nav-text">块密码的模式</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%A8%A1%E5%BC%8F"><span class="nav-number">1.3.1.</span> <span class="nav-text">模式</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#ECB%E6%A8%A1%E5%BC%8F"><span class="nav-number">1.3.1.1.</span> <span class="nav-text">ECB模式</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#CBC%E6%A8%A1%E5%BC%8F"><span class="nav-number">1.3.1.2.</span> <span class="nav-text">CBC模式</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#CTR%E6%A8%A1%E5%BC%8F"><span class="nav-number">1.3.1.3.</span> <span class="nav-text">CTR模式</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#AEAD%EF%BC%88Authenticated-Encryption-with-Associated-Data%EF%BC%89"><span class="nav-number">1.3.2.</span> <span class="nav-text">AEAD（Authenticated Encryption with Associated Data）</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#GCM%EF%BC%88Galois-x2F-Counter-Mode%EF%BC%89"><span class="nav-number">1.3.2.1.</span> <span class="nav-text">GCM（Galois&#x2F;Counter Mode）</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%85%AC%E9%92%A5%E5%AF%86%E7%A0%81%EF%BC%88%E9%9D%9E%E5%AF%B9%E7%A7%B0%E5%AF%86%E7%A0%81%EF%BC%89"><span class="nav-number">1.4.</span> <span class="nav-text">公钥密码（非对称密码）</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%85%AC%E9%92%A5%E5%AF%86%E7%A0%81%E7%AE%97%E6%B3%95%EF%BC%88RSA%E3%80%81%E5%9B%BD%E5%AF%86SM2%EF%BC%89"><span class="nav-number">1.4.1.</span> <span class="nav-text">公钥密码算法（RSA、国密SM2）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Diffie-Hellman%E5%AF%86%E9%92%A5%E4%BA%A4%E6%8D%A2"><span class="nav-number">1.4.2.</span> <span class="nav-text">Diffie-Hellman密钥交换</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#ECDH%E5%92%8CECDHE"><span class="nav-number">1.4.3.</span> <span class="nav-text">ECDH和ECDHE</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8D%95%E5%90%91%E6%95%A3%E5%88%97%E5%87%BD%E6%95%B0%EF%BC%88Hash%EF%BC%89"><span class="nav-number">1.5.</span> <span class="nav-text">单向散列函数（Hash）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%B6%88%E6%81%AF%E8%AE%A4%E8%AF%81%E7%A0%81%EF%BC%88MAC%EF%BC%89"><span class="nav-number">1.6.</span> <span class="nav-text">消息认证码（MAC）</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#MAC%E7%9A%84%E9%97%AE%E9%A2%98"><span class="nav-number">1.6.1.</span> <span class="nav-text">MAC的问题</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%95%B0%E5%AD%97%E7%AD%BE%E5%90%8D%EF%BC%88RSA%E3%80%81ECDSA%EF%BC%89"><span class="nav-number">1.7.</span> <span class="nav-text">数字签名（RSA、ECDSA）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%95%B0%E5%AD%97%E8%AF%81%E4%B9%A6%E3%80%81-CA"><span class="nav-number">1.8.</span> <span class="nav-text">数字证书、 CA</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%B7%B7%E5%90%88%E5%AF%86%E7%A0%81%E7%B3%BB%E7%BB%9F"><span class="nav-number">1.9.</span> <span class="nav-text">混合密码系统</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%9A%8F%E6%9C%BA%E6%95%B0%E5%8F%91%E7%94%9F%E5%99%A8"><span class="nav-number">1.10.</span> <span class="nav-text">随机数发生器</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AF%86%E9%92%A5%E6%B4%BE%E7%94%9F%E5%87%BD%E6%95%B0-key-derivation-function"><span class="nav-number">1.11.</span> <span class="nav-text">密钥派生函数 key derivation function</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#SSL-x2F-TLS%E5%8D%8F%E8%AE%AE%E8%AF%A6%E8%A7%A3"><span class="nav-number">2.</span> <span class="nav-text">SSL&#x2F;TLS协议详解</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BB%80%E4%B9%88%E6%98%AFSSL-x2F-TLS%E5%8D%8F%E8%AE%AE"><span class="nav-number">2.1.</span> <span class="nav-text">什么是SSL&#x2F;TLS协议</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8D%8F%E8%AE%AE%E5%88%86%E5%B1%82"><span class="nav-number">2.2.</span> <span class="nav-text">协议分层</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#SSL-record"><span class="nav-number">2.3.</span> <span class="nav-text">SSL record</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%AE%97%E6%B3%95%E5%A5%97%E4%BB%B6CipherSuites"><span class="nav-number">2.4.</span> <span class="nav-text">算法套件CipherSuites</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#TLS-1-2"><span class="nav-number">2.4.1.</span> <span class="nav-text">TLS 1.2-</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#TLS-1-3"><span class="nav-number">2.4.2.</span> <span class="nav-text">TLS 1.3</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#SSL-handshake"><span class="nav-number">2.5.</span> <span class="nav-text">SSL handshake</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AF%86%E9%92%A5%E4%BA%A4%E6%8D%A2%E6%B5%81%E7%A8%8B-RSA"><span class="nav-number">2.5.1.</span> <span class="nav-text">密钥交换流程-RSA</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AF%86%E9%92%A5%E4%BA%A4%E6%8D%A2%E6%B5%81%E7%A8%8B-DH"><span class="nav-number">2.5.2.</span> <span class="nav-text">密钥交换流程-DH</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AF%86%E9%92%A5%E7%94%9F%E6%88%90"><span class="nav-number">2.5.3.</span> <span class="nav-text">密钥生成</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Session%E9%87%8D%E7%94%A8"><span class="nav-number">2.6.</span> <span class="nav-text">Session重用</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Session-ID"><span class="nav-number">2.6.1.</span> <span class="nav-text">Session ID</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Session-Ticket"><span class="nav-number">2.6.2.</span> <span class="nav-text">Session Ticket</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%AF%81%E4%B9%A6%E7%9A%84%E5%90%8A%E9%94%80%EF%BC%88%E9%BB%91%E5%90%8D%E5%8D%95%EF%BC%89"><span class="nav-number">2.7.</span> <span class="nav-text">证书的吊销（黑名单）</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Certificate-Revocation-List-CRL"><span class="nav-number">2.7.1.</span> <span class="nav-text">Certificate Revocation List (CRL)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Online-Certificate-Status-Protocol-OCSP"><span class="nav-number">2.7.2.</span> <span class="nav-text">Online Certificate Status Protocol (OCSP)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#OCSP-Stapling"><span class="nav-number">2.7.3.</span> <span class="nav-text">OCSP Stapling</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Server-Name-Indication%EF%BC%88SNI%EF%BC%89"><span class="nav-number">2.8.</span> <span class="nav-text">Server Name Indication（SNI）</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#GMSSL%E5%8D%8F%E8%AE%AE%E5%B7%AE%E5%BC%82"><span class="nav-number">3.</span> <span class="nav-text">GMSSL协议差异</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8D%8F%E8%AE%AE%E5%8F%B7"><span class="nav-number">3.1.</span> <span class="nav-text">协议号</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%AE%97%E6%B3%95%E5%A5%97%E4%BB%B6"><span class="nav-number">3.2.</span> <span class="nav-text">算法套件</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8F%8C%E8%AF%81%E4%B9%A6%E4%BD%93%E7%B3%BB"><span class="nav-number">3.3.</span> <span class="nav-text">双证书体系</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%AF%81%E4%B9%A6%E6%B6%88%E6%81%AF"><span class="nav-number">3.3.1.</span> <span class="nav-text">证书消息</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#ECC-SM4-SM3%E5%AF%86%E9%92%A5%E4%BA%A4%E6%8D%A2"><span class="nav-number">3.3.2.</span> <span class="nav-text">ECC_SM4_SM3密钥交换</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#ECDHE-SM4-SM3%E5%AF%86%E9%92%A5%E4%BA%A4%E6%8D%A2"><span class="nav-number">3.3.3.</span> <span class="nav-text">ECDHE_SM4_SM3密钥交换</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%AE%89%E5%85%A8%E6%80%A7"><span class="nav-number">4.</span> <span class="nav-text">安全性</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%B8%B8%E8%A7%81%E6%94%BB%E5%87%BB"><span class="nav-number">4.1.</span> <span class="nav-text">常见攻击</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%89%8D%E5%90%91%E5%AE%89%E5%85%A8%E6%80%A7"><span class="nav-number">4.2.</span> <span class="nav-text">前向安全性</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#TLS-1-3%E6%96%B0%E7%89%B9%E6%80%A7"><span class="nav-number">5.</span> <span class="nav-text">TLS 1.3新特性</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AF%86%E9%92%A5%E4%BA%A4%E6%8D%A2%E6%A8%A1%E5%BC%8F"><span class="nav-number">5.1.</span> <span class="nav-text">密钥交换模式</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-RTT%E6%8F%A1%E6%89%8B"><span class="nav-number">5.2.</span> <span class="nav-text">1-RTT握手</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%87%8D%E7%94%A8%E5%92%8CPSK"><span class="nav-number">5.3.</span> <span class="nav-text">重用和PSK</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%9C%89%E5%89%AF%E4%BD%9C%E7%94%A8%E7%9A%840-RTT%E6%8F%A1%E6%89%8B"><span class="nav-number">5.4.</span> <span class="nav-text">有副作用的0-RTT握手</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AF%86%E9%92%A5%E6%B4%BE%E7%94%9F%E8%BF%87%E7%A8%8B"><span class="nav-number">5.5.</span> <span class="nav-text">密钥派生过程</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%B8%B8%E8%A7%81%E5%AE%9E%E7%8E%B0"><span class="nav-number">6.</span> <span class="nav-text">常见实现</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99"><span class="nav-number">7.</span> <span class="nav-text">参考资料</span></a></li></ol></div>
       </div>
       <!--/noindex-->
 
@@ -1334,13 +1271,13 @@ if(canvas.getContext){
       <i class="fa fa-chart-area"></i>
     </span>
       <span class="post-meta-item-text">站点总字数：</span>
-    <span title="站点总字数">321k</span>
+    <span title="站点总字数">322k</span>
     <span class="post-meta-divider">|</span>
     <span class="post-meta-item-icon">
       <i class="fa fa-coffee"></i>
     </span>
       <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
-    <span title="站点阅读时长">4:52</span>
+    <span title="站点阅读时长">4:53</span>
 </div>
   <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener external nofollow noreferrer" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener external nofollow noreferrer" target="_blank">NexT.Gemini</a> 强力驱动
   </div>

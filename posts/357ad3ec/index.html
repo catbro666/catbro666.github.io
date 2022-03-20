@@ -342,75 +342,80 @@ translateInitilization();
         <div class="note primary">
             <p>前段时间在做一些测试的时候接触到了Linux tc，因为需要对数据包添加延迟，用到了tc中的netem。添加简单的延迟非常简单，像这样一条命令就搞定了：<code>$ tc qdisc add dev eth0 root netem delay 1s</code>，你甚至不需要完全理解命令中参数的含义。但是当你想做一些更加特殊的限制的时候，（比如只对某个特定的ip端口添加延迟、或者只对入站的流量添加延迟），事情就变得有些棘手了，简单的百度貌似已经满足不了要求了。你不得不了解TC中的一些基本概念，以及tc[2]命令中相关参数的含义。</p><p>本文正是带你了解这些TC中的基本概念，并通过一个实际例子，将这些概念与tc命令联系起来。</p>
           </div>
+
 <span id="more"></span>
-<h2 id="示例命令">示例命令</h2>
-<p>考虑到这是一个科普向的介绍，这里只举了一个最简单的例子，但是基本上包含了重要的概念。本文的期望是，让读者在阅读后可以完全理解下面的例子，并且知道如何根据自身的需求编写自己的命令。</p>
+
+
+
+<h2 id="示例命令"><a href="#示例命令" class="headerlink" title="示例命令"></a>示例命令</h2><p>考虑到这是一个科普向的介绍，这里只举了一个最简单的例子，但是基本上包含了重要的概念。本文的期望是，让读者在阅读后可以完全理解下面的例子，并且知道如何根据自身的需求编写自己的命令。</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">sudo tc qdisc add dev eth0 root handle 1: prio bands 4</span><br><span class="line">sudo tc qdisc add dev eth0 parent 1:4 handle 40: netem loss 10% delay 40ms</span><br><span class="line">sudo tc filter add dev eth0 protocol ip parent 1:0 prio 4 u32 match ip dst 192.168.190.7 match ip dport 36000 0xffff flowid 1:4</span><br></pre></td></tr></table></figure>
-<h2 id="TC基本概念">TC基本概念</h2>
-<h3 id="QDISCS">QDISCS</h3>
-<p>全称是queueing discipline，我们姑且称其为排队规则吧。它是协议栈和网络接口之间的一个缓冲层。你可以在qdisc上对数据包做一些你想做的操作，比如分类、整形、调度等。</p>
+
+
+
+<h2 id="TC基本概念"><a href="#TC基本概念" class="headerlink" title="TC基本概念"></a>TC基本概念</h2><h3 id="QDISCS"><a href="#QDISCS" class="headerlink" title="QDISCS"></a>QDISCS</h3><p>全称是queueing discipline，我们姑且称其为排队规则吧。它是协议栈和网络接口之间的一个缓冲层。你可以在qdisc上对数据包做一些你想做的操作，比如分类、整形、调度等。</p>
 <p>qdisc分为无类（classless）qdisc和有类（classful）qdisc。无类qdisc不再内部细分类，有类qdisc可进一步包含多个分类，每个class上可以进一步包含子qdisc，子qdisc也可以是有类qdisc，这样就形成了树状的分层结构。</p>
-<h3 id="CLASSES">CLASSES</h3>
-<p>有类qdisc可以有多个子类（class），有些qdisc预定义了子类（如prio），有些则需要用户添加类。一个类上又可以附加其他类。最末端没有子类的类称为叶子类，它上面附加了一个qdisc。当创建一个class的时候，默认会附加一个fifo qdisc，它只是一个简单的队列，不对数据包进行任何的操作。当在这个类上增加子类的时候，这个默认的qdisc被移除。你可以将这个默认的fifo qdisc替换成其他任意你想用的qdisc。</p>
-<h3 id="FILTERS">FILTERS</h3>
-<p>过滤器，用于有类qdisc中，决定将包入队到哪个类中。每当一个包到达有子类的类时，就需要进行分类。其中一种分类的方法就是使用过滤器（另外两个是ToS和skb-&gt;priority）。所有附加到类上的过滤器会被依次调用，直到其中一个返回裁决。一个filter包含了一些条件，当一个包到达该节点时，会根据包的特征判断是否匹配。</p>
+<h3 id="CLASSES"><a href="#CLASSES" class="headerlink" title="CLASSES"></a>CLASSES</h3><p>有类qdisc可以有多个子类（class），有些qdisc预定义了子类（如prio），有些则需要用户添加类。一个类上又可以附加其他类。最末端没有子类的类称为叶子类，它上面附加了一个qdisc。当创建一个class的时候，默认会附加一个fifo qdisc，它只是一个简单的队列，不对数据包进行任何的操作。当在这个类上增加子类的时候，这个默认的qdisc被移除。你可以将这个默认的fifo qdisc替换成其他任意你想用的qdisc。</p>
+<h3 id="FILTERS"><a href="#FILTERS" class="headerlink" title="FILTERS"></a>FILTERS</h3><p>过滤器，用于有类qdisc中，决定将包入队到哪个类中。每当一个包到达有子类的类时，就需要进行分类。其中一种分类的方法就是使用过滤器（另外两个是ToS和skb-&gt;priority）。所有附加到类上的过滤器会被依次调用，直到其中一个返回裁决。一个filter包含了一些条件，当一个包到达该节点时，会根据包的特征判断是否匹配。</p>
 <p>以上3个是TC中最基本的3个概念，任何复杂的流量控制都是通过这个三元组递归实现的。</p>
-<h2 id="层级结构">层级结构</h2>
-<p>每个接口有一个egress ‘root qdisc’，默认是pfifo_fast。每个qdisc和class都分配一个句柄handle，句柄用于在后续的配置语句中进行引用。除了egress qdisc，一个接口也可以有一个ingress qdisc，负责管制入站的流量。但是ingress qdisc相比classful qdisc其可能性是非常有限。（所以才有所谓的控发不控收，对入站流量进行控制通常需要借助ifb[6]或者imq）。</p>
+<h2 id="层级结构"><a href="#层级结构" class="headerlink" title="层级结构"></a>层级结构</h2><p>每个接口有一个egress ‘root qdisc’，默认是pfifo_fast。每个qdisc和class都分配一个句柄handle，句柄用于在后续的配置语句中进行引用。除了egress qdisc，一个接口也可以有一个ingress qdisc，负责管制入站的流量。但是ingress qdisc相比classful qdisc其可能性是非常有限。（所以才有所谓的控发不控收，对入站流量进行控制通常需要借助ifb[6]或者imq）。</p>
 <p>这些qdisc的handles有两个部分组成，一个major数和一个minor数：<code>&lt;major&gt;:&lt;minor&gt;</code>。习惯上将root qdisc命名为<code>1:</code>，等价于<code>1:0</code>。一个qdisc的minor数总是0。</p>
 <p>子类需要跟它们的parent有相同的major数。major数在一个egress或ingress内必须是唯一的，minor数在一个qdisc和它的class中必须是唯一的。</p>
 <p>一个典型的层级结构如下：</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">          1:   root qdisc</span><br><span class="line">           |</span><br><span class="line">          1:1    child class</span><br><span class="line">        /  |  \</span><br><span class="line">       /   |   \</span><br><span class="line">      /    |    \</span><br><span class="line">      /    |    \</span><br><span class="line">   1:10  1:11  1:12   child classes</span><br><span class="line">    |      |     | </span><br><span class="line">    |     11:    |    leaf class</span><br><span class="line">    |            | </span><br><span class="line">    10:         12:   qdisc</span><br><span class="line">   /   \       /   \</span><br><span class="line">10:1  10:2   12:1  12:2   leaf classes</span><br></pre></td></tr></table></figure>
+
+
+
 <p>内核只跟root qdisc进行通信，每当包需要入队或者出队的时候，都需要从root节点开始，最终到达叶子节点，从而决定入队到哪里，或者从哪里出队。</p>
 <p>比如当一个包入队时，它可能会经过如下路径：</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">1: -&gt; 1:1 -&gt; 1:12 -&gt; 12: -&gt; 12:2</span><br></pre></td></tr></table></figure>
+
 <p>当然也可能直接走如下路径：</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">1: -&gt; 12:2</span><br></pre></td></tr></table></figure>
+
 <p>这种情况，就是root qdisc上的过滤器决定把包直接送到<code>12:2</code>。</p>
 <span class="label warning">注意：</span>入队和出队时虽然节点的拓扑图是一样的，但是每个节点表示的含义却有所不同[4]。入队时是根据过滤器和包的特征决定走哪条路径，而出队时则取决于qdisc本身的调度算法，比如FIFO、优先级队列、SFQ的顺序调度等。
-<h2 id="过滤器">过滤器</h2>
-<p>前面已经提到了过滤器用于将包分类到子类，那么具体是如何对包进行分类的呢？tc支持很多类型的分类器，它们根据数据包相关的不同信息来作出决策。其中最常用的就是<strong>u32分类器</strong>，它根据数据包中的字段做出决策（例如源IP地址等）。还有比如<strong>fw分类器</strong>，根据防火墙如何标记数据包来做出决策，你可以使用iptables标记目标数据包，然后通过fw分类器进行过滤。另外还有诸如<strong>route分类器</strong>、<strong>cgroup分类器</strong>、<strong>bpf分类器</strong>等，篇幅原因不再赘述。下面仅介绍最常见的u32分类器。</p>
-<h3 id="公共参数">公共参数</h3>
-<p>分类器一般接收以下几个公共的参数：</p>
+
+
+
+<h2 id="过滤器"><a href="#过滤器" class="headerlink" title="过滤器"></a>过滤器</h2><p>前面已经提到了过滤器用于将包分类到子类，那么具体是如何对包进行分类的呢？tc支持很多类型的分类器，它们根据数据包相关的不同信息来作出决策。其中最常用的就是<strong>u32分类器</strong>，它根据数据包中的字段做出决策（例如源IP地址等）。还有比如<strong>fw分类器</strong>，根据防火墙如何标记数据包来做出决策，你可以使用iptables标记目标数据包，然后通过fw分类器进行过滤。另外还有诸如<strong>route分类器</strong>、<strong>cgroup分类器</strong>、<strong>bpf分类器</strong>等，篇幅原因不再赘述。下面仅介绍最常见的u32分类器。</p>
+<h3 id="公共参数"><a href="#公共参数" class="headerlink" title="公共参数"></a>公共参数</h3><p>分类器一般接收以下几个公共的参数：</p>
 <ul>
-<li>
-<p>protocol</p>
+<li><p>protocol</p>
 <p>分类器接受的协议，通常你只接受IP流量。必须。</p>
 </li>
-<li>
-<p>parent</p>
+<li><p>parent</p>
 <p>分类器附加到哪个handle上。这个handle必须是一个已经存在的类。必须。</p>
 </li>
-<li>
-<p>prio|perf</p>
+<li><p>prio|perf</p>
 <p>分类器的优先级。<strong>数字越小</strong>的越先进行匹配尝试。</p>
 </li>
-<li>
-<p>handle</p>
+<li><p>handle</p>
 <p>这个handle对于不同的过滤器表示不同的含义。</p>
 </li>
 </ul>
-<h3 id="u32分类器-3">u32分类器[3]</h3>
-<p>u32过滤器最简单的格式是设置一组选择器对包进行匹配，匹配的包分到特定的子类中，或者执行一个action。u32分类器提供了多种不同的选择器，可以大致分成特殊选择器和通用选择器两类。</p>
-<h3 id="特殊选择器">特殊选择器</h3>
-<p>常用的有ip选择器和tcp选择器。特殊选择器简化了一些常用字段的设置，可以匹配包头中的各种字段，比如：</p>
+<h3 id="u32分类器-3"><a href="#u32分类器-3" class="headerlink" title="u32分类器[3]"></a>u32分类器[3]</h3><p>u32过滤器最简单的格式是设置一组选择器对包进行匹配，匹配的包分到特定的子类中，或者执行一个action。u32分类器提供了多种不同的选择器，可以大致分成特殊选择器和通用选择器两类。</p>
+<h3 id="特殊选择器"><a href="#特殊选择器" class="headerlink" title="特殊选择器"></a>特殊选择器</h3><p>常用的有ip选择器和tcp选择器。特殊选择器简化了一些常用字段的设置，可以匹配包头中的各种字段，比如：</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">tc filter add dev eth0 protocol ip parent 1:0 prio 10 u32 \</span><br><span class="line">	match ip src 192.168.8.0/24 flowid 1:4</span><br></pre></td></tr></table></figure>
-<p>上例匹配ip源地址在192.168.8.0/24子网的包。</p>
+
+<p>上例匹配ip源地址在192.168.8.0&#x2F;24子网的包。</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">tc filter add dev eth0 protocol ip parent 1:0 prio 10 u32 \</span><br><span class="line">        match ip protocol 0x6 0xff \</span><br><span class="line">        match tcp dport 53 0xffff \</span><br><span class="line">        flowid 1:2</span><br></pre></td></tr></table></figure>
+
 <p>上例匹配TCP协议（0x6）、且目的端口为53的包。</p>
-<h3 id="通用选择器">通用选择器</h3>
-<p>特殊选择器总是可以改写成对应的通用选择器，通用选择器可以匹配 IP（或上层）头中的几乎任何位，不过相比特殊选择器较难编写和阅读。其语法如下：</p>
+<h3 id="通用选择器"><a href="#通用选择器" class="headerlink" title="通用选择器"></a>通用选择器</h3><p>特殊选择器总是可以改写成对应的通用选择器，通用选择器可以匹配 IP（或上层）头中的几乎任何位，不过相比特殊选择器较难编写和阅读。其语法如下：</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">match [ u32 | u16 | u8 ] PATTERN MASK at [OFFSET | nexthdr+OFFSET]</span><br></pre></td></tr></table></figure>
+
 <p>其中u32|u16|u8指定pattern的长度，分别为4个字节、2个字节、1个字节。PATTERN表示匹配的包的pattern，MASK告诉过滤器匹配哪些位，at表示从包的指定偏移处开始匹配。</p>
 <p>来看一个例子：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">tc filter add dev eth0 protocol ip parent 1:0 pref 10 u32 \</span><br><span class="line">	match u32 00100000 00ff0000 at 0 flowid 1:10</span><br></pre></td></tr></table></figure>
+
 <p>选择器会匹配IP头第二个字节为0x10的包，<code>at 0</code>表示从头开始匹配，mask为<code>00ff0000</code>所以只匹配第二个字节，pattern为<code>00100000</code>即第二个字节为0x10。</p>
 <p>再来看另一个例子：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">tc filter add dev eth0 protocol ip parent 1:0 pref 10 u32 \</span><br><span class="line">	match u32 00000016 0000ffff at nexthdr+0 flowid 1:10</span><br></pre></td></tr></table></figure>
+
 <p><code>nexthdr</code>选项表示封装在IP包里的下一个头，即上层协议的头。<code>at nexthdr+0</code>表示从下一个头第一个字节开始匹配。因为mask为<code>0000ffff</code>，所以匹配发生在头的第三和第四个字节。在TCP和UDP协议中这两个字节是包的目的端口。数字是由大段格式给出的，所以pattern <code>00000016</code>转换成十进制是22。即该选择器会匹配目的端口为22的包。</p>
-<h2 id="示例解析">示例解析</h2>
-<p>好了，现在我们可以回过头来看最初的那个示例了，看看这些命令到底是什么意思。</p>
+<h2 id="示例解析"><a href="#示例解析" class="headerlink" title="示例解析"></a>示例解析</h2><p>好了，现在我们可以回过头来看最初的那个示例了，看看这些命令到底是什么意思。</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">sudo tc qdisc add dev eth0 root handle 1: prio bands 4</span><br><span class="line">sudo tc qdisc add dev eth0 parent 1:4 handle 40: netem loss 10% delay 40ms</span><br><span class="line">sudo tc filter add dev eth0 protocol ip parent 1:0 prio 4 u32 match ip dst 192.168.190.7 match ip dport 36000 0xffff flowid 1:4</span><br></pre></td></tr></table></figure>
+
 <p>我们一行行来看，第一行在设备eth0上添加了一个root qdisc，句柄为1:，qdisc类型为prio，bands数为4。</p>
 <p>prio是一个有类的qdisc。它的作用跟默认的qdisc pfifo_fast类似。pfifo_fast有三个所谓的band，不同band的流量具有不同的优先级。每个band内，则应用FIFO规则。</p>
 <p>prio qdisc，默认会创建3个子类，包含纯FIFO qdisc，默认根据ToS位进行分类。你可以使用过滤器来对流量进行分类，你也可以在子类上附加其他qdisc替换默认的FIFO。</p>
@@ -419,27 +424,22 @@ translateInitilization();
 <p>所以最终的效果是，发往192.168.190.7且目的端口为36000的包，会分类到1:4子类，添加40ms的延迟，且有10%的丢包率。其他包则还是默认的行为，即根据ToS字段分类到1:1、1:2或1:3子类中，然后根据优先级依次发送。</p>
 <p>画出该例子的分层结构图，大致如下：</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">          1:     root qdisc (prio)</span><br><span class="line">         / | \ \</span><br><span class="line">       /   |  \  \</span><br><span class="line">       /   |   \   \</span><br><span class="line">     1:1  1:2  1:3  1:4      classes</span><br><span class="line">      |    |    |    |</span><br><span class="line">                     40:     qdiscs</span><br><span class="line">   pfifo pfifo pfifo netem</span><br><span class="line">band  0    1    2    3</span><br></pre></td></tr></table></figure>
-<h2 id="后记">后记</h2>
-<p>本文只介绍了tc的基本概念和简单用法。prio qdisc只对包做了一个分类，并没有进行整形。实际上，你也可以使用更复杂的带整形的qdisc，比如CBQ、HTB等，也可以增加更多的层级。你还可以在叶子节点上添加SFQ qdisc以实现会话级的带宽公平性。相信理解了TC的这些基本概念，再根据自身需求使用其他qdisc也不是什么难事了。</p>
-<h2 id="参考资料-2">参考资料</h2>
-<ol>
-<li>
-<p><a target="_blank" rel="noopener external nofollow noreferrer" href="https://lartc.org/howto/">lartc</a></p>
+
+
+
+<h2 id="后记"><a href="#后记" class="headerlink" title="后记"></a>后记</h2><p>本文只介绍了tc的基本概念和简单用法。prio qdisc只对包做了一个分类，并没有进行整形。实际上，你也可以使用更复杂的带整形的qdisc，比如CBQ、HTB等，也可以增加更多的层级。你还可以在叶子节点上添加SFQ qdisc以实现会话级的带宽公平性。相信理解了TC的这些基本概念，再根据自身需求使用其他qdisc也不是什么难事了。</p>
+<h2 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h2><ol>
+<li><p><a target="_blank" rel="noopener external nofollow noreferrer" href="https://lartc.org/howto/">lartc</a></p>
 </li>
-<li>
-<p><a target="_blank" rel="noopener external nofollow noreferrer" href="https://man7.org/linux/man-pages/man8/tc.8.html">tc(8)</a></p>
+<li><p><a target="_blank" rel="noopener external nofollow noreferrer" href="https://man7.org/linux/man-pages/man8/tc.8.html">tc(8)</a></p>
 </li>
-<li>
-<p><a target="_blank" rel="noopener external nofollow noreferrer" href="https://man7.org/linux/man-pages/man8/tc-u32.8.html">tc-u32(8)</a></p>
+<li><p><a target="_blank" rel="noopener external nofollow noreferrer" href="https://man7.org/linux/man-pages/man8/tc-u32.8.html">tc-u32(8)</a></p>
 </li>
-<li>
-<p><a target="_blank" rel="noopener external nofollow noreferrer" href="https://blog.csdn.net/dog250/article/details/40681809">数据包的分类和调度</a></p>
+<li><p><a target="_blank" rel="noopener external nofollow noreferrer" href="https://blog.csdn.net/dog250/article/details/40681809">数据包的分类和调度</a></p>
 </li>
-<li>
-<p><a target="_blank" rel="noopener external nofollow noreferrer" href="https://wiki.linuxfoundation.org/networking/netem">netem</a></p>
+<li><p><a target="_blank" rel="noopener external nofollow noreferrer" href="https://wiki.linuxfoundation.org/networking/netem">netem</a></p>
 </li>
-<li>
-<p><a target="_blank" rel="noopener external nofollow noreferrer" href="https://wiki.linuxfoundation.org/networking/ifb">ifb</a></p>
+<li><p><a target="_blank" rel="noopener external nofollow noreferrer" href="https://wiki.linuxfoundation.org/networking/ifb">ifb</a></p>
 </li>
 </ol>
 
@@ -583,7 +583,7 @@ translateInitilization();
 
       <!--noindex-->
       <div class="post-toc-wrap sidebar-panel">
-          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%A4%BA%E4%BE%8B%E5%91%BD%E4%BB%A4"><span class="nav-number">1.</span> <span class="nav-text">示例命令</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#TC%E5%9F%BA%E6%9C%AC%E6%A6%82%E5%BF%B5"><span class="nav-number">2.</span> <span class="nav-text">TC基本概念</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#QDISCS"><span class="nav-number">2.1.</span> <span class="nav-text">QDISCS</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#CLASSES"><span class="nav-number">2.2.</span> <span class="nav-text">CLASSES</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#FILTERS"><span class="nav-number">2.3.</span> <span class="nav-text">FILTERS</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%B1%82%E7%BA%A7%E7%BB%93%E6%9E%84"><span class="nav-number">3.</span> <span class="nav-text">层级结构</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%BF%87%E6%BB%A4%E5%99%A8"><span class="nav-number">4.</span> <span class="nav-text">过滤器</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%85%AC%E5%85%B1%E5%8F%82%E6%95%B0"><span class="nav-number">4.1.</span> <span class="nav-text">公共参数</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#u32%E5%88%86%E7%B1%BB%E5%99%A8-3"><span class="nav-number">4.2.</span> <span class="nav-text">u32分类器[3]</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%89%B9%E6%AE%8A%E9%80%89%E6%8B%A9%E5%99%A8"><span class="nav-number">4.3.</span> <span class="nav-text">特殊选择器</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%80%9A%E7%94%A8%E9%80%89%E6%8B%A9%E5%99%A8"><span class="nav-number">4.4.</span> <span class="nav-text">通用选择器</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%A4%BA%E4%BE%8B%E8%A7%A3%E6%9E%90"><span class="nav-number">5.</span> <span class="nav-text">示例解析</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%90%8E%E8%AE%B0"><span class="nav-number">6.</span> <span class="nav-text">后记</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99-2"><span class="nav-number">7.</span> <span class="nav-text">参考资料</span></a></li></ol></div>
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%A4%BA%E4%BE%8B%E5%91%BD%E4%BB%A4"><span class="nav-number">1.</span> <span class="nav-text">示例命令</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#TC%E5%9F%BA%E6%9C%AC%E6%A6%82%E5%BF%B5"><span class="nav-number">2.</span> <span class="nav-text">TC基本概念</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#QDISCS"><span class="nav-number">2.1.</span> <span class="nav-text">QDISCS</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#CLASSES"><span class="nav-number">2.2.</span> <span class="nav-text">CLASSES</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#FILTERS"><span class="nav-number">2.3.</span> <span class="nav-text">FILTERS</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%B1%82%E7%BA%A7%E7%BB%93%E6%9E%84"><span class="nav-number">3.</span> <span class="nav-text">层级结构</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%BF%87%E6%BB%A4%E5%99%A8"><span class="nav-number">4.</span> <span class="nav-text">过滤器</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%85%AC%E5%85%B1%E5%8F%82%E6%95%B0"><span class="nav-number">4.1.</span> <span class="nav-text">公共参数</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#u32%E5%88%86%E7%B1%BB%E5%99%A8-3"><span class="nav-number">4.2.</span> <span class="nav-text">u32分类器[3]</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%89%B9%E6%AE%8A%E9%80%89%E6%8B%A9%E5%99%A8"><span class="nav-number">4.3.</span> <span class="nav-text">特殊选择器</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%80%9A%E7%94%A8%E9%80%89%E6%8B%A9%E5%99%A8"><span class="nav-number">4.4.</span> <span class="nav-text">通用选择器</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%A4%BA%E4%BE%8B%E8%A7%A3%E6%9E%90"><span class="nav-number">5.</span> <span class="nav-text">示例解析</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%90%8E%E8%AE%B0"><span class="nav-number">6.</span> <span class="nav-text">后记</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99"><span class="nav-number">7.</span> <span class="nav-text">参考资料</span></a></li></ol></div>
       </div>
       <!--/noindex-->
 
@@ -927,13 +927,13 @@ if(canvas.getContext){
       <i class="fa fa-chart-area"></i>
     </span>
       <span class="post-meta-item-text">站点总字数：</span>
-    <span title="站点总字数">321k</span>
+    <span title="站点总字数">322k</span>
     <span class="post-meta-divider">|</span>
     <span class="post-meta-item-icon">
       <i class="fa fa-coffee"></i>
     </span>
       <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
-    <span title="站点阅读时长">4:52</span>
+    <span title="站点阅读时长">4:53</span>
 </div>
   <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener external nofollow noreferrer" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener external nofollow noreferrer" target="_blank">NexT.Gemini</a> 强力驱动
   </div>
