@@ -34,7 +34,7 @@
 <meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/83951100/asn1-structure-of-x509-after.png">
 <meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/83951100/infinite-loop-when-parsing-invalid-cert.png">
 <meta property="article:published_time" content="2022-03-19T14:53:34.000Z">
-<meta property="article:modified_time" content="2022-03-20T07:37:46.257Z">
+<meta property="article:modified_time" content="2022-03-21T09:59:42.685Z">
 <meta property="article:author" content="猫猫哥">
 <meta property="article:tag" content="OpenSSL">
 <meta property="article:tag" content="CVE">
@@ -292,7 +292,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-03-20 15:37:46" itemprop="dateModified" datetime="2022-03-20T15:37:46+08:00">2022-03-20</time>
+                <time title="修改时间：2022-03-21 17:59:42" itemprop="dateModified" datetime="2022-03-21T17:59:42+08:00">2022-03-21</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -354,14 +354,14 @@ translateInitilization();
                 <i class="far fa-file-word"></i>
               </span>
                 <span class="post-meta-item-text">本文字数：</span>
-              <span>6.4k</span>
+              <span>7.5k</span>
             </span>
             <span class="post-meta-item" title="阅读时长">
               <span class="post-meta-item-icon">
                 <i class="far fa-clock"></i>
               </span>
                 <span class="post-meta-item-text">阅读时长 &asymp;</span>
-              <span>6 分钟</span>
+              <span>7 分钟</span>
             </span>
 
         </div>
@@ -391,7 +391,7 @@ translateInitilization();
             <p>官方补丁commit[^2] </p>
           </div>
 
-<h1 id="函数分析"><a href="#函数分析" class="headerlink" title="函数分析"></a>函数分析</h1><p>我们先简单过一下这个函数的实现。实现函数签名如下，a是操作数，p是模数</p>
+<h1 id="函数分析"><a href="#函数分析" class="headerlink" title="函数分析"></a>函数分析</h1><p>我们先简单过一下这个函数的实现。函数签名如下，a是操作数，p是模数</p>
 <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">BIGNUM *<span class="title">BN_mod_sqrt</span><span class="params">(BIGNUM *in, <span class="keyword">const</span> BIGNUM *a, <span class="keyword">const</span> BIGNUM *p, BN_CTX *ctx)</span></span></span><br></pre></td></tr></table></figure>
 
 <p>首先对p做了简单的检查，对p是偶数、1这两个显然不是质数的情况直接报错，对p为2的情况进行了特殊处理。</p>
@@ -461,14 +461,14 @@ translateInitilization();
 <h2 id="创建一个正常的带显式曲线参数的证书"><a href="#创建一个正常的带显式曲线参数的证书" class="headerlink" title="创建一个正常的带显式曲线参数的证书"></a>创建一个正常的带显式曲线参数的证书</h2><p>首先我们需要创建一个ec密钥，因为我们想要证书中包含显式的曲线参数，所以我们在生成密钥时也选择带显式参数</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ openssl ecparam -out ec.key -name prime256v1 -genkey -noout -param_enc explicit -conv_form compressed</span><br></pre></td></tr></table></figure>
 
-<p>接着为了方便起见，我们直接自签发一个证书。这里将输出格式设为DER也是为了方便我们后面的修改ASN1结构。</p>
+<p>接着为了方便起见，我们直接自签发一个证书。这里将输出格式设为DER也是为了方便我们后面修改ASN1结构。</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ openssl req -new -x509 -key ec.key -out cert.der -outform DER -days 360 -subj <span class="string">&quot;/CN=TEST/&quot;</span></span><br></pre></td></tr></table></figure>
 
 <p>确认一下证书信息，其中包含了曲线参数信息：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">$ openssl x509 -<span class="keyword">in</span> cert.der -text -noout -inform DER</span><br><span class="line">...</span><br><span class="line">                Field Type: prime-field</span><br><span class="line">                Prime:</span><br><span class="line">                    00:ff:ff:ff:ff:00:00:00:01:00:00:00:00:00:00:</span><br><span class="line">                    00:00:00:00:00:00:ff:ff:ff:ff:ff:ff:ff:ff:ff:</span><br><span class="line">                    ff:ff:ff</span><br><span class="line">                A:</span><br><span class="line">                    00:ff:ff:ff:ff:00:00:00:01:00:00:00:00:00:00:</span><br><span class="line">                    00:00:00:00:00:00:ff:ff:ff:ff:ff:ff:ff:ff:ff:</span><br><span class="line">                    ff:ff:<span class="built_in">fc</span></span><br><span class="line">                B:</span><br><span class="line">                    5a:c6:35:d8:aa:3a:93:e7:b3:eb:bd:55:76:98:86:</span><br><span class="line">                    bc:65:1d:06:b0:cc:53:b0:f6:3b:ce:3c:3e:27:d2:</span><br><span class="line">                    60:4b</span><br><span class="line">                Generator (compressed):</span><br><span class="line">                    03:6b:17:d1:f2:e1:2c:42:47:f8:bc:e6:e5:63:a4:</span><br><span class="line">                    40:f2:77:03:7d:81:2d:eb:33:a0:f4:a1:39:45:d8:</span><br><span class="line">                    98:c2:96</span><br><span class="line">                Order:</span><br><span class="line">                    00:ff:ff:ff:ff:00:00:00:00:ff:ff:ff:ff:ff:ff:</span><br><span class="line">                    ff:ff:bc:e6:fa:ad:a7:17:9e:84:f3:b9:ca:c2:<span class="built_in">fc</span>:</span><br><span class="line">                    63:25:51</span><br><span class="line">...                    </span><br></pre></td></tr></table></figure>
 
 <p>其中的Prime、A、B、Generator就是我们需要修改的目标参数。那么我们应该将其改成什么呢？然后又通过什么方法进行修改呢？</p>
-<h2 id="构造非法证书-1"><a href="#构造非法证书-1" class="headerlink" title="构造非法证书"></a>构造非法证书</h2><p>首先，在实际动手我们先需要搞清楚这几个值是什么意思、需要满足什么关系。定义在有限域上的椭圆曲线满足如下方程<br>$$<br>y^2 \equiv x^3+ax+b\quad (mod\ p)<br>$$<br>其中的a就是曲线参数A，b就是曲线参数B，p即为曲线参数Prime，a、b、p参数确定了一条椭圆曲线。解压缩点坐标就是根据x坐标来计算y坐标，从上面的公式可以看到这需要用到求平方根的运算：<br>$$<br>y&#x3D;\sqrt{x^3+ax+b}\quad (mod\ p)<br>$$<br>我们沿用之前使用的697&#x2F;696组合，即此时 p &#x3D; 697，$x^3+ax+b&#x3D;696$。我们只要选择合适的a、b、x是后面那个等式成立就可以了。</p>
+<h2 id="构造非法证书-1"><a href="#构造非法证书-1" class="headerlink" title="构造非法证书"></a>构造非法证书</h2><p>首先，在实际动手之前我们先需要搞清楚这几个值是什么意思、需要满足什么关系。定义在有限域上的椭圆曲线满足如下方程<br>$$<br>y^2 \equiv x^3+ax+b\quad (mod\ p)<br>$$<br>其中的a就是曲线参数A，b就是曲线参数B，p即为曲线参数Prime，a、b、p参数确定了一条椭圆曲线。解压缩点坐标就是根据x坐标来计算y坐标，从上面的公式可以看到这需要用到求平方根的运算：<br>$$<br>y&#x3D;\sqrt{x^3+ax+b}\quad (mod\ p)<br>$$<br>我们沿用之前使用的697&#x2F;696组合，即此时 p &#x3D; 697，$x^3+ax+b&#x3D;696$。我们只要选择合适的a、b、x是后面那个等式成立就可以了。</p>
 <p>我们令x&#x3D;8，a&#x3D;23，b&#x3D;0，等式成立。</p>
 <p>接下来就要着手修改我们的证书，徒手修改ASN1结构真的是要了我的老命，大家如果知道有什么方便的工具还请不吝赐教。因为这部分还没法自动化（至少目前没有），所以我就讲一下大概修改的方法。用到的工具主要是<code>xxd</code>转成hex格式进行编辑，完成之后再<code>xxd -r</code>转回去。</p>
 <ol>
@@ -482,7 +482,7 @@ translateInitilization();
 <li>因为ASN1是嵌套的结构，所以修改了内层长度之后，你还需要把外层的所以长度都进行相应的修正，这是个体力活。</li>
 <li>另外OpenSSL代码中会对ASN1_INTEGER进行padding格式的检查，所以Prime值的前面不能多余的0字节，所以我们必须修改Prime的长度</li>
 <li>而且OpenSSL还会对检查点字符串长度与Prime的长度的关系（对于压缩格式，点字符串的长度需要比Prime长度多1），这也是为什么我们将Genrator设置成030008，而不是0308的原因</li>
-<li>还有注意一点，就是<code>xxd -r</code>转回去之后可能会在文件末尾添加一个0a换行，你需要将其剔除。方法有很多，其中一种就是使用split命令。</li>
+<li>还有注意一点，就是<code>xxd -r</code>转回去之后可能会在文件末尾添加一个0a换行符，你需要将其剔除。方法有很多，其中一种就是使用split命令。</li>
 </ol>
 <p>我们先来看下证书的ASN1结构，划红线的部分都是我们需要修改的部分</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ openssl asn1parse -<span class="keyword">in</span> cert.der -inform DER -i</span><br></pre></td></tr></table></figure>
@@ -550,8 +550,21 @@ translateInitilization();
 <p>具体的修改过程如下，其中编辑文本的步骤已省略：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">$ cp cert.der cert.der.old</span><br><span class="line">$ xxd cert.der cert.der.hex</span><br><span class="line">$ cp cert.der.hex cert.der.hex.old</span><br><span class="line">$ vim cert.der.hex</span><br><span class="line"><span class="comment"># edit cert.der.hex</span></span><br><span class="line"><span class="comment"># ...</span></span><br><span class="line"><span class="comment"># complete</span></span><br><span class="line">$ xxd -r cert.der.hex cert.der.new</span><br></pre></td></tr></table></figure>
 
+<p>2022年3月21日更新：</p>
+<p>一种更方便的方法是使用wllm-rbnt写的<a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/wllm-rbnt/asn1template">asn1template</a>工具。</p>
+<p>拉仓库：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ git <span class="built_in">clone</span> https://github.com/wllm-rbnt/asn1template.git</span><br></pre></td></tr></table></figure>
 
+<p>从证书中生成一个DER模板：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ ./asn1template/asn1template.pl cert.der &gt; cert.tpl</span><br></pre></td></tr></table></figure>
 
+<p>然后修改我们上面提到的那几个参数，修改前后的区别如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">diff cert.tpl cert_new.tpl</span><br><span class="line">46c46</span><br><span class="line">&lt; field32 = FORMAT:HEX,OCTETSTRING:036B17D1F2E12C4247F8BCE6E563A440F277037D812DEB33A0F4A13945D898C296</span><br><span class="line">---</span><br><span class="line">&gt; field32 = FORMAT:HEX,OCTETSTRING:030008</span><br><span class="line">51c51</span><br><span class="line">&lt; field36 = INTEGER:0xFFFFFFFF00000001000000000000000000000000FFFFFFFFFFFFFFFFFFFFFFFF</span><br><span class="line">---</span><br><span class="line">&gt; field36 = INTEGER:0x2B9</span><br><span class="line">53,54c53,54</span><br><span class="line">&lt; field37 = FORMAT:HEX,OCTETSTRING:FFFFFFFF00000001000000000000000000000000FFFFFFFFFFFFFFFFFFFFFFFC</span><br><span class="line">&lt; field38 = FORMAT:HEX,OCTETSTRING:5AC635D8AA3A93E7B3EBBD55769886BC651D06B0CC53B0F63BCE3C3E27D2604B</span><br><span class="line">---</span><br><span class="line">&gt; field37 = FORMAT:HEX,OCTETSTRING:0000000000000000000000000000000000000000000000000000000000000017</span><br><span class="line">&gt; field38 = FORMAT:HEX,OCTETSTRING:0000000000000000000000000000000000000000000000000000000000000000</span><br></pre></td></tr></table></figure>
+
+<p>然后再用<code>ASN1_generate_nconf(3)</code>将其转换回DER编码的ASN1:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ openssl asn1parse -genconf cert_new.tpl -noout -out cert_new.der</span><br></pre></td></tr></table></figure>
+
+<p>输出的证书文件<code>cert_new.der</code>跟我们之前手动编辑的版本是等同的。</p>
 <p>到这里我们的证书就构造好了，现在来看看修改后的ASN1结构：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ openssl asn1parse -<span class="keyword">in</span> cert.der.new -inform DER -i</span><br></pre></td></tr></table></figure>
 
@@ -1044,13 +1057,13 @@ if(canvas.getContext){
       <i class="fa fa-chart-area"></i>
     </span>
       <span class="post-meta-item-text">站点总字数：</span>
-    <span title="站点总字数">322k</span>
+    <span title="站点总字数">323k</span>
     <span class="post-meta-divider">|</span>
     <span class="post-meta-item-icon">
       <i class="fa fa-coffee"></i>
     </span>
       <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
-    <span title="站点阅读时长">4:53</span>
+    <span title="站点阅读时长">4:54</span>
 </div>
   <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener external nofollow noreferrer" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener external nofollow noreferrer" target="_blank">NexT.Gemini</a> 强力驱动
   </div>
