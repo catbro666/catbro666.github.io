@@ -1,0 +1,1234 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.4.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/images/hiking-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/images/hiking-16.png">
+  <link rel="mask-icon" href="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/images/logo.svg" color="#222">
+  <meta name="google-site-verification" content="JT1HKSsLR6ZiapLatX1c6-7k-OcEM8cAMdR5pgCSptk">
+  <meta name="yandex-verification" content="5ab41d9d91227789">
+  <meta name="baidu-site-verification" content="code-9Qi2zUhBf4">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="https://fonts.loli.net/css?family=Noto Serif SC:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="//cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"catbro666.github.io","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","width":240,"display":"post","padding":18,"offset":42,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":"mac"},"back2top":{"enable":true,"sidebar":true,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="不管是什么领域，建造往往比销毁困难得多。建造一个大楼可能需要几年的时间，而销毁它也许就是几秒钟的事情。究其根本，因为建造是个熵减的过程，必须有来自系统外的能量输入。而创建中有一类问题显得更为特殊，那就是起源的问题。第一个生命如何诞生？人类又是如何起源的？诸如此类的问题，人类从未停止探究。。。而今天我们要探究的主题是Linux中的进程创建。大部分的人可能都知道fork，都知">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Linux内核中隐藏的兵法—无中生有">
+<meta property="og:url" content="https://catbro666.github.io/posts/68dbb05c/index.html">
+<meta property="og:site_name" content="CatBro&#39;s Blog">
+<meta property="og:description" content="不管是什么领域，建造往往比销毁困难得多。建造一个大楼可能需要几年的时间，而销毁它也许就是几秒钟的事情。究其根本，因为建造是个熵减的过程，必须有来自系统外的能量输入。而创建中有一类问题显得更为特殊，那就是起源的问题。第一个生命如何诞生？人类又是如何起源的？诸如此类的问题，人类从未停止探究。。。而今天我们要探究的主题是Linux中的进程创建。大部分的人可能都知道fork，都知">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2022-03-26T04:47:23.000Z">
+<meta property="article:modified_time" content="2022-03-27T17:46:25.298Z">
+<meta property="article:author" content="猫猫哥">
+<meta property="article:tag" content="进程0">
+<meta property="article:tag" content="fork">
+<meta property="article:tag" content="进程创建">
+<meta property="article:tag" content="系统调用">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="https://catbro666.github.io/posts/68dbb05c/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+<link rel="stylesheet" href="//cdn.jsdelivr.net/gh/theme-next/theme-next-needmoreshare2@1/needsharebutton.min.css"><style>
+#needsharebutton-postbottom {
+  cursor: pointer;
+  height: 26px;
+  margin-top: 10px;
+  position: relative;
+}
+#needsharebutton-postbottom .btn {
+  border: 1px solid $btn-default-border-color;
+  border-radius: 3px;
+  display: initial;
+  padding: 1px 4px;
+}
+</style><style>
+#needsharebutton-float {
+  bottom: 88px;
+  cursor: pointer;
+  left: -8px;
+  position: fixed;
+  z-index: 9999;
+}
+#needsharebutton-float .btn {
+  border: 1px solid $btn-default-border-color;
+  border-radius: 4px;
+  padding: 0 10px 0 14px;
+}
+</style>
+  <meta name="360-site-verification" content="e7586a6caf7e44316b4a27dfaf53e858"/>
+
+
+
+  <title>Linux内核中隐藏的兵法—无中生有 | CatBro's Blog</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-6PKG8T836C"></script>
+    <script>
+      if (CONFIG.hostname === location.hostname) {
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-6PKG8T836C');
+      }
+    </script>
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?43ceb843b17e732b0a5dd658f624cac5";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+<link rel="alternate" href="/atom.xml" title="CatBro's Blog" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">CatBro's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">Volar con el viento</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+        <li class="menu-item menu-item-hot">
+
+    <a href="/hot/" rel="section"><i class="fa fa-thermometer-half fa-fw"></i>热度排行</a>
+
+  </li>
+        <li class="menu-item menu-item-commonweal">
+
+    <a href="/404.html" rel="section"><i class="fa fa-heartbeat fa-fw"></i>公益 404</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="reading-progress-bar"></div>
+
+  <a href="https://github.com/catbro666" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener external nofollow noreferrer" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://catbro666.github.io/posts/68dbb05c/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/images/avatar.gif">
+      <meta itemprop="name" content="猫猫哥">
+      <meta itemprop="description" content="如果说根号二是无理数，那么我就是个无理人">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="CatBro's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Linux内核中隐藏的兵法—无中生有
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2022-03-26 12:47:23" itemprop="dateCreated datePublished" datetime="2022-03-26T12:47:23+08:00">2022-03-26</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2022-03-28 01:46:25" itemprop="dateModified" datetime="2022-03-28T01:46:25+08:00">2022-03-28</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/" itemprop="url" rel="index"><span itemprop="name">操作系统</span></a>
+                </span>
+            </span>
+
+          
+            <span id="/posts/68dbb05c/" class="post-meta-item leancloud_visitors" data-flag-title="Linux内核中隐藏的兵法—无中生有" title="阅读次数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span class="leancloud-visitors-count"></span>
+            </span>
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="far fa-comment"></i>
+      </span>
+      <span class="post-meta-item-text">评论数：</span>
+    
+    <a title="valine" href="/posts/68dbb05c/#valine-comments" itemprop="discussionUrl">
+      <span class="post-comments-count valine-comment-count" data-xid="/posts/68dbb05c/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  <br>
+  <span class="post-meta-item" title="繁/简：">
+    <span class="post-meta-item-icon">
+      <i class="fas fa-yin-yang"></i>
+    </span>
+      <span class="post-meta-item-text">繁/简：</span>
+    <a id="translateLink" href="javascript:translatePage();" rel="external nofollow noreferrer">繁體</a>
+  </span>
+
+<script type="text/javascript" src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/js/tw_cn.js"></script>
+<script type="text/javascript">
+var defaultEncoding = 2; //网站编写字体是否繁体，1-繁体，2-简体
+var translateDelay = 0; //延迟时间,若不在前, 要设定延迟翻译时间, 如100表示100ms,默认为0
+var cookieDomain = "https://catbro666.github.io/"; //Cookie地址, 一定要设定, 通常为你的网址
+var msgToTraditionalChinese = "繁體"; //此处可以更改为你想要显示的文字
+var msgToSimplifiedChinese = "简体"; //同上，但两处均不建议更改
+var translateButtonId = "translateLink"; //默认互换id
+translateInitilization();
+</script>
+<br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>13k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>12 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <div class="note primary">
+            <p>不管是什么领域，建造往往比销毁困难得多。建造一个大楼可能需要几年的时间，而销毁它也许就是几秒钟的事情。究其根本，因为建造是个熵减的过程，必须有来自系统外的能量输入。而创建中有一类问题显得更为特殊，那就是起源的问题。第一个生命如何诞生？人类又是如何起源的？诸如此类的问题，人类从未停止探究。。。</p><p>而今天我们要探究的主题是Linux中的进程创建。大部分的人可能都知道fork，都知道进程就是像细胞分裂一样分出来的。那么你是否清楚下面这些：为了分裂它需要准备什么？所谓分裂到底分了什么，又遗传了什么？遗传物质是如何传递的？第一个进程又是怎么来的？</p><p>接下来就让我们一起来探索这些问题吧！</p>
+          </div>
+
+<span id="more"></span>
+
+<h1 id="什么是进程"><a href="#什么是进程" class="headerlink" title="什么是进程"></a>什么是进程</h1><h2 id="定义及背景"><a href="#定义及背景" class="headerlink" title="定义及背景"></a>定义及背景</h2><p>讨论任何问题前我们都需要先明确定义，否则讨论就显得没有任何意义。同样地，既然我们聊进程，就需要先知道什么是进程。</p>
+<p>通常书中是这么定义进程：进程是程序执行的一个实例。你可以将进程看作描述进程已经执行到何种程度的数据结构的集合。</p>
+<p>这样的定义虽然简单，但是对于我们了解底层却没有太多的帮助。进程其实是跟着多道程序设计的操作系统而产生的一个概念。早期的计算机并不支持多任务，只能有一个程序运行，但是这样的效率太低。于是从Intel 80286&#x2F;80386起，CPU开始支持保护模式，操作系统也随之开始支持多任务。在单道程序时代CPU和内存都是你的，你想怎么造就怎么造。但是在多道程序时代就不行了，因为系统资源（CPU、内存等）需要共享，如果不进行相应的管理整个系统就乱套了。</p>
+<p>于是，就抽象出了进程的概念，它担当了分配系统资源（CPU时间、内存等）的实体，对共享资源的访问提供隔离和保护。</p>
+<p>进程就像人类，它们被创建，有自己的生命周期，可能处在几个不同的状态。类似地，进程之间有亲属关系，也有非亲属的关系。</p>
+<h2 id="进程描述符"><a href="#进程描述符" class="headerlink" title="进程描述符"></a>进程描述符</h2><p>为了管理进程，内核必须对进程状态进行清楚地描述。进程描述符的作用正在于此。task_struct是一个非常复杂的结构体，它包含了与一个进程相关的所有信息。即便是在早期的Linux 0.11版本中，它就已经包含如下这么多字段了：有最基本进程状态信息、有内存相关的信息、有文件系统相关的信息、局部描述符表ldt、任务状态段tss。。其中ldt放着进程的代码段和数据段的描述符，tss是用于记录进程切换时使用的CPU寄存器信息。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">task_struct</span> &#123;</span></span><br><span class="line"><span class="comment">/* these are hardcoded - don&#x27;t touch */</span></span><br><span class="line">    <span class="keyword">long</span> state; <span class="comment">/* -1 unrunnable, 0 runnable, &gt;0 stopped */</span></span><br><span class="line">    <span class="keyword">long</span> counter;</span><br><span class="line">    <span class="keyword">long</span> priority;</span><br><span class="line">    <span class="keyword">long</span> signal;</span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">sigaction</span> <span class="title">sigaction</span>[32];</span></span><br><span class="line">    <span class="keyword">long</span> blocked;   <span class="comment">/* bitmap of masked signals */</span></span><br><span class="line"><span class="comment">/* various fields */</span></span><br><span class="line">    <span class="keyword">int</span> exit_code;</span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">long</span> start_code,end_code,end_data,brk,start_stack;</span><br><span class="line">    <span class="keyword">long</span> pid,father,pgrp,session,leader;</span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">short</span> uid,euid,suid;</span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">short</span> gid,egid,sgid;</span><br><span class="line">    <span class="keyword">long</span> alarm;</span><br><span class="line">    <span class="keyword">long</span> utime,stime,cutime,cstime,start_time;</span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">short</span> used_math;</span><br><span class="line"><span class="comment">/* file system info */</span></span><br><span class="line">    <span class="keyword">int</span> tty;        <span class="comment">/* -1 if no tty, so it must be signed */</span></span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">short</span> umask;</span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">m_inode</span> * <span class="title">pwd</span>;</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">m_inode</span> * <span class="title">root</span>;</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">m_inode</span> * <span class="title">executable</span>;</span></span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">long</span> close_on_exec;</span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">file</span> * <span class="title">filp</span>[<span class="title">NR_OPEN</span>];</span></span><br><span class="line"><span class="comment">/* ldt for this task 0 - zero 1 - cs 2 - ds&amp;ss */</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">desc_struct</span> <span class="title">ldt</span>[3];</span></span><br><span class="line"><span class="comment">/* tss for this task */</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">tss_struct</span> <span class="title">tss</span>;</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>tss_struct的结构如下，可以看到大部分都是寄存器的信息。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">tss_struct</span> &#123;</span></span><br><span class="line">    <span class="keyword">long</span>    back_link;  <span class="comment">/* 16 high bits zero */</span></span><br><span class="line">    <span class="keyword">long</span>    esp0;</span><br><span class="line">    <span class="keyword">long</span>    ss0;        <span class="comment">/* 16 high bits zero */</span></span><br><span class="line">    <span class="keyword">long</span>    esp1;</span><br><span class="line">    <span class="keyword">long</span>    ss1;        <span class="comment">/* 16 high bits zero */</span></span><br><span class="line">    <span class="keyword">long</span>    esp2;</span><br><span class="line">    <span class="keyword">long</span>    ss2;        <span class="comment">/* 16 high bits zero */</span></span><br><span class="line">    <span class="keyword">long</span>    cr3;</span><br><span class="line">    <span class="keyword">long</span>    eip;</span><br><span class="line">    <span class="keyword">long</span>    eflags;</span><br><span class="line">    <span class="keyword">long</span>    eax,ecx,edx,ebx;</span><br><span class="line">    <span class="keyword">long</span>    esp;</span><br><span class="line">    <span class="keyword">long</span>    ebp;</span><br><span class="line">    <span class="keyword">long</span>    esi;</span><br><span class="line">    <span class="keyword">long</span>    edi;</span><br><span class="line">    <span class="keyword">long</span>    es;     <span class="comment">/* 16 high bits zero */</span></span><br><span class="line">    <span class="keyword">long</span>    cs;     <span class="comment">/* 16 high bits zero */</span></span><br><span class="line">    <span class="keyword">long</span>    ss;     <span class="comment">/* 16 high bits zero */</span></span><br><span class="line">    <span class="keyword">long</span>    ds;     <span class="comment">/* 16 high bits zero */</span></span><br><span class="line">    <span class="keyword">long</span>    fs;     <span class="comment">/* 16 high bits zero */</span></span><br><span class="line">    <span class="keyword">long</span>    gs;     <span class="comment">/* 16 high bits zero */</span></span><br><span class="line">    <span class="keyword">long</span>    ldt;        <span class="comment">/* 16 high bits zero */</span></span><br><span class="line">    <span class="keyword">long</span>    trace_bitmap;   <span class="comment">/* bits: trace 0, bitmap 16-31 */</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">i387_struct</span> <span class="title">i387</span>;</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+
+
+<div class="note default no-icon">
+            <p>注：本文的代码及叙述都是基于Linux 0.11</p>
+          </div>
+
+<h1 id="进程0"><a href="#进程0" class="headerlink" title="进程0"></a>进程0</h1><p>进程0就像亚当，它是所有进程的祖先。Linus就像上帝，他预先静态设置好了进程0的数据结构，然后在内核初始化阶段对它吹了一口气，进程0就活了。</p>
+<p>如下所示，进程0的task_struct是在静态变量init_task中通过INIT_TASK宏预先设置好的。从这里我可以看到task_struct所在页面同时也是内核栈，栈指针是从页面末端开始的。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> <span class="class"><span class="keyword">union</span> <span class="title">task_union</span> <span class="title">init_task</span> =</span> &#123;INIT_TASK,&#125;;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">union</span> <span class="title">task_union</span> &#123;</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">task_struct</span> <span class="title">task</span>;</span></span><br><span class="line">    <span class="keyword">char</span> <span class="built_in">stack</span>[PAGE_SIZE];</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>具体看下宏INIT_TASK的内容，它预先设置好了task_struct结构的各个字段，其中包含了ldt和tss。可以结合前面task_struct的各个字段，了解下各个初始值的含义。我们这里提几个特殊的</p>
+<ul>
+<li>ldt是局部描述符表LDT，<code>0x9f, 0xc0fa00</code>和<code>0x9f, 0xc0f200</code>分别表示进程0的代码段和数据段描述符，基址0x0，限长640K，G&#x3D;1、D&#x3D;1、DPL&#x3D;3、P&#x3D;1，TYPE则分别是0x0a和0x02。因为其基址是0，所以其实还是指向内核的代码段和数据段。</li>
+<li>tss是任务状态段<ul>
+<li>其中第2个字段的值<code>PAGE_SIZE+(long)&amp;init_task</code>表示内核堆栈指针esp0，它指向init_task所在页的末尾</li>
+<li>随后的ss初始化为0x10，表示是内核数据堆栈段选择符。</li>
+<li><code>(long)&amp;pg_dir</code>将cr3初始化为页目录所在地址</li>
+<li>接下来10个寄存器都初始化为0，其中包括用户态的eip和esp</li>
+<li>6个段寄存器的值都初始化为0x17，表示用户态数据段选择符</li>
+<li><code>_LDT(0)</code>表示进程0的LDT选择符</li>
+</ul>
+</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">define</span> INIT_TASK \</span></span><br><span class="line"><span class="meta"><span class="comment">/* state etc */</span> &#123; 0,15,15, \</span></span><br><span class="line"><span class="meta"><span class="comment">/* signals */</span>   0,&#123;&#123;&#125;,&#125;,0, \</span></span><br><span class="line"><span class="meta"><span class="comment">/* ec,brk... */</span> 0,0,0,0,0,0, \</span></span><br><span class="line"><span class="meta"><span class="comment">/* pid etc.. */</span> 0,-1,0,0,0, \</span></span><br><span class="line"><span class="meta"><span class="comment">/* uid etc */</span>   0,0,0,0,0,0, \</span></span><br><span class="line"><span class="meta"><span class="comment">/* alarm */</span> 0,0,0,0,0,0, \</span></span><br><span class="line"><span class="meta"><span class="comment">/* math */</span>  0, \</span></span><br><span class="line"><span class="meta"><span class="comment">/* fs info */</span>   -1,0022,NULL,NULL,NULL,0, \</span></span><br><span class="line"><span class="meta"><span class="comment">/* filp */</span>  &#123;NULL,&#125;, \</span></span><br><span class="line"><span class="meta">    &#123; \</span></span><br><span class="line"><span class="meta">        &#123;0,0&#125;, \</span></span><br><span class="line"><span class="meta"><span class="comment">/* ldt */</span>   &#123;0x9f,0xc0fa00&#125;, \</span></span><br><span class="line"><span class="meta">        &#123;0x9f,0xc0f200&#125;, \</span></span><br><span class="line"><span class="meta">    &#125;, \</span></span><br><span class="line"><span class="meta"><span class="comment">/*tss*/</span> &#123;0,PAGE_SIZE+(long)&amp;init_task,0x10,0,0,0,0,(long)&amp;pg_dir,\</span></span><br><span class="line"><span class="meta">     0,0,0,0,0,0,0,0, \</span></span><br><span class="line"><span class="meta">     0,0,0x17,0x17,0x17,0x17,0x17,0x17, \</span></span><br><span class="line"><span class="meta">     _LDT(0),0x80000000, \</span></span><br><span class="line"><span class="meta">        &#123;&#125; \</span></span><br><span class="line"><span class="meta">    &#125;, \</span></span><br><span class="line"><span class="meta">&#125;</span></span><br></pre></td></tr></table></figure>
+
+<p>可以看到大部分的进程信息已经静态设置好了，不过现在它还是一个死的进程0，我们来看看内核是怎么给它吹了一口气让它活过来的。</p>
+<p>下面是内核main函数的部分，注意main函数并不是内核程序运行的入口，最初运行的是系统引导程序、随后是系统进入保护模式完成一些初始化之后进入main函数。一开始系统使用的是临时堆栈，进入保护模式后堆栈段被设置为内核数据段（0x10），esp指向user_stack数组的末尾，刚进入main程序时系统仍然使用这个堆栈。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">main</span><span class="params">(<span class="keyword">void</span>)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="comment">// ...</span></span><br><span class="line">    sched_init();</span><br><span class="line">    sti();</span><br><span class="line">    move_to_user_mode();</span><br><span class="line">    <span class="keyword">if</span> (!fork()) &#123;      <span class="comment">/* we count on this going ok */</span></span><br><span class="line">        init();</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">for</span>(;;) pause();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p><code>sched_init()</code>函数中做了进程0的部分初始化工作，首先是在全局描述符表GDT中设置了进程0的TSS和LDT描述符项，然后分别加载到tr和ldtr寄存器中。内核只有这一次是显式加载的LDT描述符，以后进程的LDT描述符在进程切换时CPU会根据TSS中的LDT选择符自动加载。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 设置进程0的TSS和LDT描述符到GDT中</span></span><br><span class="line">set_tss_desc(gdt+FIRST_TSS_ENTRY,&amp;(init_task.task.tss));</span><br><span class="line">set_ldt_desc(gdt+FIRST_LDT_ENTRY,&amp;(init_task.task.ldt));</span><br><span class="line"><span class="comment">// 加载进程0的TSS到tr寄存器，LDT到ldtr寄存器</span></span><br><span class="line">ltr(<span class="number">0</span>);</span><br><span class="line">lldt(<span class="number">0</span>);</span><br></pre></td></tr></table></figure>
+
+
+
+<p>接下来的<code>move_to_user_mode()</code>便是最后吹的那口气了。这一部分的在前一篇讲<a href="https://catbro666.github.io/posts/615fc0b5/#%E5%86%85%E6%A0%B8%E5%88%9D%E5%A7%8B%E5%8C%96-main-c">内核启动与初始化</a>的文章中已经详细讲过。它完成了两个重要的历史任务：从内核态转移到用户态，进程进程0。通过向堆栈中压入特定的值，手动模拟中断过程。</p>
+<ul>
+<li>压入用户态堆栈段选择符，0x17表示用户态局部表的数据堆栈段（此前ss是0x10）</li>
+<li>压入用户态堆栈指针，继承了执行<code>move_to_user_mode</code>之前的esp</li>
+<li>压入状态寄存器</li>
+<li>压入用户态代码段选择符，0x0f表示用户态局部表中的代码段（此前cs是0x08）</li>
+<li>压入偏移地址，就是下面标号1的位置</li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">#define move_to_user_mode() \</span><br><span class="line">__asm__ (&quot;movl %%esp,%%eax\n\t&quot; \</span><br><span class="line">    &quot;pushl $0x17\n\t&quot; \</span><br><span class="line">    &quot;pushl %%eax\n\t&quot; \</span><br><span class="line">    &quot;pushfl\n\t&quot; \</span><br><span class="line">    &quot;pushl $0x0f\n\t&quot; \</span><br><span class="line">    &quot;pushl $1f\n\t&quot; \</span><br><span class="line">    &quot;iret\n&quot; \</span><br><span class="line">    &quot;1:\tmovl $0x17,%%eax\n\t&quot; \</span><br><span class="line">    &quot;movw %%ax,%%ds\n\t&quot; \</span><br><span class="line">    &quot;movw %%ax,%%es\n\t&quot; \</span><br><span class="line">    &quot;movw %%ax,%%fs\n\t&quot; \</span><br><span class="line">    &quot;movw %%ax,%%gs&quot; \</span><br><span class="line">    :::&quot;ax&quot;)</span><br></pre></td></tr></table></figure>
+
+<p>最后执行<code>iret</code>，系统从内核态转移到用户态，进程0正式活了过来。它的内核态堆栈是init_task结构中静态设置的，用户态堆栈段和代码段是也是在init_task的ldt中静态设置的，其基址是0，所以仍然是指向内核的代码段和数据段，只是特权级变成了用户级。用户态堆栈指针继承了之前的esp，所以仍然指向原来的位置。eip则手动设置为<code>iret</code>下一条指令的位置。所以<code>iret</code>之后就继续执行后面的代码了。</p>
+<p>进程0的任务很简单，就是fork出进程1，然后就进入死循环了。当系统没有其他可运行的进程时就会运行进程0，所以进程0又叫idle进程。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (!fork()) &#123;      <span class="comment">/* we count on this going ok */</span></span><br><span class="line">    init();</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">for</span>(;;) pause();</span><br></pre></td></tr></table></figure>
+
+
+
+<h1 id="fork与系统调用"><a href="#fork与系统调用" class="headerlink" title="fork与系统调用"></a>fork与系统调用</h1><p>进程1的地位稍微有点特殊，它是从进程0上fork出来的，所以其代码段数据段是跟进程0一样的。至于后续的所有进程，都是进程1的子进程，因为都是进程1在fork之后execve的，所以其代码段和数据段不再是内核的代码和数据段。</p>
+<p>接下来我们探究下fork是如何一分为二的，这要从fork系统调用定义的地方开始看起。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> <span class="keyword">inline</span> _syscall0(<span class="keyword">int</span>,fork)</span><br></pre></td></tr></table></figure>
+
+<p><code>_syscall0</code>是个宏，内核定义了几个这样类似的宏，其中后面跟的那个数字表示参数的个数</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">define</span> _syscall0(type,name) \</span></span><br><span class="line"><span class="meta">...</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> _syscall1(type,name,atype,a) \</span></span><br><span class="line"><span class="meta">...</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> _syscall2(type,name,atype,a,btype,b) \</span></span><br><span class="line"><span class="meta">...</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> _syscall3(type,name,atype,a,btype,b,ctype,c) \</span></span><br></pre></td></tr></table></figure>
+
+<p>我们来看下<code>_syscall0</code>的具体定义：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">#define _syscall0(type,name) \</span><br><span class="line">type name(void) \</span><br><span class="line">&#123; \</span><br><span class="line">long __res; \</span><br><span class="line">__asm__ volatile (&quot;int $0x80&quot; \</span><br><span class="line">    : &quot;=a&quot; (__res) \</span><br><span class="line">    : &quot;0&quot; (__NR_##name)); \</span><br><span class="line">if (__res &gt;= 0) \</span><br><span class="line">    return (type) __res; \</span><br><span class="line">errno = -__res; \</span><br><span class="line">return -1; \</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这几个宏其实是内嵌了汇编的函数，只有一条<code>int $0x80</code>指令，其中0x80是系统调用的中断号。分别有1个输出参数和输入参数。局部变量<code>__res</code>作为输出参数绑定到eax寄存器上，用于接收返回值。输入参数<code>__NR_fork</code>是系统调用的编号，每个系统调用都有一个独立的编号，同样绑定到寄存器eax上。</p>
+<p><code>int</code>指令执行之后，CPU去IDT中找到对应的中断描述符，因为系统调用是实现为系统门（特权级DPL为3的陷阱门），所以可以在用户态调用，门描述符中找到中断例程所在的段的选择符及段内偏移，跳转到那里。对于系统调用，就是跳转到下面<code>system_call:</code>处：</p>
+<p>这样进程便通过系统调用进入了内核空间，<code>int</code>指令引发的CPU的中断过程会自动将用户态原堆栈段ss、堆栈指针esp、状态寄存器eflags、原用户代码段cs、原用户代码eip入栈（注意：这里的堆栈是内核堆栈）。那么CPU为什么要将这些寄存器压栈？因为它得记得回去的路。就如同函数调用要把返回地址压栈一样，中断也需要将返回地址压栈。又因为内核代码段跟用户代码段是不同的，所以原用户态代码段寄存器也需要压栈，另外内核态和用户态是使用独立的堆栈，所以用户态的堆栈段寄存器ss和堆栈指针esp也要压栈。所以刚进入内核空间时，内核堆栈指针位于下图的esp0位置。</p>
+<p><code>systen_call</code>开头这一段代码是所有系统调用通用的，它首先eax中的系统调用号是否超出范围，如正常就将段寄存器和通用寄存器压栈，然后重新设置ds、es为内核数据段，fs为用户数据段。最后通过系统调用号查表调用对应的处理函数。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">system_call:</span><br><span class="line">    cmpl $nr_system_calls-1,%eax</span><br><span class="line">    ja bad_sys_call</span><br><span class="line">    push %ds</span><br><span class="line">    push %es</span><br><span class="line">    push %fs</span><br><span class="line">    pushl %edx</span><br><span class="line">    pushl %ecx      # push %ebx,%ecx,%edx as parameters</span><br><span class="line">    pushl %ebx      # to the system call</span><br><span class="line">    movl $0x10,%edx     # set up ds,es to kernel space</span><br><span class="line">    mov %dx,%ds</span><br><span class="line">    mov %dx,%es</span><br><span class="line">    movl $0x17,%edx     # fs points to local data space</span><br><span class="line">    mov %dx,%fs</span><br><span class="line">    call sys_call_table(,%eax,4)</span><br></pre></td></tr></table></figure>
+
+<p>fork系统调用内核堆栈情况：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line">HIGH  +----------------------+</span><br><span class="line">      |          |  prev ss  |</span><br><span class="line">      +----------------------+</span><br><span class="line">      |       prev esp       |</span><br><span class="line">      +----------------------+</span><br><span class="line">      |        eflags        |</span><br><span class="line">      +----------------------+</span><br><span class="line">      |          |  prev cs  |</span><br><span class="line">      +----------------------+</span><br><span class="line">      |       prev eip       |&lt;-- esp0</span><br><span class="line">      +----------------------+</span><br><span class="line">      |          |     ds    |</span><br><span class="line">      +----------------------+</span><br><span class="line">      |          |     es    |</span><br><span class="line">      +----------------------+</span><br><span class="line">      |          |     fs    |</span><br><span class="line">      +----------------------+</span><br><span class="line">      |         edx          |</span><br><span class="line">      +----------------------+</span><br><span class="line">      |         ecx          |</span><br><span class="line">      +----------------------+</span><br><span class="line">      |         ebx          |</span><br><span class="line">      +----------------------+</span><br><span class="line">      |         eip1         |&lt;-- esp1</span><br><span class="line">      +----------------------+</span><br><span class="line">      |          |     gs    |</span><br><span class="line">      +----------------------+</span><br><span class="line">      |         esi          |</span><br><span class="line">      +----------------------+</span><br><span class="line">      |         edi          |</span><br><span class="line">      +----------------------+</span><br><span class="line">      |         ebp          |</span><br><span class="line">      +----------------------+</span><br><span class="line">      |         eax          | nr</span><br><span class="line">      +----------------------+</span><br><span class="line">      |         eip2         |&lt;-- esp2</span><br><span class="line">LOW   +----------------------+    </span><br></pre></td></tr></table></figure>
+
+<p>对于fork系统调用，会走到<code>sys_fork</code>这里，此时内核堆栈指针位于esp1处。<code>find_empty_process</code>函数只是获取一个空闲的进程编号（注意并不是pid），如果没有空闲的了直接跳到标号1处返回。然后将剩余的所有可编程寄存器也入栈，最后将新进程编号入栈。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">sys_fork:</span><br><span class="line">    call find_empty_process</span><br><span class="line">    testl %eax,%eax</span><br><span class="line">    js 1f</span><br><span class="line">    push %gs</span><br><span class="line">    pushl %esi</span><br><span class="line">    pushl %edi</span><br><span class="line">    pushl %ebp</span><br><span class="line">    pushl %eax</span><br><span class="line">    call copy_process</span><br><span class="line">    addl $20,%esp</span><br><span class="line">1:  ret</span><br></pre></td></tr></table></figure>
+
+<p>接下来调用核心函数<code>copy_process</code>，刚进入该函数时内核堆栈指针位于esp2处。这个函数的参数有很多，这些其实都是前面压栈的寄存器。因为x86上<a href="https://catbro666.github.io/posts/657c24ad/">C语言的调用约定</a>是参数从右往左压栈，所以最后压栈的nr是第一个参数。之所以需要这么多参数，是因为父进程需要把所有这些寄存器的值都遗传给子进程，其余大部分信息则可以通过进程描述符获取。该函数首先分配一个空闲页作为新进程的task_struct结构体，然后将指针保存到task数组中。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">copy_process</span><span class="params">(<span class="keyword">int</span> nr,<span class="keyword">long</span> ebp,<span class="keyword">long</span> edi,<span class="keyword">long</span> esi,<span class="keyword">long</span> gs,<span class="keyword">long</span> none,</span></span></span><br><span class="line"><span class="params"><span class="function">        <span class="keyword">long</span> ebx,<span class="keyword">long</span> ecx,<span class="keyword">long</span> edx,</span></span></span><br><span class="line"><span class="params"><span class="function">        <span class="keyword">long</span> fs,<span class="keyword">long</span> es,<span class="keyword">long</span> ds,</span></span></span><br><span class="line"><span class="params"><span class="function">        <span class="keyword">long</span> eip,<span class="keyword">long</span> cs,<span class="keyword">long</span> eflags,<span class="keyword">long</span> esp,<span class="keyword">long</span> ss)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">task_struct</span> *<span class="title">p</span>;</span></span><br><span class="line">    <span class="keyword">int</span> i;</span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">file</span> *<span class="title">f</span>;</span></span><br><span class="line"></span><br><span class="line">    p = (struct task_struct *) get_free_page();</span><br><span class="line">    <span class="keyword">if</span> (!p)</span><br><span class="line">        <span class="keyword">return</span> -EAGAIN;</span><br><span class="line">    task[nr] = p;</span><br></pre></td></tr></table></figure>
+
+<p>接下来就开始初始化子进程的进程描述符p。下面第一行将父进程的进程描述符直接复制给子进程，所以后面没有额外修改的字段默认都是跟父进程一样的。但毕竟子进程是一个独立的进程，需要修改必要的字段，如pid、父进程、时间片、信号、定时器、时间等。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">*p = *current;  <span class="comment">/* NOTE! this doesn&#x27;t copy the supervisor stack */</span></span><br><span class="line">p-&gt;state = TASK_UNINTERRUPTIBLE;</span><br><span class="line">p-&gt;pid = last_pid;</span><br><span class="line">p-&gt;father = current-&gt;pid;</span><br><span class="line">p-&gt;counter = p-&gt;priority;</span><br><span class="line">p-&gt;signal = <span class="number">0</span>;</span><br><span class="line">p-&gt;alarm = <span class="number">0</span>;</span><br><span class="line">p-&gt;leader = <span class="number">0</span>;      <span class="comment">/* process leadership doesn&#x27;t inherit */</span></span><br><span class="line">p-&gt;utime = p-&gt;stime = <span class="number">0</span>;</span><br><span class="line">p-&gt;cutime = p-&gt;cstime = <span class="number">0</span>;</span><br><span class="line">p-&gt;start_time = jiffies;</span><br></pre></td></tr></table></figure>
+
+<p>接下来是初始化子进程的tss，注意到内核堆栈是指向task_struct所在页的末尾，<code>p-&gt;tss.esp0 = PAGE_SIZE + (long) p;</code>。内核堆栈段选择符ss0是0x10，即为内核数据段。其余寄存器值都是拷贝的父进程，除了eax寄存器。可以看到子进程的eax被赋值为0，作为对比父进程的eax（即最后的返回值）是last_pid。这里的eax值其实就是fork函数最终的返回值，所以才有了fork对于子进程返回0，对于父进程返回子进程的pid。</p>
+<p><code>p-&gt;tss.ldt = _LDT(nr)</code>是设置新进程的LDT选择符，以使进程切换时能够找到它的LDT。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">p-&gt;tss.back_link = <span class="number">0</span>;</span><br><span class="line">p-&gt;tss.esp0 = PAGE_SIZE + (<span class="keyword">long</span>) p; <span class="comment">/* 内核堆栈指针 */</span></span><br><span class="line">p-&gt;tss.ss0 = <span class="number">0x10</span>;</span><br><span class="line">p-&gt;tss.eip = eip;</span><br><span class="line">p-&gt;tss.eflags = eflags;</span><br><span class="line">p-&gt;tss.eax = <span class="number">0</span>;     <span class="comment">/* 新进程的返回值是0 */</span></span><br><span class="line">p-&gt;tss.ecx = ecx;</span><br><span class="line">p-&gt;tss.edx = edx;</span><br><span class="line">p-&gt;tss.ebx = ebx;</span><br><span class="line">p-&gt;tss.esp = esp;</span><br><span class="line">p-&gt;tss.ebp = ebp;</span><br><span class="line">p-&gt;tss.esi = esi;</span><br><span class="line">p-&gt;tss.edi = edi;</span><br><span class="line">p-&gt;tss.es = es &amp; <span class="number">0xffff</span>;</span><br><span class="line">p-&gt;tss.cs = cs &amp; <span class="number">0xffff</span>;</span><br><span class="line">p-&gt;tss.ss = ss &amp; <span class="number">0xffff</span>;</span><br><span class="line">p-&gt;tss.ds = ds &amp; <span class="number">0xffff</span>;</span><br><span class="line">p-&gt;tss.fs = fs &amp; <span class="number">0xffff</span>;</span><br><span class="line">p-&gt;tss.gs = gs &amp; <span class="number">0xffff</span>;</span><br><span class="line">p-&gt;tss.ldt = _LDT(nr);</span><br><span class="line">p-&gt;tss.trace_bitmap = <span class="number">0x80000000</span>;</span><br><span class="line"><span class="keyword">if</span> (last_task_used_math == current)</span><br><span class="line">    __asm__(<span class="string">&quot;clts ; fnsave %0&quot;</span>::<span class="string">&quot;m&quot;</span> (p-&gt;tss.i387));</span><br></pre></td></tr></table></figure>
+
+<p>接下来的<code>copy_mem()</code>函数开始拷贝内存。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (copy_mem(nr,p)) &#123;</span><br><span class="line">    task[nr] = <span class="literal">NULL</span>;</span><br><span class="line">    free_page((<span class="keyword">long</span>) p);</span><br><span class="line">    <span class="keyword">return</span> -EAGAIN;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>我们来看看其具体实现，可以看到它并没有直接复制内存页，而是复制了页表，而且只复制了数据段的页表。（因为Linux 0.11所有进程是共享页目录的，且Linux 0.11中代码段和数据段的基址是相同的，数据段长度不小于代码段，所以这里只需要复制数据段即可。）</p>
+<p>（Linux 0.11中最多支持同时64个进程，每个进程的线性基址根据其进程编号*64MB得到，即上面代码中的<code>nr * 0x4000000</code>。）</p>
+<p>之前只是设置了tss中的ldt选择符，LDT表还是拷贝的父进程的。其中的用户代码段和数据段描述符并没有更新，在这里用新的基址对其进行的了设置。</p>
+<p>这里只是完成了<strong>写时复制</strong>的第一块拼图，并不是完整的写时复制机制，篇幅原因这里不再进行展开。（或许后面可以单独写一篇）</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">copy_mem</span><span class="params">(<span class="keyword">int</span> nr,struct task_struct * p)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">long</span> old_data_base,new_data_base,data_limit;</span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">long</span> old_code_base,new_code_base,code_limit;</span><br><span class="line"></span><br><span class="line">    code_limit=get_limit(<span class="number">0x0f</span>);</span><br><span class="line">    data_limit=get_limit(<span class="number">0x17</span>);</span><br><span class="line">    old_code_base = get_base(current-&gt;ldt[<span class="number">1</span>]);</span><br><span class="line">    old_data_base = get_base(current-&gt;ldt[<span class="number">2</span>]);</span><br><span class="line">    <span class="keyword">if</span> (old_data_base != old_code_base)</span><br><span class="line">        panic(<span class="string">&quot;We don&#x27;t support separate I&amp;D&quot;</span>);</span><br><span class="line">    <span class="keyword">if</span> (data_limit &lt; code_limit)</span><br><span class="line">        panic(<span class="string">&quot;Bad data_limit&quot;</span>);</span><br><span class="line">    new_data_base = new_code_base = nr * <span class="number">0x4000000</span>;</span><br><span class="line">    p-&gt;start_code = new_code_base;</span><br><span class="line">    set_base(p-&gt;ldt[<span class="number">1</span>],new_code_base);</span><br><span class="line">    set_base(p-&gt;ldt[<span class="number">2</span>],new_data_base);</span><br><span class="line">    <span class="keyword">if</span> (copy_page_tables(old_data_base,new_data_base,data_limit)) &#123;</span><br><span class="line">        printk(<span class="string">&quot;free_page_tables: from copy_mem\n&quot;</span>);</span><br><span class="line">        free_page_tables(new_data_base,data_limit);</span><br><span class="line">        <span class="keyword">return</span> -ENOMEM;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>我们继续把<code>copy_process()</code>函数剩余部分先看完</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">for</span> (i=<span class="number">0</span>; i&lt;NR_OPEN;i++)</span><br><span class="line">    <span class="keyword">if</span> ((f=p-&gt;filp[i]))</span><br><span class="line">        f-&gt;f_count++;</span><br><span class="line"><span class="keyword">if</span> (current-&gt;pwd)</span><br><span class="line">    current-&gt;pwd-&gt;i_count++;</span><br><span class="line"><span class="keyword">if</span> (current-&gt;root)</span><br><span class="line">    current-&gt;root-&gt;i_count++;</span><br><span class="line"><span class="keyword">if</span> (current-&gt;executable)</span><br><span class="line">    current-&gt;executable-&gt;i_count++;</span><br><span class="line">set_tss_desc(gdt+(nr&lt;&lt;<span class="number">1</span>)+FIRST_TSS_ENTRY,&amp;(p-&gt;tss));</span><br><span class="line">set_ldt_desc(gdt+(nr&lt;&lt;<span class="number">1</span>)+FIRST_LDT_ENTRY,&amp;(p-&gt;ldt));</span><br><span class="line">p-&gt;state = TASK_RUNNING;    <span class="comment">/* do this last, just in case */</span></span><br><span class="line"><span class="keyword">return</span> last_pid;</span><br></pre></td></tr></table></figure>
+
+<p>接下来是增加引用计数，进程打开的所有文件、以及pwd、root、executable三个i节点。然后在GDT中设置子进程的TSS和LDT描述符项。最后将进程状态改为可运行状态，并返回子进程的pid。</p>
+<p>前面讲都是系统调用进来的过程，接下来就是系统调用返回的一个过程，注意这里入栈的eax就是fork的返回值。执行完具体的系统调用处理函数之后到这可能会发生调度行为，所以fork之后父进程与子进程到底哪个先运行是不确定的。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">pushl %eax</span><br><span class="line">movl current,%eax</span><br><span class="line">cmpl $0,state(%eax)     # state</span><br><span class="line">jne reschedule</span><br><span class="line">cmpl $0,counter(%eax)       # counter</span><br><span class="line">je reschedule</span><br></pre></td></tr></table></figure>
+
+<p>如果是从用户态进行的系统调用，还会对进程进行信号的处理，因为不是我们今天关注的重点，这里不再展开。最后就是将之前压栈的所有寄存器恢复，然后<code>iret</code>回到用户空间继续执行。此时内核堆栈又恢复到了最初干净的状态，cs&#x2F;eip&#x2F;ss&#x2F;esp恢复为执行<code>int</code>指令前的状态，继续执行用户态<code>fork()</code>后面的程序。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line">ret_from_sys_call:</span><br><span class="line">    movl current,%eax       # task[0] cannot have signals</span><br><span class="line">    cmpl task,%eax</span><br><span class="line">    je 3f</span><br><span class="line">    cmpw $0x0f,CS(%esp)     # was old code segment supervisor ?</span><br><span class="line">    jne 3f</span><br><span class="line">    cmpw $0x17,OLDSS(%esp)      # was stack segment = 0x17 ?</span><br><span class="line">    jne 3f</span><br><span class="line">    movl signal(%eax),%ebx</span><br><span class="line">    movl blocked(%eax),%ecx</span><br><span class="line">    notl %ecx</span><br><span class="line">    andl %ebx,%ecx</span><br><span class="line">    bsfl %ecx,%ecx</span><br><span class="line">    je 3f</span><br><span class="line">    btrl %ecx,%ebx</span><br><span class="line">    movl %ebx,signal(%eax)</span><br><span class="line">    incl %ecx</span><br><span class="line">    pushl %ecx</span><br><span class="line">    call do_signal</span><br><span class="line">    popl %eax</span><br><span class="line">3:  popl %eax</span><br><span class="line">    popl %ebx</span><br><span class="line">    popl %ecx</span><br><span class="line">    popl %edx</span><br><span class="line">    pop %fs</span><br><span class="line">    pop %es</span><br><span class="line">    pop %ds</span><br><span class="line">    iret</span><br></pre></td></tr></table></figure>
+
+
+
+<h1 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h1><p>简单回顾一下，进程的创建主要就是初始化进程描述符结构，包括其中的ldt和tss。内存的拷贝，因为是写时复制只是拷贝了页表（Linux 0.11所有进程是共享页目录）。还要在GDT全局描述符表中设置进程的LDT和TSS描述符。</p>
+<p>进程0作为所有进程的祖先比较特殊，它的进程描述符结构是静态设置好的，然后在初始化阶段将其LDT和TSS描述符设置到GDT中，并手动加载tr和ldtr。最后通过手动模拟中断过程，将其转移到用户态，并且设置其堆栈指针和eip指针。</p>
+<p>后续的进程创建都是通过fork来完成的，进程描述符中的大部分信息都是直接复制的父进程。为了保持状态跟父进程一致，所有的可编程寄存器都作为参数传递给<code>copy_process</code>，当然子进程作为一个独立的进程还是有一些地方跟父进程是不同的，尤其是内核堆栈指针、局部描述符表LDT以及返回值eax。</p>
+<p>最初提出的那些问题，现在应该都能解答了吧。</p>
+
+    </div>
+
+    
+    
+    
+      
+<div class="post-widgets">
+      <div id="needsharebutton-postbottom">
+        <span class="btn">
+          <i class="fa fa-share-alt" aria-hidden="true"></i>
+        </span>
+      </div>
+    </div><div>
+    
+        <div style="text-align:center;font-size:22px;letter-spacing:10px;user-select:none;color:#bbb;">-------------本文结束<i class="fa fa-paw"></i>感谢您的阅读-------------</div>
+    
+</div>
+
+
+
+        
+
+<div>
+<ul class="post-copyright">
+  <li class="post-copyright-author">
+    <strong>本文作者： </strong>猫猫哥
+  </li>
+  <li class="post-copyright-link">
+    <strong>本文链接：</strong>
+    <a href="https://catbro666.github.io/posts/68dbb05c/" title="Linux内核中隐藏的兵法—无中生有">https://catbro666.github.io/posts/68dbb05c/</a>
+  </li>
+  <li class="post-copyright-license">
+    <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/zh-CN" rel="noopener external nofollow noreferrer" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+        
+
+  <div class="followme">
+    <p>欢迎关注我的其它发布渠道</p>
+
+    <div class="social-list">
+
+        <div class="social-item">
+          <a target="_blank" class="social-link" href="/atom.xml">
+            <span class="icon">
+              <i class="fa fa-rss"></i>
+            </span>
+
+            <span class="label">RSS</span>
+          </a>
+        </div>
+    </div>
+  </div>
+
+
+      <footer class="post-footer">
+          
+          <div class="post-tags">
+              <a href="/tags/%E8%BF%9B%E7%A8%8B0/" rel="tag"><i class="fa fa-tag"></i> 进程0</a>
+              <a href="/tags/fork/" rel="tag"><i class="fa fa-tag"></i> fork</a>
+              <a href="/tags/%E8%BF%9B%E7%A8%8B%E5%88%9B%E5%BB%BA/" rel="tag"><i class="fa fa-tag"></i> 进程创建</a>
+              <a href="/tags/%E7%B3%BB%E7%BB%9F%E8%B0%83%E7%94%A8/" rel="tag"><i class="fa fa-tag"></i> 系统调用</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/posts/83951100/" rel="prev" title="OpenSSL CVE-2022-0778漏洞问题复现与非法证书构造">
+      <i class="fa fa-chevron-left"></i> OpenSSL CVE-2022-0778漏洞问题复现与非法证书构造
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+    <div class="comments" id="valine-comments"></div>
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BB%80%E4%B9%88%E6%98%AF%E8%BF%9B%E7%A8%8B"><span class="nav-number">1.</span> <span class="nav-text">什么是进程</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%9A%E4%B9%89%E5%8F%8A%E8%83%8C%E6%99%AF"><span class="nav-number">1.1.</span> <span class="nav-text">定义及背景</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%BF%9B%E7%A8%8B%E6%8F%8F%E8%BF%B0%E7%AC%A6"><span class="nav-number">1.2.</span> <span class="nav-text">进程描述符</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E8%BF%9B%E7%A8%8B0"><span class="nav-number">2.</span> <span class="nav-text">进程0</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#fork%E4%B8%8E%E7%B3%BB%E7%BB%9F%E8%B0%83%E7%94%A8"><span class="nav-number">3.</span> <span class="nav-text">fork与系统调用</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%B0%8F%E7%BB%93"><span class="nav-number">4.</span> <span class="nav-text">小结</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">猫猫哥</p>
+  <div class="site-description" itemprop="description">如果说根号二是无理数，那么我就是个无理人</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">29</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">10</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">37</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/catbro666" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;catbro666" rel="noopener external nofollow noreferrer" target="_blank"><i class="fab fa-github fa-fw"></i></a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:chzf_zju@163.com" title="E-Mail → mailto:chzf_zju@163.com" rel="noopener external nofollow noreferrer" target="_blank"><i class="fa fa-envelope fa-fw"></i></a>
+      </span>
+  </div>
+  <div class="cc-license motion-element" itemprop="license">
+    <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/zh-CN" class="cc-opacity" rel="noopener external nofollow noreferrer" target="_blank"><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/images/cc-by-nc-sa.svg" alt="Creative Commons"></a>
+  </div>
+
+
+<div style="">
+  <canvas id="canvas" style="width:60%;">当前浏览器不支持canvas，请更换浏览器后再试</canvas>
+</div>
+<script>
+(function(){
+
+   var digit=
+    [
+        [
+            [0,0,1,1,1,0,0],
+            [0,1,1,0,1,1,0],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,0,1,1,0],
+            [0,0,1,1,1,0,0]
+        ],//0
+        [
+            [0,0,0,1,1,0,0],
+            [0,1,1,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [1,1,1,1,1,1,1]
+        ],//1
+        [
+            [0,1,1,1,1,1,0],
+            [1,1,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,0,0],
+            [0,0,1,1,0,0,0],
+            [0,1,1,0,0,0,0],
+            [1,1,0,0,0,0,0],
+            [1,1,0,0,0,1,1],
+            [1,1,1,1,1,1,1]
+        ],//2
+        [
+            [1,1,1,1,1,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,0,0,1,1,0],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,1,1,0]
+        ],//3
+        [
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,1,0],
+            [0,0,1,1,1,1,0],
+            [0,1,1,0,1,1,0],
+            [1,1,0,0,1,1,0],
+            [1,1,1,1,1,1,1],
+            [0,0,0,0,1,1,0],
+            [0,0,0,0,1,1,0],
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,1,1]
+        ],//4
+        [
+            [1,1,1,1,1,1,1],
+            [1,1,0,0,0,0,0],
+            [1,1,0,0,0,0,0],
+            [1,1,1,1,1,1,0],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,1,1,0]
+        ],//5
+        [
+            [0,0,0,0,1,1,0],
+            [0,0,1,1,0,0,0],
+            [0,1,1,0,0,0,0],
+            [1,1,0,0,0,0,0],
+            [1,1,0,1,1,1,0],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,1,1,0]
+        ],//6
+        [
+            [1,1,1,1,1,1,1],
+            [1,1,0,0,0,1,1],
+            [0,0,0,0,1,1,0],
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,1,1,0,0,0],
+            [0,0,1,1,0,0,0],
+            [0,0,1,1,0,0,0],
+            [0,0,1,1,0,0,0]
+        ],//7
+        [
+            [0,1,1,1,1,1,0],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,1,1,0],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,1,1,0]
+        ],//8
+        [
+            [0,1,1,1,1,1,0],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,0,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,0,0],
+            [0,1,1,0,0,0,0]
+        ],//9
+        [
+            [0,0,0,0,0,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,0,0,0,0,0]
+        ]//:
+    ];
+
+var canvas = document.getElementById('canvas');
+
+if(canvas.getContext){
+    var cxt = canvas.getContext('2d');
+    //声明canvas的宽高
+    var H = 100,W = 700;
+    canvas.height = H;
+    canvas.width = W;
+    cxt.fillStyle = '#f00';
+    cxt.fillRect(10,10,50,50);
+
+    //存储时间数据
+    var data = [];
+    //存储运动的小球
+    var balls = [];
+    //设置粒子半径
+    var R = canvas.height/20-1;
+    (function(){
+        var temp = /(\d)(\d):(\d)(\d):(\d)(\d)/.exec(new Date());
+        //存储时间数字，由十位小时、个位小时、冒号、十位分钟、个位分钟、冒号、十位秒钟、个位秒钟这7个数字组成
+        data.push(temp[1],temp[2],10,temp[3],temp[4],10,temp[5],temp[6]);
+    })();
+
+    /*生成点阵数字*/
+    function renderDigit(index,num){
+        for(var i = 0; i < digit[num].length; i++){
+            for(var j = 0; j < digit[num][i].length; j++){
+                if(digit[num][i][j] == 1){
+                    cxt.beginPath();
+                    cxt.arc(14*(R+2)*index + j*2*(R+1)+(R+1),i*2*(R+1)+(R+1),R,0,2*Math.PI);
+                    cxt.closePath();
+                    cxt.fill();
+                }
+            }
+        }
+    }
+
+    /*更新时钟*/
+    function updateDigitTime(){
+        var changeNumArray = [];
+        var temp = /(\d)(\d):(\d)(\d):(\d)(\d)/.exec(new Date());
+        var NewData = [];
+        NewData.push(temp[1],temp[2],10,temp[3],temp[4],10,temp[5],temp[6]);
+        for(var i = data.length-1; i >=0 ; i--){
+            //时间发生变化
+            if(NewData[i] !== data[i]){
+                //将变化的数字值和在data数组中的索引存储在changeNumArray数组中
+                changeNumArray.push(i+'_'+(Number(data[i])+1)%10);
+            }
+        }
+        //增加小球
+        for(var i = 0; i< changeNumArray.length; i++){
+            addBalls.apply(this,changeNumArray[i].split('_'));
+        }
+        data = NewData.concat();
+    }
+
+    /*更新小球状态*/
+    function updateBalls(){
+        for(var i = 0; i < balls.length; i++){
+            balls[i].stepY += balls[i].disY;
+            balls[i].x += balls[i].stepX;
+            balls[i].y += balls[i].stepY;
+            if(balls[i].x > W + R || balls[i].y > H + R){
+                balls.splice(i,1);
+                i--;
+            }
+        }
+    }
+
+    /*增加要运动的小球*/
+    function addBalls(index,num){
+        var numArray = [1,2,3];
+        var colorArray =  ["#3BE","#09C","#A6C","#93C","#9C0","#690","#FB3","#F80","#F44","#C00"];
+        for(var i = 0; i < digit[num].length; i++){
+            for(var j = 0; j < digit[num][i].length; j++){
+                if(digit[num][i][j] == 1){
+                    var ball = {
+                        x:14*(R+2)*index + j*2*(R+1)+(R+1),
+                        y:i*2*(R+1)+(R+1),
+                        stepX:Math.floor(Math.random() * 4 -2),
+                        stepY:-2*numArray[Math.floor(Math.random()*numArray.length)],
+                        color:colorArray[Math.floor(Math.random()*colorArray.length)],
+                        disY:1
+                    };
+                    balls.push(ball);
+                }
+            }
+        }
+    }
+
+    /*渲染*/
+    function render(){
+        //重置画布宽度，达到清空画布的效果
+        canvas.height = 100;
+        //渲染时钟
+        for(var i = 0; i < data.length; i++){
+            renderDigit(i,data[i]);
+        }
+        //渲染小球
+        for(var i = 0; i < balls.length; i++){
+            cxt.beginPath();
+            cxt.arc(balls[i].x,balls[i].y,R,0,2*Math.PI);
+            cxt.fillStyle = balls[i].color;
+            cxt.closePath();
+            cxt.fill();
+        }
+    }
+
+    clearInterval(oTimer);
+    var oTimer = setInterval(function(){
+        //更新时钟
+        updateDigitTime();
+        //更新小球状态
+        updateBalls();
+        //渲染
+        render();
+    },50);
+}
+
+})();
+</script>
+
+
+      </div>
+        <div class="back-to-top motion-element">
+          <i class="fa fa-arrow-up"></i>
+          <span>0%</span>
+        </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 2019 – 
+  <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">猫猫哥</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+      <span class="post-meta-item-text">站点总字数：</span>
+    <span title="站点总字数">336k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+      <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
+    <span title="站点阅读时长">5:05</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener external nofollow noreferrer" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener external nofollow noreferrer" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+<script>
+  (function() {
+    function leancloudSelector(url) {
+      url = encodeURI(url);
+      return document.getElementById(url).querySelector('.leancloud-visitors-count');
+    }
+
+    function addCount(Counter) {
+      var visitors = document.querySelector('.leancloud_visitors');
+      var url = decodeURI(visitors.id);
+      var title = visitors.dataset.flagTitle;
+
+      Counter('get', '/classes/Counter?where=' + encodeURIComponent(JSON.stringify({ url })))
+        .then(response => response.json())
+        .then(({ results }) => {
+          if (results.length > 0) {
+            var counter = results[0];
+            leancloudSelector(url).innerText = counter.time + 1;
+            Counter('put', '/classes/Counter/' + counter.objectId, { time: { '__op': 'Increment', 'amount': 1 } })
+              .catch(error => {
+                console.error('Failed to save visitor count', error);
+              });
+          } else {
+              leancloudSelector(url).innerText = 'Counter not initialized! More info at console err msg.';
+              console.error('ATTENTION! LeanCloud counter has security bug, see how to solve it here: https://github.com/theme-next/hexo-leancloud-counter-security. \n However, you can still use LeanCloud without security, by setting `security` option to `false`.');
+            
+          }
+        })
+        .catch(error => {
+          console.error('LeanCloud Counter Error', error);
+        });
+    }
+
+    function showTime(Counter) {
+      var visitors = document.querySelectorAll('.leancloud_visitors');
+      var entries = [...visitors].map(element => {
+        return decodeURI(element.id);
+      });
+
+      Counter('get', '/classes/Counter?where=' + encodeURIComponent(JSON.stringify({ url: { '$in': entries } })))
+        .then(response => response.json())
+        .then(({ results }) => {
+          for (let url of entries) {
+            let target = results.find(item => item.url === url);
+            leancloudSelector(url).innerText = target ? target.time : 0;
+          }
+        })
+        .catch(error => {
+          console.error('LeanCloud Counter Error', error);
+        });
+    }
+
+    let { app_id, app_key, server_url } = {"enable":true,"app_id":"0Syy5qyXX1qTBOGiD0vUzpHb-MdYXbMMI","app_key":"B3MuN4GIHf7ru1ojTSkjjI9a","server_url":null,"security":true,"betterPerformance":true};
+    function fetchData(api_server) {
+      var Counter = (method, url, data) => {
+        return fetch(`${api_server}/1.1${url}`, {
+          method,
+          headers: {
+            'X-LC-Id'     : app_id,
+            'X-LC-Key'    : app_key,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(data)
+        });
+      };
+      if (CONFIG.page.isPost) {
+        if (CONFIG.hostname !== location.hostname) return;
+        addCount(Counter);
+      } else if (document.querySelectorAll('.post-title-link').length >= 1) {
+        showTime(Counter);
+      }
+    }
+
+    let api_server = app_id.slice(-9) !== '-MdYXbMMI' ? server_url : `https://${app_id.slice(0, 8).toLowerCase()}.api.lncldglobal.com`;
+
+    if (api_server) {
+      fetchData(api_server);
+    } else {
+      fetch('https://app-router.leancloud.cn/2/route?appId=' + app_id)
+        .then(response => response.json())
+        .then(({ api_server }) => {
+          fetchData('https://' + api_server);
+        });
+    }
+  })();
+</script>
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="//cdn.jsdelivr.net/npm/animejs@3.1.0/lib/anime.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/velocity-animate@1/velocity.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/velocity-animate@1/velocity.ui.min.js"></script>
+
+<script src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/js/utils.js"></script>
+
+<script src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/js/motion.js"></script>
+
+
+<script src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/js/schemes/pisces.js"></script>
+
+
+<script src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/js/next-boot.js"></script>
+
+
+
+
+  
+  <script>
+    (function(){
+      var canonicalURL, curProtocol;
+      //Get the <link> tag
+      var x=document.getElementsByTagName("link");
+		//Find the last canonical URL
+		if(x.length > 0){
+			for (i=0;i<x.length;i++){
+				if(x[i].rel.toLowerCase() == 'canonical' && x[i].href){
+					canonicalURL=x[i].href;
+				}
+			}
+		}
+    //Get protocol
+	    if (!canonicalURL){
+	    	curProtocol = window.location.protocol.split(':')[0];
+	    }
+	    else{
+	    	curProtocol = canonicalURL.split(':')[0];
+	    }
+      //Get current URL if the canonical URL does not exist
+	    if (!canonicalURL) canonicalURL = window.location.href;
+	    //Assign script content. Replace current URL with the canonical URL
+      !function(){var e=/([http|https]:\/\/[a-zA-Z0-9\_\.]+\.baidu\.com)/gi,r=canonicalURL,t=document.referrer;if(!e.test(r)){var n=(String(curProtocol).toLowerCase() === 'https')?"https://sp0.baidu.com/9_Q4simg2RQJ8t7jm9iCKT-xh_/s.gif":"//api.share.baidu.com/s.gif";t?(n+="?r="+encodeURIComponent(document.referrer),r&&(n+="&l="+r)):r&&(n+="?l="+r);var i=new Image;i.src=n}}(window);})();
+  </script>
+
+
+
+
+  
+<script src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+  
+<div id="needsharebutton-float">
+      <span class="btn">
+        <i class="fa fa-share-alt" aria-hidden="true"></i>
+      </span>
+    </div>
+  <script src="//cdn.jsdelivr.net/gh/theme-next/theme-next-needmoreshare2@1/needsharebutton.min.js"></script>
+  <script>
+      pbOptions = {};
+        pbOptions.iconStyle = "box";
+        pbOptions.boxForm = "horizontal";
+        pbOptions.position = "bottomCenter";
+        pbOptions.networks = "Weibo,Wechat,Douban,QQZone,Twitter,Facebook";
+      new needShareButton('#needsharebutton-postbottom', pbOptions);
+      flOptions = {};
+        flOptions.iconStyle = "box";
+        flOptions.boxForm = "horizontal";
+        flOptions.position = "middleRight";
+        flOptions.networks = "Weibo,Wechat,Douban,QQZone,Twitter,Facebook";
+      new needShareButton('#needsharebutton-float', flOptions);
+  </script>
+
+<script>
+NexT.utils.loadComments(document.querySelector('#valine-comments'), () => {
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/valine@1/dist/Valine.min.js', () => {
+    var GUEST = ['nick', 'mail', 'link'];
+    var guest = 'nick,mail,link';
+    guest = guest.split(',').filter(item => {
+      return GUEST.includes(item);
+    });
+    new Valine({
+      el         : '#valine-comments',
+      verify     : false,
+      notify     : true,
+      appId      : '0Syy5qyXX1qTBOGiD0vUzpHb-MdYXbMMI',
+      appKey     : 'B3MuN4GIHf7ru1ojTSkjjI9a',
+      placeholder: "欢迎留言讨论，记得在上方【邮箱】处填上邮箱地址，可以收到回复通知哦(^。^)",
+      avatar     : 'retro',
+      meta       : guest,
+      pageSize   : '10' || 10,
+      visitor    : false,
+      lang       : '' || 'zh-cn',
+      path       : location.pathname,
+      recordIP   : false,
+      serverURLs : 'https://0syy5qyx.api.lncldglobal.com'
+    });
+  }, window.Valine);
+});
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/jquery/dist/jquery.min.js"></script>
+
+
+
+  <script async src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/js/cursor/fireworks.js"></script>
+
+
+
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/js/fold_action.js"></script>
+
+
+</body>
+</html>
