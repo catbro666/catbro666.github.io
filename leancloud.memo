@@ -14,6 +14,7 @@
 {"title":"深入理解mmap--内核代码分析及驱动demo示例","url":"/posts/5ec4fb12/"},
 {"title":"Linux内核是如何启动的","url":"/posts/615fc0b5/"},
 {"title":"C语言中的函数调用约定","url":"/posts/657c24ad/"},
+{"title":"Linux内核中隐藏的兵法—无中生有","url":"/posts/68dbb05c/"},
 {"title":"自己动手实现Lua--实现TAILCALL指令","url":"/posts/74970c0e/"},
 {"title":"如何在裸机上直接运行程序—王爽《汇编语言》课程设计2","url":"/posts/8054db72/"},
 {"title":"OpenSSL CVE-2022-0778漏洞问题复现与非法证书构造","url":"/posts/83951100/"},
