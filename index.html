@@ -253,6 +253,137 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://catbro666.github.io/posts/d5d52392/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/images/avatar.gif">
+      <meta itemprop="name" content="猫猫哥">
+      <meta itemprop="description" content="如果说根号二是无理数，那么我就是个无理人">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="CatBro's Blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/posts/d5d52392/" class="post-title-link" itemprop="url">Nginx的SSL性能测试</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2022-04-05 21:25:03 / 修改时间：21:48:31" itemprop="dateCreated datePublished" datetime="2022-04-05T21:25:03+08:00">2022-04-05</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E6%80%A7%E8%83%BD/" itemprop="url" rel="index"><span itemprop="name">性能</span></a>
+                </span>
+            </span>
+
+          
+            <span id="/posts/d5d52392/" class="post-meta-item leancloud_visitors" data-flag-title="Nginx的SSL性能测试" title="阅读次数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span class="leancloud-visitors-count"></span>
+            </span>
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="far fa-comment"></i>
+      </span>
+      <span class="post-meta-item-text">评论数：</span>
+    
+    <a title="valine" href="/posts/d5d52392/#valine-comments" itemprop="discussionUrl">
+      <span class="post-comments-count valine-comment-count" data-xid="/posts/d5d52392/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  <br>
+  <span class="post-meta-item" title="繁/简：">
+    <span class="post-meta-item-icon">
+      <i class="fas fa-yin-yang"></i>
+    </span>
+      <span class="post-meta-item-text">繁/简：</span>
+    <a id="translateLink" href="javascript:translatePage();" rel="external nofollow noreferrer">繁體</a>
+  </span>
+
+<script type="text/javascript" src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/js/tw_cn.js"></script>
+<script type="text/javascript">
+var defaultEncoding = 2; //网站编写字体是否繁体，1-繁体，2-简体
+var translateDelay = 0; //延迟时间,若不在前, 要设定延迟翻译时间, 如100表示100ms,默认为0
+var cookieDomain = "https://catbro666.github.io/"; //Cookie地址, 一定要设定, 通常为你的网址
+var msgToTraditionalChinese = "繁體"; //此处可以更改为你想要显示的文字
+var msgToSimplifiedChinese = "简体"; //同上，但两处均不建议更改
+var translateButtonId = "translateLink"; //默认互换id
+translateInitilization();
+</script>
+<br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>13k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>12 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <div class="note primary">
+            <p>虽说标题写的是SSL性能测试，但其实是不是SSL都无关紧要，只是测试的配置有所不同罢了。相比具体某个指标的测试方法，我们更应该关注的是性能测试的一般原则。具体的测试指标可能随着测试业务、测试环境而千差万别，但是核心的测试方法论是不变的。</p><p>因为笔者对SSL的性能测试比较熟悉，所以将以SSL性能测试主要关注的3个指标为例进行分享：每秒新建连接数、最大吞吐量、最大连接数。</p>
+          </div>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/posts/d5d52392/#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="https://catbro666.github.io/posts/68dbb05c/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -1494,151 +1625,6 @@ translateInitilization();
   
   
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://catbro666.github.io/posts/4198933e/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/images/avatar.gif">
-      <meta itemprop="name" content="猫猫哥">
-      <meta itemprop="description" content="如果说根号二是无理数，那么我就是个无理人">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="CatBro's Blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/posts/4198933e/" class="post-title-link" itemprop="url">从压测碰到的诡异断连问题聊聊Nginx的连接管理和性能调测</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2021-11-07 17:52:11" itemprop="dateCreated datePublished" datetime="2021-11-07T17:52:11+08:00">2021-11-07</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-03-17 17:29:41" itemprop="dateModified" datetime="2022-03-17T17:29:41+08:00">2022-03-17</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E7%BC%96%E7%A8%8B%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">编程开发</span></a>
-                </span>
-                  ，
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E7%BC%96%E7%A8%8B%E5%BC%80%E5%8F%91/Nginx-OpenResty/" itemprop="url" rel="index"><span itemprop="name">Nginx/OpenResty</span></a>
-                </span>
-                  ，
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E6%80%A7%E8%83%BD/" itemprop="url" rel="index"><span itemprop="name">性能</span></a>
-                </span>
-            </span>
-
-          
-            <span id="/posts/4198933e/" class="post-meta-item leancloud_visitors" data-flag-title="从压测碰到的诡异断连问题聊聊Nginx的连接管理和性能调测" title="阅读次数">
-              <span class="post-meta-item-icon">
-                <i class="fa fa-eye"></i>
-              </span>
-              <span class="post-meta-item-text">阅读次数：</span>
-              <span class="leancloud-visitors-count"></span>
-            </span>
-  
-  <span class="post-meta-item">
-    
-      <span class="post-meta-item-icon">
-        <i class="far fa-comment"></i>
-      </span>
-      <span class="post-meta-item-text">评论数：</span>
-    
-    <a title="valine" href="/posts/4198933e/#valine-comments" itemprop="discussionUrl">
-      <span class="post-comments-count valine-comment-count" data-xid="/posts/4198933e/" itemprop="commentCount"></span>
-    </a>
-  </span>
-  
-  <br>
-  <span class="post-meta-item" title="繁/简：">
-    <span class="post-meta-item-icon">
-      <i class="fas fa-yin-yang"></i>
-    </span>
-      <span class="post-meta-item-text">繁/简：</span>
-    <a id="translateLink" href="javascript:translatePage();" rel="external nofollow noreferrer">繁體</a>
-  </span>
-
-<script type="text/javascript" src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/js/tw_cn.js"></script>
-<script type="text/javascript">
-var defaultEncoding = 2; //网站编写字体是否繁体，1-繁体，2-简体
-var translateDelay = 0; //延迟时间,若不在前, 要设定延迟翻译时间, 如100表示100ms,默认为0
-var cookieDomain = "https://catbro666.github.io/"; //Cookie地址, 一定要设定, 通常为你的网址
-var msgToTraditionalChinese = "繁體"; //此处可以更改为你想要显示的文字
-var msgToSimplifiedChinese = "简体"; //同上，但两处均不建议更改
-var translateButtonId = "translateLink"; //默认互换id
-translateInitilization();
-</script>
-<br>
-            <span class="post-meta-item" title="本文字数">
-              <span class="post-meta-item-icon">
-                <i class="far fa-file-word"></i>
-              </span>
-                <span class="post-meta-item-text">本文字数：</span>
-              <span>17k</span>
-            </span>
-            <span class="post-meta-item" title="阅读时长">
-              <span class="post-meta-item-icon">
-                <i class="far fa-clock"></i>
-              </span>
-                <span class="post-meta-item-text">阅读时长 &asymp;</span>
-              <span>15 分钟</span>
-            </span>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <div class="note primary">
-            <p>Nginx是目前使用最广泛的Web服务器之一，以高性能而著称，得益于其异步事件驱动架构，在高并发下仍然可以保持低消耗高性能，而模块化的设计也使其更易扩展，丰富了其功能。对于Nginx基本的介绍网上已有很多的文章，也有像《深入理解Nginx》这样的书籍讲解Nginx的架构设计与开发方法。本文不会涉及Nginx开发相关内容，而是以一个实际问题的定位过程作为引子，聊一下Nginx的连接管理和性能调测。如果你并不关心这个实际问题，可以直接跳到<a href="#%E8%BF%9E%E6%8E%A5%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F">连接生命周期</a>。</p>
-          </div>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/posts/4198933e/#more" rel="contents">
-                阅读全文 &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
   <nav class="pagination">
@@ -1708,7 +1694,7 @@ translateInitilization();
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">29</span>
+          <span class="site-state-item-count">30</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
@@ -1721,7 +1707,7 @@ translateInitilization();
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">37</span>
+        <span class="site-state-item-count">38</span>
         <span class="site-state-item-name">标签</span></a>
       </div>
   </nav>
@@ -2038,13 +2024,13 @@ if(canvas.getContext){
       <i class="fa fa-chart-area"></i>
     </span>
       <span class="post-meta-item-text">站点总字数：</span>
-    <span title="站点总字数">336k</span>
+    <span title="站点总字数">339k</span>
     <span class="post-meta-divider">|</span>
     <span class="post-meta-item-icon">
       <i class="fa fa-coffee"></i>
     </span>
       <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
-    <span title="站点阅读时长">5:05</span>
+    <span title="站点阅读时长">5:08</span>
 </div>
   <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener external nofollow noreferrer" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener external nofollow noreferrer" target="_blank">NexT.Gemini</a> 强力驱动
   </div>

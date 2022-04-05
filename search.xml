@@ -2304,248 +2304,6 @@
       </tags>
   </entry>
   <entry>
-    <title>从压测碰到的诡异断连问题聊聊Nginx的连接管理和性能调测</title>
-    <url>/posts/4198933e/</url>
-    <content><![CDATA[<div class="note primary">
-            <p>Nginx是目前使用最广泛的Web服务器之一，以高性能而著称，得益于其异步事件驱动架构，在高并发下仍然可以保持低消耗高性能，而模块化的设计也使其更易扩展，丰富了其功能。对于Nginx基本的介绍网上已有很多的文章，也有像《深入理解Nginx》这样的书籍讲解Nginx的架构设计与开发方法。本文不会涉及Nginx开发相关内容，而是以一个实际问题的定位过程作为引子，聊一下Nginx的连接管理和性能调测。如果你并不关心这个实际问题，可以直接跳到<a href="#%E8%BF%9E%E6%8E%A5%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F">连接生命周期</a>。</p>
-          </div>
-
-<span id="more"></span>
-
-<h2 id="问题描述"><a href="#问题描述" class="headerlink" title="问题描述"></a>问题描述</h2><p>问题是这样的，我们的Nginx服务是作为HTTP反向代理，前端是HTTPS，后端是HTTP。在一次压测过程中碰到了连接异常断开的问题，但是Nginx这边没有发现任何的错误日志（已经开了Info级别也没有）。因为是在客户那边进行的测试，而且是同事在对接的项目，我并不了解第一手的情况，包括测试方法、Nginx的配置等，唯一给到我这边的就是一个抓包，只有这个是确凿的信息，其余的就是一些零星的口头转述。同事多次尝试在公司复现这个问题但没有成功。</p>
-<p>抓包的情况是这样的：</p>
-<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/4198933e/packages-captured-in-client-environment.png" alt="packages-captured-in-client-environment.png" loading="lazy"></p>
-<p>抓包文件很大，在一段很短的时间内出现很多连续的这种错误。上面的截图中是跟前端的交互，因为是压测的关系，短时间有大量的包，所以从抓包中无法确定对应的后端连接，不清楚后端连接是否已经建立，是否是后端出错了。</p>
-<h2 id="问题定位"><a href="#问题定位" class="headerlink" title="问题定位"></a>问题定位</h2><p>我们首先分析下上图中抓包的情况，前面是一个GMVPN的握手，因为压测的关系，服务端回复ServerHello消息以及后面的ChangeCipherSpec消息都隔了一两秒的时间。握完手之后客户端发了两个应用数据包（对应HTTP请求头和请求体）。大概两秒之后，服务端发送了一个alert消息，然后紧接着发送了一个reset。</p>
-<p>同事还观察到，抓包中从收到应用数据到连接断开的时间都是2s左右，所以猜测可能跟超时有关。reset的发送原因也是一个关键的线索，另外还有前面提到的Nginx日志（Info级别）中没有任何错误。我们就根据这几个线索来进行问题的定位，首先来分析reset的情况。</p>
-<h3 id="reset原因"><a href="#reset原因" class="headerlink" title="reset原因"></a>reset原因</h3><p>有很多情况都会触发TCP的reset，其中大部分都是内核自身的行为。</p>
-<ul>
-<li><p>端口没有监听</p>
-<p>显然可以排除这种情况，我们的连接都已经开始处理了。</p>
-</li>
-<li><p>防火墙拦截</p>
-<p>服务器并没有配置类似的防火墙策略，这种情况也排除。</p>
-</li>
-<li><p>向已经关闭的socket发送消息</p>
-<p>socket可能是进程主动关闭，也可能是被动关闭，也就是进程崩了的情况。显然从抓包可以看出我们的进程并没有崩，况且进程崩了也会有内核日志。那如果是进程主动关闭socket的情况呢，我们从抓包中可以看到服务端是在发送了一个Encrypted Alert消息之后紧接着就发送了reset，其间并没有收到客户端的消息，所以也可以排除这种情况。</p>
-</li>
-<li><p>接收缓冲区还有数据未接收时关闭该socket</p>
-<p>因为我们并不清楚后端连接的情况，所以抓包中的两个应用数据包是否已经被应用层接收是无法确定的。因此，这种情况是有可能的。</p>
-</li>
-<li><p>SO_LINGER</p>
-<p>前面几种都是内核自发的行为，不需要用户参与。SO_LINGER是一个TCP选项，可以修改close()系统调用的行为。</p>
-<ul>
-<li>默认不开的情况下，close调用会立即返回，发送队列一直保持到发送完成，连接通过正常的四次挥手进行关闭。</li>
-<li>打开且时间设为0的情况下，直接丢弃发送缓冲区的数据，并发送RST给对方（不走4次挥手流程）。</li>
-<li>打开且时间不为0的情况下，进程将阻塞直到1）所有数据发送完毕且收到对方确认，2）超时时间到。对于前者会正常关闭；对于后者，close将返回EWOULDBLOCK，然后跟第二种情况相同处理，即且丢弃发送缓冲区数据然后发送RST。这种情况socket必须是阻塞的，否则close会立即返回。</li>
-</ul>
-<p>了解了SO_LINGER的情况，一看Nginx代码，确实是用到了这个选项，不过只有当连接超时并且打开了reset_timeout_connection配置项时才会去设置。而这个选项默认是关闭的，且我们也没有显式地设置过，所以这种情况也排除了。</p>
-<figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="keyword">if</span> (r-&gt;connection-&gt;timedout) &#123;</span><br><span class="line">    clcf = ngx_http_get_module_loc_conf(r, ngx_http_core_module);</span><br><span class="line">  </span><br><span class="line">    <span class="keyword">if</span> (clcf-&gt;reset_timedout_connection) &#123;</span><br><span class="line">        linger.l_onoff = <span class="number">1</span>;</span><br><span class="line">        linger.l_linger = <span class="number">0</span>;</span><br><span class="line">  </span><br><span class="line">        <span class="keyword">if</span> (setsockopt(r-&gt;connection-&gt;fd, SOL_SOCKET, SO_LINGER,</span><br><span class="line">                       (<span class="keyword">const</span> <span class="keyword">void</span> *) &amp;linger, <span class="keyword">sizeof</span>(struct linger)) == <span class="number">-1</span>)</span><br><span class="line">        &#123;</span><br><span class="line">            ngx_log_error(NGX_LOG_ALERT, <span class="built_in">log</span>, ngx_socket_errno,</span><br><span class="line">                          <span class="string">&quot;setsockopt(SO_LINGER) failed&quot;</span>);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></li>
-</ul>
-<p>至此可以得出结论，reset的原因大概率就是因为接收缓冲区还有数据的时候关闭了连接。至于连接为什么被关闭，则还需要进一步定位。</p>
-<h3 id="连接关闭原因"><a href="#连接关闭原因" class="headerlink" title="连接关闭原因"></a>连接关闭原因</h3><p>接着前面的结论我们进一步排查，SSL握手显然是完成了，因为客户端已经发送了应用数据消息，所以在接收缓冲区中数据应该就是Application Data。至于请求头是否已经被读取目前还不好判断。不过从抓包可以看出，服务端是直接关闭的连接，并没有给客户端发送响应，所以可以确认服务端还没有走到应用层处理的环节，要么是还没有接收请求头、要么是还没处理完毕，否则肯定会有应用层的响应。于是问题的范围就缩小到了SSL握手完成之后、请求头处理完毕之前。</p>
-<p>是不是之前提到的超时原因呢？不过同事又指出超时时间已经设置了很大（分钟级别），那会不会遗漏了某些超时呢。但是好像没有两秒这么短的超时时间，Nginx默认的超时基本都是60s级别的。于是开始寻找可能存在的超时，发现SSL阶段并没有单独的超时，在请求头读完之前就只有一个超时时间就是client_header_timeout，但是显然这个超时不是2s。我们合理假设是现场配置错了，但我在确认代码后发现如果是超时也是会有INFO级别，接收到请求前和接收到请求后都是如此。</p>
-<p>所以超时这条路走不通了，大概率不是由于超时导致的连接关闭。没有办法只能继续看源码分析，看看从SSL握手完成到HTTP请求头处理完成之前，Nginx到底干了些什么。在详细看了这部分代码之后，一个在不同handler中多次出现的函数<code>ngx_reusable_connection</code>引起了我的注意。这个函数用于修改连接的reusable标记，并且ngx_cycle维护了一个resuable连接的队列，那么这个队列是干啥的呢？进一步探究发现，<code>ngx_get_connection</code>在获取新连接的时候，如果空闲的连接不足，会尝试重用部分reusable的连接（一次最多32个）。而nginx连接在完成SSL握手之后、接收到HTTP请求之前就是处于reusable状态的。我们再次打开抓包文件一数，发现连续关闭的连接正好是31&#x2F;32个左右，于是我们已经有八九成的把握就是因为这个原因导致的连接断开，而且正好这种情况下我们使用版本的Nginx是没有日志的（高版本加了WARN级别日志）。</p>
-<h2 id="复现问题"><a href="#复现问题" class="headerlink" title="复现问题"></a>复现问题</h2><p>为了进一步证明就是这个原因导致的连接断开，我尝试构造场景复现问题，这个问题的关键在于worker进程的总连接数不足，但是只建立前端连接又是够的，有很多连接停留在SSL握手完成又没有开始处理HTTP请求头的阶段。当其他连接的请求尝试建立后端连接时，就会把这些reusable连接踢掉。所以worker最大连接数需要大于前端连接数、小于前端连接数的两倍。</p>
-<p>因为我是用自己虚拟机简单测试，客户端用wrk设置了100个连接，nginx只配了1个worker，最大连接数是120（具体数值可能有点出入，因为已经过去有段时间了记得不太清楚了）。一测试成功复现了这个问题，抓包截图如下：</p>
-<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/4198933e/packages-captured-when-recurring-problem-1.jpg" alt="packages-captured-when-recurring-problem-1" loading="lazy"></p>
-<p>这是跟踪的其中一个流，可以看到也是在SSL握手完成之后，收到了客户端发送的应用数据，然后发送了Alert以及RST。顺带提一下，这里后面还多了一个RST，这是因为连接关闭之后收到了客户端的一个ACK。</p>
-<p>再看下一个截图，可以观察到，在这两个reusable连接被踢掉之后，立马就往后端新建了两个连接。</p>
-<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/4198933e/packages-captured-when-recurring-problem-2.jpg" alt="packages-captured-when-recurring-problem-2" loading="lazy"></p>
-<p>至此，问题的原因基本已经确认。直接原因就是因为worker连接数不足。</p>
-<h2 id="总结回顾"><a href="#总结回顾" class="headerlink" title="总结回顾"></a>总结回顾</h2><p>问题原因已经定位到，再回过头看现场的测试配置。其实按照所有worker的连接总数来算，连接是够的，而单个worker则是不够的。但是因为其他几个配置的间接作用导致了连接集中在了单个worker中。首先，因为系统版本较低不支持reuseport，只能依赖nginx自身进行进程间的连接分配。其次又配置了multi_accept，所以只要有已经就绪的TCP连接，worker进程就一直进行accept，造成单个worker进程的接收了大部分连接。这几个因素结合在一起造成了最终的问题。归根结底，还是因为对Nginx配置理解不够深入导致的。</p>
-<h2 id="连接生命周期"><a href="#连接生命周期" class="headerlink" title="连接生命周期"></a>连接生命周期</h2><p>在讨论前面的问题时我们也看到了，Nginx中的连接是有几个不同的状态的，我们分成连接建立时和连接关闭时两部分来看连接的生命周期。</p>
-<h3 id="连接建立"><a href="#连接建立" class="headerlink" title="连接建立"></a>连接建立</h3><p>下面是连接建立时一个大致的调用关系图，实际情况要比着复杂的多。任何一处都可能超时或出错提前终止连接，碰到NGX_EAGAIN则可能多次调用同一个handler。</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">ngx_event_accept</span><br><span class="line">|-- accept</span><br><span class="line">|-- ngx_get_connection</span><br><span class="line">+-- ngx_http_init_connection</span><br><span class="line">    |-- ngx_reusable_connection(1)</span><br><span class="line">    +-- ngx_http_ssl_handshake</span><br><span class="line">        |-- NGX_EAGAIN: ngx_reusable_connection(1)</span><br><span class="line">        |-- ngx_ssl_create_connection</span><br><span class="line">        |-- ngx_reusable_connection(0)</span><br><span class="line">        |-- ngx_ssl_handshake</span><br><span class="line">        +-- ngx_http_ssl_handshake_handler</span><br><span class="line">            |-- ngx_reusable_connection(1)</span><br><span class="line">            +-- ngx_http_wait_request_handler</span><br><span class="line">                |-- ngx_reusable_connection(0)</span><br><span class="line">                |-- ngx_http_create_request</span><br><span class="line">                +-- ngx_http_process_request_line</span><br><span class="line">                    |-- ngx_http_read_request_header</span><br><span class="line">                    |-- ngx_http_parse_request_line</span><br><span class="line">                    +-- ngx_http_process_request_headers</span><br><span class="line">                        |-- ngx_http_read_request_header</span><br><span class="line">                        |-- ngx_http_parse_header_line</span><br><span class="line">                        |-- ngx_http_process_request_header</span><br><span class="line">                        +-- ngx_http_process_request</span><br><span class="line">                            |-- Switch stat from reading to writing</span><br><span class="line">                            +-- ngx_http_handler</span><br><span class="line">                                |-- HTTP to HTTPS? certificate verify fail?</span><br><span class="line">                                +-- ngx_http_core_run_phases</span><br><span class="line">                                    +-- ngx_http_proxy_handler</span><br><span class="line">                                        +-- ngx_http_read_client_request_body</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-
-
-
-<p>首先，nginx是从accept才开始接手连接的处理，在此之前则完全是内核的行为。不过在初始化阶段可以通过设置一些socket选项来改变其行为，大家比较熟知的有比如SO_REUSEPORT，TCP_DEFER_ACCEPT。前者允许多个socket绑定到在相同的地址端口对上，由内核在多个进程的socket间进行连接接收的负载均衡，后者则可以推迟连接就绪的时间，只有当收到客户端发来的应用数据时才可以accept。</p>
-<p>accept之后nginx会从空闲的连接中获取一个，这个动作在ngx_get_connection中完成，然后进入HTTP初始化流程。我们这里主要关注连接状态的变化情况，它是通过<strong>ngx_resuable_connection</strong>函数进行修改。最初连接是处于free状态的，进入ngx_http_ssl_handshake完成一些基本的初始化之后，连接设置定时器开始准备接收消息，此时的超时时间是post_accept_timeout，也就是配置项中的client_header_timeout，同步地连接进入reusable状态。等到接收到SSL握手消息之后，会创建SSL连接，同步地nginx连接进入unreusable状态。后续会进入握手流程，等到握手完成之后，连接又变成了reusable状态，开始等待接收HTTP请求，此时的超时时间仍然是post_accept_timeout。直到接收到HTTP请求，连接就此进入unreusable状态。一直到请求结束为止，状态都不再变化。</p>
-<h3 id="连接关闭"><a href="#连接关闭" class="headerlink" title="连接关闭"></a>连接关闭</h3><p>接下来再来看下请求结束时的情况，如果是短连接的情况会进入ngx_http_close_request流程，释放请求之后会关闭连接，连接变为free状态被放入空闲队列中。如果是长连接的情况则会进入ngx_http_set_keepalive流程，此时请求被释放，但是连接进入reusable状态，此时定时器的超时时间就是keepalive_timeout了。如果在超时时间内收到了新的请求，那么连接又变为unreusable状态，进入请求的处理流程；如果直到超时都没有收到新请求，则会调用ngx_http_close_connection关闭连接，连接变为free状态被放入空闲队列中。</p>
-<p>值得注意的是，连接变成reusable状态时，肯定是处于等待什么消息的状态，同步地会有一个定时器存在。</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">ngx_http_finalize_request</span><br><span class="line">+-- ngx_http_finalize_connection</span><br><span class="line">    |-- ngx_http_set_keepalive</span><br><span class="line">    |   |-- ngx_http_free_request</span><br><span class="line">    |   |-- ngx_reusable_connection(1)</span><br><span class="line">    |   +-- ngx_http_keepalive_handler</span><br><span class="line">    |       |-- ngx_http_close_connection</span><br><span class="line">    |       |-- ngx_reusable_connection(0)</span><br><span class="line">    |       |-- ngx_http_create_request</span><br><span class="line">    |       +-- ngx_http_process_request_line</span><br><span class="line">    +-- ngx_http_close_request</span><br><span class="line">        |-- ngx_http_free_request</span><br><span class="line">        +-- ngx_http_close_connection</span><br><span class="line">            |-- ngx_ssl_shutdown</span><br><span class="line">            +-- ngx_close_connection</span><br><span class="line">                |-- ngx_reusable_connection(0)</span><br><span class="line">                |-- ngx_free_connection</span><br><span class="line">                +-- ngx_close_socket</span><br></pre></td></tr></table></figure>
-
-<p>为了更清晰地表示连接状态的转移情况，我们用一张图来描述：</p>
-<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/4198933e/nginx-connection-life-cycle.png" alt="nginx-connection-life-cycle" loading="lazy"></p>
-<h2 id="连接超时"><a href="#连接超时" class="headerlink" title="连接超时"></a>连接超时</h2><p>在连接的各个阶段都会伴随着超时的存在，只要不是进程正在处理当前连接，总会有某个定时器管着当前连接。以HTTP为例，主要有以下这些超时：</p>
-<ul>
-<li>client_header_timeout (60s): 在这个时间内，这个请求头必须接收完。</li>
-<li>client_body_timeout (60s)：读请求头的超时时间，只是限制两次连续操作之间的间隔</li>
-<li>send_timeout (60s)：发送响应给客户端的超时时间，同样只是限制两次连续操作之间的间隔</li>
-<li>proxy_connect_timeout (60s)：与后端服务器建立连接的超时</li>
-<li>proxy_send_timeout (60s)：发送请求给代理服务器的超时，只是限制两次连续操作之间的间隔</li>
-<li>proxy_read_timeout (60s)：从代理服务器读响应的超时，只是限制两次连续操作之间的间隔</li>
-<li>keepalive_timeout (75s)：长连接保持打开的时间。</li>
-<li>resolver_timeout (5s): 域名解析的超时时间</li>
-</ul>
-<p>连接的超时控制，当然是为了防止“坏”的连接一直占用系统资源。但是我们注意到，并不是所有超时都是限制总体的时间，很多超时都只是限制两次连续操作之间的间隔。所以一个恶意的连接，其实还是可以做到长时间占用一个连接的。比如客户端发送请求体时，每次只发一个字节，但是赶在服务端超时之前发送第二个字节。对于这种情况，貌似没有太好的避免办法。不过我们可以通过限速等其他手段，限制恶意方占用的连接个数，一定程度缓解了这个问题。</p>
-<h2 id="性能调测"><a href="#性能调测" class="headerlink" title="性能调测"></a>性能调测</h2><p>关于Nginx的性能调优测试，至少有以下三个部分是需要关注的：Nginx配置、网卡队列及irq、内核网络栈参数。另外在测试时应时刻关注CPU、内存、IO等系统负载状况。</p>
-<h3 id="基本原则"><a href="#基本原则" class="headerlink" title="基本原则"></a>基本原则</h3><p>Linux下性能调优其实是一个单独的领域，我在这里不可能详细展开，一没这个时间二没这个能力，只会介绍下一些基本原则和测试的关键步骤。遵循这些建议，貌似增加了工作量，其实最终会提升你的效率，减少出错和绕弯的可能性，而且还方便后续复现与回看，下次再进行类似测试时也可以省去很多重复的工作。</p>
-<p>因为我注意到很多人其实是不注意这些的，不管三七二十一上来就是一顿测试，拿到一个数据就以为万事大吉了。事实上，可能测的根本不是他想的那个东西，测试值跟真实值相去甚远。当然，只要是测试肯定会引入影响，不确定性原理已经把这块拿捏得死死的了，我们能做的就让测试值尽量接近真实值，提供有参考意义的结果。</p>
-<p>废话不多说，下面是一些常用的建议：</p>
-<ul>
-<li>尽可能详细的记录<ul>
-<li>记录软硬件配置</li>
-<li>保存并整理测试结果</li>
-<li>写下命令行调用，避免每次手输</li>
-<li>记录查询和研究的文档和url等</li>
-</ul>
-</li>
-<li>自动执行重复任务<ul>
-<li>测试任务尽量自动化，既减小出错的可能，也减小了测试负担</li>
-</ul>
-</li>
-<li>尽量选用低开销的工具<ul>
-<li>使我们的测试值更接近真实值</li>
-</ul>
-</li>
-<li>使用多个工具<ul>
-<li>必要时可能需使用多个工具进行相互验证，排除工具本身的问题</li>
-</ul>
-</li>
-<li>确定基线和目标<ul>
-<li>单个值通常没有太大的意义，不知道它是好是坏，没有对比就没有伤害</li>
-</ul>
-</li>
-<li>分离问题、对比、控制变量<ul>
-<li>这是定位问题的基本思路</li>
-</ul>
-</li>
-<li>做了优化之后需要重新进行完整测试<ul>
-<li>因为不确定是否会对其他项目产生负面影响</li>
-</ul>
-</li>
-</ul>
-<h3 id="Nginx配置"><a href="#Nginx配置" class="headerlink" title="Nginx配置"></a>Nginx配置</h3><p>Nginx的配置非常多，这里列的基本都是性能测试相关的，也是我平常比较关注的。注：下面并不是一个完整的配置文件，只是为了方便观看，将这些配置放在了一起。</p>
-<figure class="highlight nginx"><table><tr><td class="code"><pre><span class="line"><span class="attribute">worker_processes</span> auto;</span><br><span class="line"><span class="attribute">worker_cpu_affinity</span> auto;</span><br><span class="line"><span class="attribute">worker_rlimit_nofile</span> <span class="number">1000000</span>; </span><br><span class="line"><span class="attribute">worker_priority</span> -<span class="number">10</span>;</span><br><span class="line"><span class="attribute">error_log</span> logs/error.log  <span class="literal">error</span>;</span><br><span class="line"><span class="attribute">master_process</span> <span class="literal">on</span>;</span><br><span class="line"></span><br><span class="line"><span class="section">events</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="attribute">use</span> <span class="literal">epoll</span>;</span><br><span class="line">    <span class="attribute">worker_connections</span> <span class="number">8192</span>;</span><br><span class="line">    <span class="attribute">multi_accept</span> <span class="literal">off</span>;</span><br><span class="line">    <span class="attribute">accept_mutex</span> <span class="literal">off</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="section">http</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="attribute">access_log</span> <span class="literal">off</span>;</span><br><span class="line">    <span class="section">server</span> &#123;</span><br><span class="line">        <span class="attribute">listen</span> <span class="number">443</span> ssl reuseport backlog=<span class="number">131072</span> deferred so_keepalive=<span class="literal">off</span>; </span><br><span class="line"></span><br><span class="line">        <span class="attribute">keepalive_requests</span>  <span class="number">0</span>;</span><br><span class="line">        <span class="attribute">keepalive_timeout</span>  <span class="number">0s</span>;</span><br><span class="line">        <span class="attribute">sendfile</span> <span class="literal">on</span>;</span><br><span class="line">        <span class="attribute">tcp_nopush</span> <span class="literal">on</span>;</span><br><span class="line">        <span class="attribute">tcp_nodelay</span> <span class="literal">on</span>;</span><br><span class="line"></span><br><span class="line">        <span class="attribute">lingering_close</span> <span class="literal">off</span>;</span><br><span class="line">        <span class="attribute">lingering_time</span> <span class="number">1</span>;</span><br><span class="line">        <span class="attribute">lingering_timeout</span> <span class="number">1</span>;</span><br><span class="line"></span><br><span class="line">        <span class="attribute">ssl_session_cache</span>   <span class="literal">off</span>;</span><br><span class="line">        <span class="comment">#ssl_session_cache    shared:SSL:1m;</span></span><br><span class="line">        <span class="attribute">ssl_session_timeout</span>  <span class="number">5m</span>;</span><br><span class="line">        <span class="attribute">ssl_session_tickets</span> <span class="literal">off</span>;</span><br><span class="line">        <span class="comment">#ssl_verify_client on;</span></span><br><span class="line">        <span class="attribute">ssl_verify_client</span> <span class="literal">off</span>;</span><br><span class="line">        <span class="attribute">ssl_client_certificate</span> ca;</span><br><span class="line"></span><br><span class="line">        <span class="attribute">ssl_prefer_server_ciphers</span> <span class="literal">on</span>;</span><br><span class="line">        <span class="attribute">ssl_buffer_size</span> <span class="number">65536</span>;</span><br><span class="line"></span><br><span class="line">        <span class="attribute">proxy_cache</span> cache_zone | <span class="literal">off</span>;</span><br><span class="line">        <span class="attribute">proxy_cache_path</span> /data/nginx/cache levels=<span class="number">1</span>:<span class="number">2</span> keys_zone=cache_zone:<span class="number">10m</span>;</span><br><span class="line">        <span class="comment"># client/proxy buffer相关</span></span><br><span class="line">        <span class="attribute">location</span> / &#123;</span><br><span class="line">            <span class="attribute">root</span>   html;</span><br><span class="line">            <span class="attribute">index</span>  index.html index.htm;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-
-
-<div><div class="fold_hider"><div class="close hider_title">点击展开配置详解</div></div><div class="fold">
-<h4 id="main"><a href="#main" class="headerlink" title="main"></a>main</h4><ul>
-<li><p>worker_processes</p>
-<p>一般设成auto就可以，会自动根据系统CPU核心数进行设置</p>
-</li>
-<li><p>worker_cpu_affinity</p>
-<p>一般auto就可以，会自动每个进程绑定一个核</p>
-</li>
-<li><p>worker_rlimit_nofile</p>
-<p>设置进程能打开的最大文件数目，底层是设置的RLIMIT_NOFILE，不能超过hard nofile</p>
-</li>
-<li><p>worker_priority</p>
-<p>设置进程的优先级，跟nice命令干的事情差不多，值越小优先级越高。</p>
-</li>
-<li><p>error_log</p>
-<p>把日志配置也列进来注意是为了提醒大家不要忘记修改</p>
-</li>
-</ul>
-<h4 id="event"><a href="#event" class="headerlink" title="event"></a>event</h4><ul>
-<li><p>worker_connections</p>
-<p>进程连接数一定要足够，但是也不要无脑设成超大的一个值，因为这些连接的内存在启动时就会分配，可能会导致内存不足。另外提一下，这是整个worker的连接数，包括了下游和上游。</p>
-</li>
-<li><p>multi_accept</p>
-<p>默认关闭时，进程一次只accept一个连接；打开的时候进程会一次性accept所有已经就绪的连接。这个配置需要根据具体测试场景选择，一般保持默认关闭。</p>
-</li>
-<li><p>accept_mutex</p>
-<p>打开时每个worker轮流接收新连接，关闭时则所有worker都会收到新连接通知（即所谓的惊群效应）。如果新连接数很少，会浪费系统资源。注意当使用reuseport的时候就没有这个配置什么事了，因为内核已经做了负载均衡了。这个配置是否打开，需要根据实际的负载情况实测确定。</p>
-</li>
-</ul>
-<h4 id="http"><a href="#http" class="headerlink" title="http"></a>http</h4><ul>
-<li><p>access_log</p>
-<p>性能测试时日志一般选择关闭</p>
-</li>
-<li><p>listen</p>
-<p>listen有很多附加参数，可以配置一些socket选项</p>
-<ul>
-<li><p>reuseport</p>
-<p>对应<code>SO_REUSEPORT</code>选项，多个worker进程创建独立的监听套接字，允许内核在worker进程间对连接的连接进行负载均衡。</p>
-</li>
-<li><p>deferred</p>
-<p>对应<code>TCP_DEFER_ACCEPT</code>选项，可以推迟连接就绪的时间，只有当收到客户端发来的应用数据时才可以accept，可以稍微减小服务端的开销。</p>
-</li>
-<li><p>backlog</p>
-<p>设置listen全连接队列大小，不能超过系统<code>net.core.somaxconn</code>的限制。这个需要足够大，否则会影响新建连接的速度。</p>
-</li>
-</ul>
-</li>
-<li><p>keepalive_requests&#x2F;keepalive_time</p>
-<p> 这两个分别设置http长连接的最大请求数和超时时间，根据实际测试指标选择是否启动</p>
-</li>
-<li><p>sendfile</p>
-<p>是否使用sendfile()系统调用，可以直接在内核完成文件的发送，不需要再到用户态转一手</p>
-</li>
-<li><p>tcp_nopush</p>
-<p>只有使用sendfile时才打开这个，对应Linux上的<code>TCP_CORK</code>选项，响应头和文件开头在一个包中发送，文件以满包发送，提升网络效率。</p>
-</li>
-<li><p>tcp_nodelay</p>
-<p>对应<code>TCP_NODELAY</code>选项，该选项是针对Nagle算法（在发出去的数据还未被确认前，把新的小数据先保存起来，等到凑满一个MSS或者收到了对方的确认后再发送）。</p>
-</li>
-<li><p>linger_close&#x2F;linger_time&#x2F;linger_timeout</p>
-<p>这几个控制在关闭服务端连接前是否等待和处理额外数据，以及等待的时间。</p>
-</li>
-<li><p>ssl_session_cache&#x2F;ssl_session_timeout&#x2F;ssl_session_tickets</p>
-<p>这几个参数控制是否启用SSL会话重用以及超时时间，根据测试指标确定</p>
-</li>
-<li><p>ssl_verify_client&#x2F;ssl_client_certificate</p>
-<p>是否进行SSL双向认证，根据测试需求而定</p>
-</li>
-<li><p>ssl_buffer_size</p>
-<p>发送数据时的SSL buffer大小，我们知道数据块长度越大，对称加密速度越快，所以这个默认值较大。但是如果你很关心第一个字节到达时间的话，最好将这个配置改小一点。</p>
-</li>
-<li><p>proxy_cache&#x2F;proxy_cache_path</p>
-<p>静态文件使用cache可以提高性能</p>
-</li>
-<li><p>client和proxy buffer相关配置</p>
-<p>根据应用数据情况以及实际网络情况，client和proxy buffer相关的配置也可能影响性能。</p>
-</li>
-</ul>
-
-</div></div>
-
-
-
-<h3 id="网卡队列及irq"><a href="#网卡队列及irq" class="headerlink" title="网卡队列及irq"></a>网卡队列及irq</h3><p>在实际测试中，你可能会发现某些个CPU上的si特别高，成为了性能瓶颈。这时候就需要将网卡队列分配到不同CPU核上进行软中断的处理。</p>
-<h4 id="中断号绑定"><a href="#中断号绑定" class="headerlink" title="中断号绑定"></a>中断号绑定</h4><p>irqbalance服务可以帮你自动绑定中断号，不过它是动态变化的，如果你对irqbalance的效果不满意，或者想静态绑定，也可以自己手动进行绑定。操作步骤如下：</p>
-<ul>
-<li><p><code>cat /proc/interrupts</code>查看对应网卡的中断号</p>
-<p>下面的218到249就是eth11这个网卡对应的中断号，该网卡拥有32个队列。</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line"> 218:   17094773          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0         14         22          0          0          0          0      12697          0          0          0          0          0          0          0          0          0  IR-PCI-MSI-edge      eth11-TxRx-0</span><br><span class="line"> 219:       3119   13271410          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0  IR-PCI-MSI-edge      eth11-TxRx-1</span><br><span class="line"> 220:       2385          0   13265837          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0  IR-PCI-MSI-edge      eth11-TxRx-2</span><br><span class="line"> 221:         23          0          0   13290114          0          0          0          0          0          0          0          0       2064          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0  IR-PCI-MSI-edge      eth11-TxRx-3</span><br><span class="line">...</span><br><span class="line">...</span><br><span class="line"> 245:          0         23          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          5       2000    6603326          0          0          0          0          0          0          0     149556          0          0          0          0  IR-PCI-MSI-edge      eth11-TxRx-27</span><br><span class="line"> 246:          0         23          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          5    6869437          0          0       2000  IR-PCI-MSI-edge      eth11-TxRx-28</span><br><span class="line"> 247:          0         23          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          5          0          0    6846871       2000          0  IR-PCI-MSI-edge      eth11-TxRx-29</span><br><span class="line"> 248:          0         23          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          5          0          0          0       2000    6937093          0  IR-PCI-MSI-edge      eth11-TxRx-30</span><br><span class="line"> 249:          0         23          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          5          0          0          0       2000          0          0    6837127  IR-PCI-MSI-edge      eth11-TxRx-31</span><br></pre></td></tr></table></figure>
-</li>
-<li><p>接下来将中断号绑定到CPU核上</p>
-<p>示例中218号中断绑定到1号CPU</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">#!/bin/bash</span><br><span class="line">echo 00000001 &gt; /proc/irq/218/smp_affinity</span><br><span class="line">echo 00000002 &gt; /proc/irq/219/smp_affinity</span><br><span class="line">echo 00000004 &gt; /proc/irq/220/smp_affinity</span><br><span class="line">echo 00000008 &gt; /proc/irq/221/smp_affinity</span><br><span class="line">echo 00000010 &gt; /proc/irq/222/smp_affinity</span><br><span class="line">echo 00000020 &gt; /proc/irq/223/smp_affinity</span><br><span class="line">echo 00000040 &gt; /proc/irq/224/smp_affinity</span><br><span class="line">echo 00000080 &gt; /proc/irq/225/smp_affinity</span><br><span class="line"># ...</span><br><span class="line">echo 01000000 &gt; /proc/irq/242/smp_affinity</span><br><span class="line">echo 02000000 &gt; /proc/irq/243/smp_affinity</span><br><span class="line">echo 04000000 &gt; /proc/irq/244/smp_affinity</span><br><span class="line">echo 08000000 &gt; /proc/irq/245/smp_affinity</span><br><span class="line">echo 10000000 &gt; /proc/irq/246/smp_affinity</span><br><span class="line">echo 20000000 &gt; /proc/irq/247/smp_affinity</span><br><span class="line">echo 40000000 &gt; /proc/irq/248/smp_affinity</span><br><span class="line">echo 80000000 &gt; /proc/irq/249/smp_affinity</span><br></pre></td></tr></table></figure></li>
-</ul>
-<h4 id="RPS"><a href="#RPS" class="headerlink" title="RPS"></a>RPS</h4><p>有时候你的网卡不支持多队列、或者队列数少于CPU核心数、又或是NIC的间接表（Indirection Table）的RX队列数少于CPU核心数，这个时候就需要借助内核的<a href="https://www.kernel.org/doc/Documentation/networking/scaling.txt">RPS&#x2F;RFS机制</a>，在软件层面再次进行分配。比如下面的例子，NIC的间接表最大RX队列数只有16</p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># ethtool --show-rxfh-indir enp7s0f0</span></span><br><span class="line">RX flow <span class="built_in">hash</span> indirection table <span class="keyword">for</span> enp7s0f0 with 56 RX ring(s):</span><br><span class="line">    0:      0     1     2     3     4     5     6     7</span><br><span class="line">    8:      8     9    10    11    12    13    14    15</span><br><span class="line">   16:      0     1     2     3     4     5     6     7</span><br><span class="line">   24:      8     9    10    11    12    13    14    15</span><br><span class="line">   32:      0     1     2     3     4     5     6     7</span><br><span class="line">   40:      8     9    10    11    12    13    14    15</span><br><span class="line">   48:      0     1     2     3     4     5     6     7</span><br><span class="line">   56:      8     9    10    11    12    13    14    15</span><br><span class="line">   64:      0     1     2     3     4     5     6     7</span><br><span class="line">   72:      8     9    10    11    12    13    14    15</span><br><span class="line">   80:      0     1     2     3     4     5     6     7</span><br><span class="line">   88:      8     9    10    11    12    13    14    15</span><br><span class="line">   96:      0     1     2     3     4     5     6     7</span><br><span class="line">  104:      8     9    10    11    12    13    14    15</span><br><span class="line">  112:      0     1     2     3     4     5     6     7</span><br><span class="line">  120:      8     9    10    11    12    13    14    15</span><br><span class="line">RSS <span class="built_in">hash</span> key:</span><br><span class="line">fb:db:6a:ad:9d:49:5f:c7:d1:d9:d0:c8:bd:4c:e9:f3:60:c6:34:1e:09:c5:7f:f5:ae:bf:62:38:ca:83:a5:a2:40:c2:59:4b:32:92:6b:5b</span><br><span class="line">RSS <span class="built_in">hash</span> <span class="keyword">function</span>:</span><br><span class="line">    toeplitz: on</span><br><span class="line">    xor: off</span><br><span class="line">    crc32: off</span><br></pre></td></tr></table></figure>
-
-<p>设置成大16的值会失败</p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># ethtool --set-rxfh-indir enp7s0f0 equal 56</span></span><br><span class="line">Cannot <span class="built_in">set</span> RX flow <span class="built_in">hash</span> configuration: Invalid argument</span><br></pre></td></tr></table></figure>
-
-<p>使用RPS将16个rx队列再分配到56个核上。</p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="meta">#!/bin/bash</span></span><br><span class="line"><span class="built_in">echo</span> 010001,00010001 &gt; /sys/class/net/enp7s0f0/queues/rx-0/rps_cpus</span><br><span class="line"><span class="built_in">echo</span> 020002,00020002 &gt; /sys/class/net/enp7s0f0/queues/rx-1/rps_cpus</span><br><span class="line"><span class="built_in">echo</span> 040004,00040004 &gt; /sys/class/net/enp7s0f0/queues/rx-2/rps_cpus</span><br><span class="line"><span class="built_in">echo</span> 080008,00080008 &gt; /sys/class/net/enp7s0f0/queues/rx-3/rps_cpus</span><br><span class="line"><span class="built_in">echo</span> 100010,00100010 &gt; /sys/class/net/enp7s0f0/queues/rx-4/rps_cpus</span><br><span class="line"><span class="built_in">echo</span> 200020,00200020 &gt; /sys/class/net/enp7s0f0/queues/rx-5/rps_cpus</span><br><span class="line"><span class="built_in">echo</span> 400040,00400040 &gt; /sys/class/net/enp7s0f0/queues/rx-6/rps_cpus</span><br><span class="line"><span class="built_in">echo</span> 800080,00800080 &gt; /sys/class/net/enp7s0f0/queues/rx-7/rps_cpus</span><br><span class="line"><span class="built_in">echo</span> 000100,01000100 &gt; /sys/class/net/enp7s0f0/queues/rx-8/rps_cpus</span><br><span class="line"><span class="built_in">echo</span> 000200,02000200 &gt; /sys/class/net/enp7s0f0/queues/rx-9/rps_cpus</span><br><span class="line"><span class="built_in">echo</span> 000400,04000400 &gt; /sys/class/net/enp7s0f0/queues/rx-10/rps_cpus</span><br><span class="line"><span class="built_in">echo</span> 000800,08000800 &gt; /sys/class/net/enp7s0f0/queues/rx-11/rps_cpus</span><br><span class="line"><span class="built_in">echo</span> 001000,10001000 &gt; /sys/class/net/enp7s0f0/queues/rx-12/rps_cpus</span><br><span class="line"><span class="built_in">echo</span> 002000,20002000 &gt; /sys/class/net/enp7s0f0/queues/rx-13/rps_cpus</span><br><span class="line"><span class="built_in">echo</span> 004000,40004000 &gt; /sys/class/net/enp7s0f0/queues/rx-14/rps_cpus</span><br><span class="line"><span class="built_in">echo</span> 008000,80008000 &gt; /sys/class/net/enp7s0f0/queues/rx-15/rps_cpus</span><br></pre></td></tr></table></figure>
-
-
-
-<p>下图很好的描述了上面发生的事情：</p>
-<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/4198933e/RSS-RPS-REUSRPORT.jpg" alt="RSS-RPS-REUSRPORT" loading="lazy"></p>
-<p>网卡收到包送到多个队列中，然后将队列的中断号与CPU核心绑定，如果没有充分利用CPU，借助RPS再次分配到其他CPU核心上。每个CPU核上有一个ksoftirqd在工作。SO_REUSEPORT解决socket竞争的问题，每个进程有一个独立的socket，默认情况下是对数据流（源和目的的ip端口号）做哈希值来选择送到那个socket。但是这个地方其实还是存在一点竞争，同一个socket可能被不同的核选择，Linux内核从4.5版本起已经支持SO_ATTACH_REUSEPORT_CBPF&#x2F;EBPF，可以根据核心号来选择socket以消除softirq这里的竞争，配合上进程的CPU亲和性绑定可以最大程度的提升性能。不过Nginx目前还不支持这个选项。</p>
-<h3 id="Linux内核网络栈参数"><a href="#Linux内核网络栈参数" class="headerlink" title="Linux内核网络栈参数"></a>Linux内核网络栈参数</h3><p>这部分由于内容太多，我不准备再展开，只是贴一个参考配置。建议大家在理解参数含义的基础上谨慎参考，不要无脑照搬，否则很可能带来反效果。</p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="meta">#!/bin/bash</span></span><br><span class="line">ufw <span class="built_in">disable</span>                                                                     <span class="comment">#disable Debian firewall</span></span><br><span class="line">iptables -F                                                                     <span class="comment">#flush the iptables rules</span></span><br><span class="line"><span class="comment">#TCP Memory</span></span><br><span class="line"><span class="built_in">echo</span> 16777216                &gt; /proc/sys/net/core/rmem_max</span><br><span class="line"><span class="built_in">echo</span> 16777216                &gt; /proc/sys/net/core/wmem_max</span><br><span class="line"><span class="built_in">echo</span> 16777216                &gt; /proc/sys/net/core/rmem_default</span><br><span class="line"><span class="built_in">echo</span> 16777216                &gt; /proc/sys/net/core/wmem_default</span><br><span class="line"><span class="built_in">echo</span> 16777216 16777216 16777216  &gt; /proc/sys/net/ipv4/tcp_rmem</span><br><span class="line"><span class="built_in">echo</span> 538750 538750 538750  &gt; /proc/sys/net/ipv4/tcp_wmem</span><br><span class="line"><span class="built_in">echo</span> 16777216            &gt; /proc/sys/net/core/optmem_max</span><br><span class="line"><span class="built_in">echo</span> 16777216 16777216  16777216 &gt; /proc/sys/net/ipv4/tcp_mem</span><br><span class="line"><span class="built_in">echo</span> 65536       &gt; /proc/sys/vm/min_free_kbytes                                  <span class="comment">#ensure there will always be free</span></span><br><span class="line"><span class="comment">#TCP Behavior</span></span><br><span class="line"><span class="built_in">echo</span> 0                     &gt; /proc/sys/net/ipv4/tcp_timestamps</span><br><span class="line"><span class="built_in">echo</span> 0                     &gt; /proc/sys/net/ipv4/tcp_sack</span><br><span class="line"><span class="built_in">echo</span> 0                     &gt; /proc/sys/net/ipv4/tcp_fack</span><br><span class="line"><span class="built_in">echo</span> 0                     &gt; /proc/sys/net/ipv4/tcp_dsack</span><br><span class="line"><span class="built_in">echo</span> 0                     &gt; /proc/sys/net/ipv4/tcp_moderate_rcvbuf</span><br><span class="line"><span class="built_in">echo</span> 1                     &gt; /proc/sys/net/ipv4/tcp_rfc1337</span><br><span class="line"><span class="built_in">echo</span> 600        &gt; /proc/sys/net/core/netdev_budget</span><br><span class="line"><span class="built_in">echo</span> 128                   &gt; /proc/sys/net/core/dev_weight</span><br><span class="line"><span class="built_in">echo</span> 1                     &gt; /proc/sys/net/ipv4/tcp_syncookies</span><br><span class="line"><span class="built_in">echo</span> 0                     &gt; /proc/sys/net/ipv4/tcp_slow_start_after_idle</span><br><span class="line"><span class="built_in">echo</span> 1                     &gt; /proc/sys/net/ipv4/tcp_no_metrics_save</span><br><span class="line"><span class="built_in">echo</span> 1                     &gt; /proc/sys/net/ipv4/tcp_orphan_retries</span><br><span class="line"><span class="built_in">echo</span> 0                     &gt; /proc/sys/net/ipv4/tcp_fin_timeout</span><br><span class="line"><span class="built_in">echo</span> 0                     &gt; /proc/sys/net/ipv4/tcp_tw_reuse</span><br><span class="line"><span class="built_in">echo</span> 0                     &gt; /proc/sys/net/ipv4/tcp_tw_recycle</span><br><span class="line"><span class="built_in">echo</span> 1                     &gt; /proc/sys/net/ipv4/tcp_syncookies</span><br><span class="line"><span class="built_in">echo</span> 2                       &gt; /proc/sys/net/ipv4/tcp_synack_retries</span><br><span class="line"><span class="built_in">echo</span> 2                     &gt; /proc/sys/net/ipv4/tcp_syn_retries</span><br><span class="line"><span class="built_in">echo</span> cubic                   &gt; /proc/sys/net/ipv4/tcp_congestion_control</span><br><span class="line"><span class="built_in">echo</span> 0                     &gt; /proc/sys/net/ipv4/tcp_low_latency</span><br><span class="line"><span class="built_in">echo</span> 1                     &gt; /proc/sys/net/ipv4/tcp_window_scaling</span><br><span class="line"><span class="built_in">echo</span> 1                     &gt; /proc/sys/net/ipv4/tcp_adv_win_scale</span><br><span class="line"><span class="comment">#TCP Queueing</span></span><br><span class="line"><span class="built_in">echo</span> 0                &gt; /proc/sys/net/ipv4/tcp_max_tw_buckets</span><br><span class="line"><span class="built_in">echo</span> 1025 65535            &gt; /proc/sys/net/ipv4/ip_local_port_range</span><br><span class="line"><span class="built_in">echo</span> 131072                &gt; /proc/sys/net/core/somaxconn</span><br><span class="line"><span class="built_in">echo</span> 262144            &gt; /proc/sys/net/ipv4/tcp_max_orphans</span><br><span class="line"><span class="built_in">echo</span> 262144           &gt; /proc/sys/net/core/netdev_max_backlog</span><br><span class="line"><span class="built_in">echo</span> 262144        &gt; /proc/sys/net/ipv4/tcp_max_syn_backlog</span><br><span class="line"><span class="built_in">echo</span> 4000000             &gt; /proc/sys/fs/nr_open</span><br><span class="line"></span><br><span class="line"><span class="built_in">echo</span> 4194304     &gt; /proc/sys/net/ipv4/ipfrag_high_thresh</span><br><span class="line"><span class="built_in">echo</span> 3145728     &gt; /proc/sys/net/ipv4/ipfrag_low_thresh</span><br><span class="line"><span class="built_in">echo</span> 30      &gt; /proc/sys/net/ipv4/ipfrag_time</span><br><span class="line"><span class="built_in">echo</span> 0   &gt; /proc/sys/net/ipv4/tcp_abort_on_overflow</span><br><span class="line"><span class="built_in">echo</span> 1       &gt; /proc/sys/net/ipv4/tcp_autocorking</span><br><span class="line"><span class="built_in">echo</span> 31      &gt; /proc/sys/net/ipv4/tcp_app_win</span><br><span class="line"><span class="built_in">echo</span> 1       &gt; /proc/sys/net/ipv4/tcp_mtu_probing</span><br><span class="line"><span class="built_in">set</span> selinux=disabled</span><br><span class="line"><span class="built_in">ulimit</span> -n 1000000</span><br></pre></td></tr></table></figure>
-
-<p>最后再重申一下，配置并不是一成不变的，需要在理解配置含义的基础上，结合自身的测试需求合理进行配置。</p>
-]]></content>
-      <categories>
-        <category>编程开发</category>
-        <category>Nginx/OpenResty</category>
-        <category>性能</category>
-      </categories>
-      <tags>
-        <tag>Nginx</tag>
-        <tag>性能调优</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>Openresty Lua协程调度机制</title>
     <url>/posts/150430f0/</url>
     <content><![CDATA[<div class="note primary">
@@ -5206,6 +4964,402 @@
         <tag>fork</tag>
         <tag>进程创建</tag>
         <tag>系统调用</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>从压测碰到的诡异断连问题聊聊Nginx的连接管理</title>
+    <url>/posts/4198933e/</url>
+    <content><![CDATA[<div class="note primary">
+            <p>本文主要分享一个在压测Nginx反向代理服务过程中碰到的连接异常断开问题，包括问题的定位与复现，最后由这个实际问题引申聊一下Nginx的连接管理。</p>
+          </div>
+
+<span id="more"></span>
+
+<h2 id="问题描述"><a href="#问题描述" class="headerlink" title="问题描述"></a>问题描述</h2><p>问题是这样的，我们的Nginx服务是作为HTTP反向代理，前端是HTTPS，后端是HTTP。在一次压测过程中碰到了连接异常断开的问题，但是Nginx这边没有发现任何的错误日志（已经开了Info级别也没有）。因为是在客户那边进行的测试，而且是同事在对接的项目，我并不了解第一手的情况，包括测试方法、Nginx的配置等，唯一给到我这边的就是一个抓包，只有这个是确凿的信息，其余的就是一些零星的口头转述。同事多次尝试在公司复现这个问题但没有成功。</p>
+<p>抓包的情况是这样的：</p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/4198933e/packages-captured-in-client-environment.png" alt="packages-captured-in-client-environment.png" loading="lazy"></p>
+<p>抓包文件很大，在一段很短的时间内出现很多连续的这种错误。上面的截图中是跟前端的交互，因为是压测的关系，短时间有大量的包，所以从抓包中无法确定对应的后端连接，不清楚后端连接是否已经建立，是否是后端出错了。</p>
+<h2 id="问题定位"><a href="#问题定位" class="headerlink" title="问题定位"></a>问题定位</h2><p>我们首先分析下上图中抓包的情况，前面是一个GMVPN的握手，因为压测的关系，服务端回复ServerHello消息以及后面的ChangeCipherSpec消息都隔了一两秒的时间。握完手之后客户端发了两个应用数据包（对应HTTP请求头和请求体）。大概两秒之后，服务端发送了一个alert消息，然后紧接着发送了一个reset。</p>
+<p>同事还观察到，抓包中从收到应用数据到连接断开的时间都是2s左右，所以猜测可能跟超时有关。reset的发送原因也是一个关键的线索，另外还有前面提到的Nginx日志（Info级别）中没有任何错误。我们就根据这几个线索来进行问题的定位，首先来分析reset的情况。</p>
+<h3 id="reset原因"><a href="#reset原因" class="headerlink" title="reset原因"></a>reset原因</h3><p>有很多情况都会触发TCP的reset，其中大部分都是内核自身的行为。</p>
+<ul>
+<li><p>端口没有监听</p>
+<p>显然可以排除这种情况，我们的连接都已经开始处理了。</p>
+</li>
+<li><p>防火墙拦截</p>
+<p>服务器并没有配置类似的防火墙策略，这种情况也排除。</p>
+</li>
+<li><p>向已经关闭的socket发送消息</p>
+<p>socket可能是进程主动关闭，也可能是被动关闭，也就是进程崩了的情况。显然从抓包可以看出我们的进程并没有崩，况且进程崩了也会有内核日志。那如果是进程主动关闭socket的情况呢，我们从抓包中可以看到服务端是在发送了一个Encrypted Alert消息之后紧接着就发送了reset，其间并没有收到客户端的消息，所以也可以排除这种情况。</p>
+</li>
+<li><p>接收缓冲区还有数据未接收时关闭该socket</p>
+<p>因为我们并不清楚后端连接的情况，所以抓包中的两个应用数据包是否已经被应用层接收是无法确定的。因此，这种情况是有可能的。</p>
+</li>
+<li><p>SO_LINGER</p>
+<p>前面几种都是内核自发的行为，不需要用户参与。SO_LINGER是一个TCP选项，可以修改close()系统调用的行为。</p>
+<ul>
+<li>默认不开的情况下，close调用会立即返回，发送队列一直保持到发送完成，连接通过正常的四次挥手进行关闭。</li>
+<li>打开且时间设为0的情况下，直接丢弃发送缓冲区的数据，并发送RST给对方（不走4次挥手流程）。</li>
+<li>打开且时间不为0的情况下，进程将阻塞直到1）所有数据发送完毕且收到对方确认，2）超时时间到。对于前者会正常关闭；对于后者，close将返回EWOULDBLOCK，然后跟第二种情况相同处理，即且丢弃发送缓冲区数据然后发送RST。这种情况socket必须是阻塞的，否则close会立即返回。</li>
+</ul>
+<p>了解了SO_LINGER的情况，一看Nginx代码，确实是用到了这个选项，不过只有当连接超时并且打开了reset_timeout_connection配置项时才会去设置。而这个选项默认是关闭的，且我们也没有显式地设置过，所以这种情况也排除了。</p>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="keyword">if</span> (r-&gt;connection-&gt;timedout) &#123;</span><br><span class="line">    clcf = ngx_http_get_module_loc_conf(r, ngx_http_core_module);</span><br><span class="line">  </span><br><span class="line">    <span class="keyword">if</span> (clcf-&gt;reset_timedout_connection) &#123;</span><br><span class="line">        linger.l_onoff = <span class="number">1</span>;</span><br><span class="line">        linger.l_linger = <span class="number">0</span>;</span><br><span class="line">  </span><br><span class="line">        <span class="keyword">if</span> (setsockopt(r-&gt;connection-&gt;fd, SOL_SOCKET, SO_LINGER,</span><br><span class="line">                       (<span class="keyword">const</span> <span class="keyword">void</span> *) &amp;linger, <span class="keyword">sizeof</span>(struct linger)) == <span class="number">-1</span>)</span><br><span class="line">        &#123;</span><br><span class="line">            ngx_log_error(NGX_LOG_ALERT, <span class="built_in">log</span>, ngx_socket_errno,</span><br><span class="line">                          <span class="string">&quot;setsockopt(SO_LINGER) failed&quot;</span>);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></li>
+</ul>
+<p>至此可以得出结论，reset的原因大概率就是因为接收缓冲区还有数据的时候关闭了连接。至于连接为什么被关闭，则还需要进一步定位。</p>
+<h3 id="连接关闭原因"><a href="#连接关闭原因" class="headerlink" title="连接关闭原因"></a>连接关闭原因</h3><p>接着前面的结论我们进一步排查，SSL握手显然是完成了，因为客户端已经发送了应用数据消息，所以在接收缓冲区中数据应该就是Application Data。至于请求头是否已经被读取目前还不好判断。不过从抓包可以看出，服务端是直接关闭的连接，并没有给客户端发送响应，所以可以确认服务端还没有走到应用层处理的环节，要么是还没有接收请求头、要么是还没处理完毕，否则肯定会有应用层的响应。于是问题的范围就缩小到了SSL握手完成之后、请求头处理完毕之前。</p>
+<p>是不是之前提到的超时原因呢？不过同事又指出超时时间已经设置了很大（分钟级别），那会不会遗漏了某些超时呢。但是好像没有两秒这么短的超时时间，Nginx默认的超时基本都是60s级别的。于是开始寻找可能存在的超时，发现SSL阶段并没有单独的超时，在请求头读完之前就只有一个超时时间就是client_header_timeout，但是显然这个超时不是2s。我们合理假设是现场配置错了，但我在确认代码后发现如果是超时也是会有INFO级别日志，接收到请求前和接收到请求后都是如此。</p>
+<p>所以超时这条路走不通了，大概率不是由于超时导致的连接关闭。没有办法只能继续看源码分析，看看从SSL握手完成到HTTP请求头处理完成之前，Nginx到底干了些什么。在详细看了这部分代码之后，一个在不同handler中多次出现的函数<code>ngx_reusable_connection</code>引起了我的注意。这个函数用于修改连接的reusable标记，并且ngx_cycle维护了一个resuable连接的队列，那么这个队列是干啥的呢？进一步探究发现，<code>ngx_get_connection</code>在获取新连接的时候，如果空闲的连接不足，会尝试重用部分reusable的连接（一次最多32个）。而nginx连接在完成SSL握手之后、接收到HTTP请求之前就是处于reusable状态的。我们再次打开抓包文件一数，发现连续关闭的连接正好是31&#x2F;32个左右，于是我们已经有八九成的把握就是因为这个原因导致的连接断开，而且正好这种情况下我们使用版本的Nginx是没有日志的（高版本加了WARN级别日志）。</p>
+<h2 id="复现问题"><a href="#复现问题" class="headerlink" title="复现问题"></a>复现问题</h2><p>为了进一步证明就是这个原因导致的连接断开，我尝试构造场景复现问题，这个问题的关键在于worker进程的总连接数不足，但是只建立前端连接又是够的，有很多连接停留在SSL握手完成又没有开始处理HTTP请求头的阶段。当其他连接的请求尝试建立后端连接时，就会把这些reusable连接踢掉。所以worker最大连接数需要大于前端连接数、小于前端连接数的两倍。</p>
+<p>因为我是用自己虚拟机简单测试，客户端用wrk设置了100个连接，nginx只配了1个worker，最大连接数是120（具体数值可能有点出入，因为已经过去有段时间了记得不太清楚了）。一测试成功复现了这个问题，抓包截图如下：</p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/4198933e/packages-captured-when-recurring-problem-1.jpg" alt="packages-captured-when-recurring-problem-1" loading="lazy"></p>
+<p>这是跟踪的其中一个流，可以看到也是在SSL握手完成之后，收到了客户端发送的应用数据，然后发送了Alert以及RST。顺带提一下，这里后面还多了一个RST，这是因为连接关闭之后收到了客户端的一个ACK。</p>
+<p>再看下一个截图，可以观察到，在这两个reusable连接被踢掉之后，立马就往后端新建了两个连接。</p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/4198933e/packages-captured-when-recurring-problem-2.jpg" alt="packages-captured-when-recurring-problem-2" loading="lazy"></p>
+<p>至此，问题的原因基本已经确认。直接原因就是因为worker连接数不足。</p>
+<h2 id="总结回顾"><a href="#总结回顾" class="headerlink" title="总结回顾"></a>总结回顾</h2><p>问题原因已经定位到，再回过头看现场的测试配置。其实按照所有worker的连接总数来算，连接是够的，而单个worker则是不够的。但是因为其他几个配置的间接作用导致了连接集中在了单个worker中。首先，因为系统版本较低不支持reuseport，只能依赖nginx自身进行进程间的连接分配。其次又配置了multi_accept，所以只要有已经就绪的TCP连接，worker进程就一直进行accept，造成单个worker进程的接收了大部分连接。这几个因素结合在一起造成了最终的问题。归根结底，还是因为测试人员对Nginx配置理解不够深入导致的。</p>
+<h2 id="连接生命周期"><a href="#连接生命周期" class="headerlink" title="连接生命周期"></a>连接生命周期</h2><p>在讨论前面的问题时我们也看到了，Nginx中的连接是有几个不同的状态的，我们分成连接建立时和连接关闭时两部分来看连接的生命周期。</p>
+<h3 id="连接建立"><a href="#连接建立" class="headerlink" title="连接建立"></a>连接建立</h3><p>下面是连接建立时一个大致的调用关系图，实际情况要比着复杂的多。任何一处都可能超时或出错提前终止连接，碰到NGX_EAGAIN则可能多次调用同一个handler。</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">ngx_event_accept</span><br><span class="line">|-- accept</span><br><span class="line">|-- ngx_get_connection</span><br><span class="line">+-- ngx_http_init_connection</span><br><span class="line">    |-- ngx_reusable_connection(1)</span><br><span class="line">    +-- ngx_http_ssl_handshake</span><br><span class="line">        |-- NGX_EAGAIN: ngx_reusable_connection(1)</span><br><span class="line">        |-- ngx_ssl_create_connection</span><br><span class="line">        |-- ngx_reusable_connection(0)</span><br><span class="line">        |-- ngx_ssl_handshake</span><br><span class="line">        +-- ngx_http_ssl_handshake_handler</span><br><span class="line">            |-- ngx_reusable_connection(1)</span><br><span class="line">            +-- ngx_http_wait_request_handler</span><br><span class="line">                |-- ngx_reusable_connection(0)</span><br><span class="line">                |-- ngx_http_create_request</span><br><span class="line">                +-- ngx_http_process_request_line</span><br><span class="line">                    |-- ngx_http_read_request_header</span><br><span class="line">                    |-- ngx_http_parse_request_line</span><br><span class="line">                    +-- ngx_http_process_request_headers</span><br><span class="line">                        |-- ngx_http_read_request_header</span><br><span class="line">                        |-- ngx_http_parse_header_line</span><br><span class="line">                        |-- ngx_http_process_request_header</span><br><span class="line">                        +-- ngx_http_process_request</span><br><span class="line">                            |-- Switch stat from reading to writing</span><br><span class="line">                            +-- ngx_http_handler</span><br><span class="line">                                |-- HTTP to HTTPS? certificate verify fail?</span><br><span class="line">                                +-- ngx_http_core_run_phases</span><br><span class="line">                                    +-- ngx_http_proxy_handler</span><br><span class="line">                                        +-- ngx_http_read_client_request_body</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+
+
+<p>首先，nginx是从accept才开始接手连接的处理，在此之前则完全是内核的行为。不过在初始化阶段可以通过设置一些socket选项来改变其行为，大家比较熟知的有比如SO_REUSEPORT，TCP_DEFER_ACCEPT。前者允许多个socket绑定到在相同的地址端口对上，由内核在多个进程的socket间进行连接接收的负载均衡，后者则可以推迟连接就绪的时间，只有当收到客户端发来的应用数据时才可以accept。</p>
+<p>accept之后nginx会从空闲的连接中获取一个，这个动作在ngx_get_connection中完成，然后进入HTTP初始化流程。我们这里主要关注连接状态的变化情况，它是通过<strong>ngx_resuable_connection</strong>函数进行修改。最初连接是处于free状态的，进入ngx_http_ssl_handshake完成一些基本的初始化之后，连接设置定时器开始准备接收消息，此时的超时时间是post_accept_timeout，也就是配置项中的client_header_timeout，同步地连接进入reusable状态。等到接收到SSL握手消息之后，会创建SSL连接，同步地nginx连接进入unreusable状态。后续会进入握手流程，等到握手完成之后，连接又变成了reusable状态，开始等待接收HTTP请求，此时的超时时间仍然是post_accept_timeout。直到接收到HTTP请求，连接就此进入unreusable状态。一直到请求结束为止，状态都不再变化。</p>
+<h3 id="连接关闭"><a href="#连接关闭" class="headerlink" title="连接关闭"></a>连接关闭</h3><p>接下来再来看下请求结束时的情况，如果是短连接的情况会进入ngx_http_close_request流程，释放请求之后会关闭连接，连接变为free状态被放入空闲队列中。如果是长连接的情况则会进入ngx_http_set_keepalive流程，此时请求被释放，但是连接进入reusable状态，此时定时器的超时时间就是keepalive_timeout了。如果在超时时间内收到了新的请求，那么连接又变为unreusable状态，进入请求的处理流程；如果直到超时都没有收到新请求，则会调用ngx_http_close_connection关闭连接，连接变为free状态被放入空闲队列中。</p>
+<p>值得注意的是，连接变成reusable状态时，肯定是处于等待什么消息的状态，同步地会有一个定时器存在。</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">ngx_http_finalize_request</span><br><span class="line">+-- ngx_http_finalize_connection</span><br><span class="line">    |-- ngx_http_set_keepalive</span><br><span class="line">    |   |-- ngx_http_free_request</span><br><span class="line">    |   |-- ngx_reusable_connection(1)</span><br><span class="line">    |   +-- ngx_http_keepalive_handler</span><br><span class="line">    |       |-- ngx_http_close_connection</span><br><span class="line">    |       |-- ngx_reusable_connection(0)</span><br><span class="line">    |       |-- ngx_http_create_request</span><br><span class="line">    |       +-- ngx_http_process_request_line</span><br><span class="line">    +-- ngx_http_close_request</span><br><span class="line">        |-- ngx_http_free_request</span><br><span class="line">        +-- ngx_http_close_connection</span><br><span class="line">            |-- ngx_ssl_shutdown</span><br><span class="line">            +-- ngx_close_connection</span><br><span class="line">                |-- ngx_reusable_connection(0)</span><br><span class="line">                |-- ngx_free_connection</span><br><span class="line">                +-- ngx_close_socket</span><br></pre></td></tr></table></figure>
+
+<p>为了更清晰地表示连接状态的转移情况，我们用一张图来描述：</p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/4198933e/nginx-connection-life-cycle.png" alt="nginx-connection-life-cycle" loading="lazy"></p>
+<h2 id="连接超时"><a href="#连接超时" class="headerlink" title="连接超时"></a>连接超时</h2><p>在连接的各个阶段都会伴随着超时的存在，只要不是进程正在处理当前连接，总会有某个定时器管着当前连接。以HTTP阶段为例，主要有以下这些超时：</p>
+<ul>
+<li>client_header_timeout (60s): 在这个时间内，这个请求头必须接收完。</li>
+<li>client_body_timeout (60s)：读请求头的超时时间，只是限制两次连续操作之间的间隔</li>
+<li>send_timeout (60s)：发送响应给客户端的超时时间，同样只是限制两次连续操作之间的间隔</li>
+<li>proxy_connect_timeout (60s)：与后端服务器建立连接的超时</li>
+<li>proxy_send_timeout (60s)：发送请求给代理服务器的超时，只是限制两次连续操作之间的间隔</li>
+<li>proxy_read_timeout (60s)：从代理服务器读响应的超时，只是限制两次连续操作之间的间隔</li>
+<li>keepalive_timeout (75s)：长连接保持打开的时间。</li>
+<li>resolver_timeout (5s): 域名解析的超时时间</li>
+</ul>
+<p>连接的超时控制，当然是为了防止“坏”的连接一直占用系统资源。但是我们注意到，并不是所有超时都是限制总体的时间，很多超时都只是限制两次连续操作之间的间隔。所以一个恶意的连接，其实还是可以做到长时间占用一个连接的。比如客户端发送请求体时，每次只发一个字节，但是赶在服务端超时之前发送第二个字节。对于这种情况，貌似没有太好的避免办法。不过我们可以通过限速等其他手段，限制恶意方占用的连接个数，一定程度缓解了这个问题。</p>
+]]></content>
+      <categories>
+        <category>编程开发</category>
+        <category>Nginx/OpenResty</category>
+        <category>性能</category>
+      </categories>
+      <tags>
+        <tag>Nginx</tag>
+        <tag>性能调优</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Nginx的SSL性能测试</title>
+    <url>/posts/d5d52392/</url>
+    <content><![CDATA[<div class="note primary">
+            <p>虽说标题写的是SSL性能测试，但其实是不是SSL都无关紧要，只是测试的配置有所不同罢了。相比具体某个指标的测试方法，我们更应该关注的是性能测试的一般原则。具体的测试指标可能随着测试业务、测试环境而千差万别，但是核心的测试方法论是不变的。</p><p>因为笔者对SSL的性能测试比较熟悉，所以将以SSL性能测试主要关注的3个指标为例进行分享：每秒新建连接数、最大吞吐量、最大连接数。</p>
+          </div>
+
+<span id="more"></span>
+
+
+
+<h1 id="性能测试方法论"><a href="#性能测试方法论" class="headerlink" title="性能测试方法论"></a>性能测试方法论</h1><h2 id="主动式测试"><a href="#主动式测试" class="headerlink" title="主动式测试"></a>主动式测试</h2><p>之所以把这一点放在最前面，是因为它实在太重要了。</p>
+<p>主动式测试，与之相对的就是被动式测试。大部分人做性能测试可能就是跑个命令或者脚本之类的，然后读个结果就完事了。这种测试方式就是典型的被动式测试。</p>
+<blockquote>
+<p>被动式测试：你想测试A，但实际测试了B，最后得出的结论是你测试了C</p>
+</blockquote>
+<p>被动式测试经常会导致各种问题，基于错误的结果得出错误结论，进而作出错误的判断和选择。更要命的是测试者自己并不自知。</p>
+<p>主动式测试可以帮助你准确地测试真正的目标，并正确地理解测试结果。你在一开始多花一点心力，可以省去以后多得多的时间甚至金钱。</p>
+<p>那么怎么样才算主动式测试呢？问自己如下两个问题：</p>
+<ol>
+<li>你能否确认正在测试的是真正的测试目标？</li>
+<li>你能否解释测试结果，即瓶颈是什么？</li>
+</ol>
+<p>所以主动式测试不是跑个命令就万事大吉，可以去喝咖啡了，而是需要你在测试前、测试中、测试后都进行分析。而且主动式测试通常也不是一次搞定的，根据测试的情况可能需要对测试环境、测试工具等进行不断的调整。</p>
+<ul>
+<li><strong>测试前</strong>：<ul>
+<li>明确测试对象，即你究竟要测试什么东西。这很关键，你必须清晰地知道自己在测什么，才能采用合理的配置，做出正确的分析判断。后面所有的配置修改、分析调整都是为了这个测试目标服务的：使测试值尽可能的接近理想值。</li>
+<li>你需要了解你的测试工具，知道它是怎么工作的。通常我们使用的测试工具都是开源的，你可以借助源码进行分析。</li>
+<li>你需要提前分析配置，包括的你的测试环境、测试对象、测试工具等。</li>
+<li>即使你提前分析了配置，可能不免还是会有一些遗漏或未知的，尤其是当你还没什么经验的时候。没关系，因为我们是主动式测试，问题会在后面测试时被暴露和发现，到时候再逐个击破即可。</li>
+</ul>
+</li>
+<li><strong>测试中</strong>：<ul>
+<li>借助其他工具确认你正在测试真正的目标</li>
+<li>借助其他工具分析系统情况（如CPU、内存、I&#x2F;O、socket等），识别真正的瓶颈。</li>
+<li>如果发现测试的不是真正的目标，调整后重新开始。</li>
+<li>如果瓶颈不如预期，需要分析确认原因，然后调整之后重新开始测试。</li>
+</ul>
+</li>
+<li><strong>测试后</strong>：<ul>
+<li>最终你确认自己测试了真正的目标，并得到了一个可以合理解释的测试值。此时并不是记录这一个值就可以了，单个数字是没有任何意义的，它只有在你这个特定的测试环境、测试配置以及其他观测工具提供的证据的加持下才是有意义的。所以这些都是测试结果的一部分，需要一并记录保存。</li>
+<li>尝试进行优化，当前这可能需要你对测试系统或测试对象有足够的了解。</li>
+</ul>
+</li>
+</ul>
+<h2 id="例子"><a href="#例子" class="headerlink" title="例子"></a>例子</h2><p>就以SSL新建连接数测试为例，简单介绍下思路：</p>
+<ul>
+<li><strong>测试前</strong>：<ul>
+<li>确定测试对象，因为是要测SSL新建连接数的TPS，所以需要确保CPU主要是消耗在完整SSL握手的过程上。也就是说，不能让tcp成为瓶颈、不能会话重用、http不能是长连接、http层业务的CPU消耗也要越小越好等等。。。</li>
+<li>经过调查研究决定使用wrk作为测试工具</li>
+<li>了解它的测试模型是怎么样的，各个选项表示什么</li>
+<li>修改Nginx配置，保证是测试正确的目标。因为影响性能的指标项非常多，建议可以分层进行考虑：nginx核心、tcp层、ssl层、http层等。资源限制类的配置通常有系统级别的和进程级别的，进程级别的不能超过系统的。而Nginx配置的是进程级别的，所以需要保证系统的已经设置的足够大了。</li>
+<li>因为SSL新建连接也涉及TCP新建连接，所以内核网络相关的参数也需要关注，尤其是TCP建连和断连阶段相关的参数，如backlog和timewait。</li>
+<li>随着流量的增大，软中断和网卡可能会成为瓶颈，需要进行相应配置</li>
+</ul>
+</li>
+<li>测试中：<ul>
+<li>通过抓包进行确认测试的是SSL新建连接。如果你偷懒忽略了这一步，可能就无法发现它其实默认进行了会话重用了。或者双向认证测试成了单向认证、又或者是卡在tcp建立连接上等等。</li>
+<li>通过工具观察系统情况（CPU、内存、IO、socket等），你可能会发现TPS到一定的值就上不去了，而CPU并没有满。这个时候就需要借助各种工具进行分析排查，原因可能各种各样。可能是你的worker最大连接数设得太小、可能是backlog设置得太小、可能是客户端压力不够、可能是网络中有个百兆交换机、也可能是timewait的原因、如果有后端还可能是后端到瓶颈了。。。</li>
+<li>定位到问题之后进行相应调整再重新测试，可能又会发现的新的问题和瓶颈，就这样进行不断优化迭代。最终可能你发现服务端的CPU满了，这是符合预期的，因为SSL握手是一个CPU密集型的操作。如果有条件最好对系统做个采样看看火焰图中的CPU都消耗在了哪里，有没有异常的地方。</li>
+</ul>
+</li>
+<li>测试后：<ul>
+<li>经过多次调整尝试，最终你认为测试值已经足够接近真实值，这个测试值，与测试环境、测试配置以及观测证据一并组成了最终的测试结果。</li>
+</ul>
+</li>
+</ul>
+<h2 id="一些建议"><a href="#一些建议" class="headerlink" title="一些建议"></a>一些建议</h2><p>接下来给出一些常用的建议，遵循这些建议，貌似增加了工作量，其实最终会提升你的效率，减少出错和绕弯的可能性，而且还方便后续复现与回看，下次再进行类似测试时也可以省去很多重复的工作。</p>
+<ul>
+<li>尽可能详细的记录<ul>
+<li>记录软硬件配置</li>
+<li>保存并整理测试结果</li>
+<li>写下命令行调用，避免每次手输</li>
+<li>记录查询和研究的文档和url等</li>
+</ul>
+</li>
+<li>自动执行重复任务<ul>
+<li>测试任务尽量自动化，既减小出错的可能，也减小了测试负担</li>
+</ul>
+</li>
+<li>尽量选用低开销的工具<ul>
+<li>使我们的测试值更接近真实值</li>
+</ul>
+</li>
+<li>使用多个工具<ul>
+<li>必要时可能需使用多个工具进行相互验证，排除工具本身的问题</li>
+</ul>
+</li>
+<li>确定基线和目标<ul>
+<li>单个值通常没有太大的意义，不知道它是好是坏，没有对比就没有伤害</li>
+</ul>
+</li>
+<li>分离问题、对比、控制变量<ul>
+<li>这是定位问题的基本思路</li>
+</ul>
+</li>
+<li>做了优化之后需要重新进行完整测试<ul>
+<li>因为不确定是否会对其他项目产生负面影响</li>
+</ul>
+</li>
+</ul>
+<h1 id="关键配置梳理"><a href="#关键配置梳理" class="headerlink" title="关键配置梳理"></a>关键配置梳理</h1><p>首先从整体上先介绍下关键的配置</p>
+<h2 id="SSL新建连接"><a href="#SSL新建连接" class="headerlink" title="SSL新建连接"></a>SSL新建连接</h2><h3 id="服务端调优"><a href="#服务端调优" class="headerlink" title="服务端调优"></a>服务端调优</h3><ol>
+<li>nginx配置<ul>
+<li>cpu亲和性</li>
+<li>文件句柄限制</li>
+<li>backlog、reuseport、deferred</li>
+<li>tcp_nopush&#x2F;tcp_nodelay</li>
+<li>SSL完整握手、无会话重用、HTTP短连接</li>
+</ul>
+</li>
+<li>内核参数（主要backlog、timewait、文件句柄限制）</li>
+<li>irq绑定</li>
+</ol>
+<h3 id="客户端调优"><a href="#客户端调优" class="headerlink" title="客户端调优"></a>客户端调优</h3><ol>
+<li>内核参数（主要timewait、文件句柄限制、端口）</li>
+<li>irq绑定</li>
+<li>配置多ip地址（根据需要，如端口数不够或负载均衡需要）</li>
+</ol>
+<h2 id="吞吐量"><a href="#吞吐量" class="headerlink" title="吞吐量"></a>吞吐量</h2><p>只需要在SSL新建连接基础上稍作调整即可</p>
+<ol>
+<li>服务端改成http长连接，长连接超时时间设置大</li>
+<li>客户端请求时也改成长连接，请求1MB大文件</li>
+</ol>
+<h2 id="最大并发数"><a href="#最大并发数" class="headerlink" title="最大并发数"></a>最大并发数</h2><p>最大并发主要跟内存相关，受机器总内存限制。如果想让最大并发数尽可能高，就需要将各种buffer的size调小，同时需要将各超时时间设大，因为最大并发通常需要测试很长时间。</p>
+<ol>
+<li>http长连接</li>
+<li>worker_connections增大到目标值</li>
+<li>各超时时间设大（recv&#x2F;send）</li>
+<li>各buffer设小（tcp&#x2F;ssl&#x2F;http）</li>
+<li>客户端长连接，请求小文件，将压力限制为一个较小的值（可以使用wrk2的<code>-R</code>选项）</li>
+</ol>
+<p>接下来具体介绍各部分，相关的配置文件和脚本等可见Git仓库<a href="https://github.com/catbro666/ssl-perf-test">ssl-perf-test</a>。</p>
+<p><strong>需要着重提醒的是</strong>，测试的配置并不是一成不变的，需要在理解配置含义的基础上，结合自身的测试需求合理进行配置。</p>
+<h1 id="配置详解"><a href="#配置详解" class="headerlink" title="配置详解"></a>配置详解</h1><h2 id="Nginx配置"><a href="#Nginx配置" class="headerlink" title="Nginx配置"></a>Nginx配置</h2><p>下面的进行SSL新建连接测试时的主要的配置nginx-tps.conf：</p>
+<figure class="highlight nginx"><table><tr><td class="code"><pre><span class="line"><span class="attribute">worker_priority</span> -<span class="number">1</span>·<span class="number">0</span>;</span><br><span class="line"><span class="attribute">worker_processes</span> auto;</span><br><span class="line"><span class="attribute">worker_cpu_affinity</span> auto;</span><br><span class="line"><span class="attribute">worker_rlimit_nofile</span> <span class="number">1000000</span>;</span><br><span class="line"><span class="attribute">error_log</span> logs/error.log <span class="literal">error</span>;</span><br><span class="line"><span class="attribute">master_process</span> <span class="literal">on</span>;</span><br><span class="line"></span><br><span class="line"><span class="section">events</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="attribute">use</span> <span class="literal">epoll</span>;</span><br><span class="line">    <span class="attribute">worker_connections</span> <span class="number">8192</span>;</span><br><span class="line">    <span class="attribute">multi_accept</span> <span class="literal">off</span>;</span><br><span class="line">    <span class="attribute">accept_mutex</span> <span class="literal">off</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="section">http</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="comment">#ssl_buffer_size 65536;</span></span><br><span class="line">    <span class="attribute">access_log</span> <span class="literal">off</span>;</span><br><span class="line">    <span class="attribute">sendfile</span> <span class="literal">on</span>;</span><br><span class="line">    <span class="section">server</span> &#123;</span><br><span class="line">        <span class="attribute">listen</span> <span class="number">443</span> ssl reuseport backlog=<span class="number">131072</span> deferred so_keepalive=<span class="literal">off</span>;</span><br><span class="line">        <span class="attribute">keepalive_requests</span>  <span class="number">0</span>;</span><br><span class="line">        <span class="attribute">keepalive_timeout</span>  <span class="number">0s</span>;</span><br><span class="line">        <span class="attribute">tcp_nopush</span> <span class="literal">on</span>;</span><br><span class="line">        <span class="attribute">tcp_nodelay</span> <span class="literal">on</span>;</span><br><span class="line"></span><br><span class="line">        <span class="attribute">lingering_close</span> <span class="literal">off</span>;</span><br><span class="line">        <span class="attribute">lingering_time</span> <span class="number">1</span>;</span><br><span class="line"></span><br><span class="line">        <span class="attribute">ssl_session_cache</span>   <span class="literal">off</span>;</span><br><span class="line">        <span class="comment">#ssl_session_cache    shared:SSL:1m;</span></span><br><span class="line">        <span class="attribute">ssl_session_timeout</span>  <span class="number">5m</span>;</span><br><span class="line">        <span class="attribute">ssl_session_tickets</span> <span class="literal">off</span>;</span><br><span class="line"></span><br><span class="line">        <span class="attribute">ssl_certificate</span> xxx.pem</span><br><span class="line">        ssl_certificate_key xxx.key;</span><br><span class="line"></span><br><span class="line">        <span class="attribute">ssl_verify_client</span> <span class="literal">on</span>;</span><br><span class="line">        <span class="comment">#ssl_verify_client off;</span></span><br><span class="line">        <span class="attribute">ssl_prefer_server_ciphers</span>   <span class="literal">on</span>;</span><br><span class="line"></span><br><span class="line">        <span class="comment">#proxy_cache cache_zone | off;</span></span><br><span class="line">        <span class="comment">#proxy_cache_path /data/nginx/cache levels=1:2 keys_zone=cache_zone:10m;</span></span><br><span class="line">        <span class="attribute">location</span> / &#123;</span><br><span class="line">            <span class="attribute">root</span>   html;</span><br><span class="line">            <span class="attribute">index</span>  index.html index.htm;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<div><div class="fold_hider"><div class="close hider_title">点击展开配置详解</div></div><div class="fold">
+<h3 id="main"><a href="#main" class="headerlink" title="main"></a>main</h3><ul>
+<li><p>worker_processes</p>
+<p>一般设成auto就可以，会自动根据系统CPU核心数进行设置</p>
+</li>
+<li><p>worker_cpu_affinity</p>
+<p>一般auto就可以，会自动每个进程绑定一个核</p>
+</li>
+<li><p>worker_rlimit_nofile</p>
+<p>设置进程能打开的最大文件数目，底层是设置的RLIMIT_NOFILE，不能超过hard nofile</p>
+</li>
+<li><p>worker_priority</p>
+<p>设置进程的优先级，跟nice命令干的事情差不多，值越小优先级越高。</p>
+</li>
+<li><p>error_log</p>
+<p>把日志配置也列进来注意是为了提醒大家不要忘记修改</p>
+</li>
+</ul>
+<h3 id="event"><a href="#event" class="headerlink" title="event"></a>event</h3><ul>
+<li><p>worker_connections</p>
+<p>进程连接数一定要足够，但是也不要无脑设成超大的一个值，因为这些连接的内存在启动时就会分配，可能会导致内存不足。另外提一下，这是整个worker的连接数，包括了下游和上游。</p>
+</li>
+<li><p>multi_accept</p>
+<p>默认关闭时，进程一次只accept一个连接；打开的时候进程会一次性accept所有已经就绪的连接。这个配置需要根据具体测试场景选择，一般保持默认关闭。</p>
+</li>
+<li><p>accept_mutex</p>
+<p>打开时每个worker轮流接收新连接，关闭时则所有worker都会收到新连接通知（即所谓的惊群效应）。如果新连接数很少，会浪费系统资源。注意当使用reuseport的时候就没有这个配置什么事了，因为内核已经做了负载均衡了。这个配置是否打开，需要根据实际的负载情况实测确定。</p>
+</li>
+</ul>
+<h3 id="http"><a href="#http" class="headerlink" title="http"></a>http</h3><ul>
+<li><p>access_log</p>
+<p>性能测试时日志一般选择关闭</p>
+</li>
+<li><p>listen</p>
+<p>listen有很多附加参数，可以配置一些socket选项</p>
+<ul>
+<li><p>reuseport</p>
+<p>对应<code>SO_REUSEPORT</code>选项，多个worker进程创建独立的监听套接字，允许内核在worker进程间对连接的连接进行负载均衡。</p>
+</li>
+<li><p>deferred</p>
+<p>对应<code>TCP_DEFER_ACCEPT</code>选项，可以推迟连接就绪的时间，只有当收到客户端发来的应用数据时才可以accept，可以稍微减小服务端的开销。</p>
+</li>
+<li><p>backlog</p>
+<p>设置listen全连接队列大小，不能超过系统<code>net.core.somaxconn</code>的限制。这个需要足够大，否则会影响新建连接的速度。</p>
+</li>
+</ul>
+</li>
+<li><p>keepalive_requests&#x2F;keepalive_time</p>
+<p>这两个分别设置http长连接的最大请求数和超时时间，根据实际测试指标选择是否启动</p>
+</li>
+<li><p>sendfile</p>
+<p>是否使用sendfile()系统调用，可以直接在内核完成文件的发送，不需要再到用户态转一手</p>
+</li>
+<li><p>tcp_nopush</p>
+<p>只有使用sendfile时才打开这个，对应Linux上的<code>TCP_CORK</code>选项，响应头和文件开头在一个包中发送，文件以满包发送，提升网络效率。</p>
+</li>
+<li><p>tcp_nodelay</p>
+<p>对应<code>TCP_NODELAY</code>选项，该选项是针对Nagle算法（在发出去的数据还未被确认前，把新的小数据先保存起来，等到凑满一个MSS或者收到了对方的确认后再发送）。</p>
+</li>
+<li><p>linger_close&#x2F;linger_time&#x2F;linger_timeout</p>
+<p>这几个控制在关闭服务端连接前是否等待和处理额外数据，以及等待的时间。</p>
+</li>
+<li><p>ssl_session_cache&#x2F;ssl_session_timeout&#x2F;ssl_session_tickets</p>
+<p>这几个参数控制是否启用SSL会话重用以及超时时间，根据测试指标确定</p>
+</li>
+<li><p>ssl_verify_client&#x2F;ssl_client_certificate</p>
+<p>是否进行SSL双向认证，根据测试需求而定</p>
+</li>
+<li><p>ssl_buffer_size</p>
+<p>发送数据时的SSL buffer大小，我们知道数据块长度越大，对称加密速度越快，所以这个默认值较大。但是如果你很关心第一个字节到达时间的话，最好将这个配置改小一点。</p>
+</li>
+<li><p>proxy_cache&#x2F;proxy_cache_path</p>
+<p>静态文件使用cache可以提高性能</p>
+</li>
+<li><p>client和proxy buffer相关配置</p>
+<p>根据应用数据情况以及实际网络情况，client和proxy buffer相关的配置也可能影响性能。</p>
+</li>
+</ul>
+
+</div></div>
+
+
+
+<h2 id="内核参数与网络配置"><a href="#内核参数与网络配置" class="headerlink" title="内核参数与网络配置"></a>内核参数与网络配置</h2><p>内核与网络和tcp相关的参数非常多，对于我们的测试最主要的是backlog、timeout、文件句柄和端口。我一般修改如下这些参数，如果你的测试有其他需要或者遇到了其他的瓶颈，可以进行添加和修改。</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="meta">#!/bin/bash</span></span><br><span class="line">./store.sh</span><br><span class="line"><span class="built_in">echo</span> 600            &gt; /proc/sys/net/core/netdev_budget</span><br><span class="line"><span class="built_in">echo</span> 128            &gt; /proc/sys/net/core/dev_weight</span><br><span class="line"><span class="built_in">echo</span> 0              &gt; /proc/sys/net/ipv4/tcp_fin_timeout</span><br><span class="line"><span class="built_in">echo</span> 0              &gt; /proc/sys/net/ipv4/tcp_tw_reuse</span><br><span class="line"><span class="built_in">echo</span> 0              &gt; /proc/sys/net/ipv4/tcp_max_tw_buckets</span><br><span class="line"><span class="built_in">echo</span> 1025 65535     &gt; /proc/sys/net/ipv4/ip_local_port_range</span><br><span class="line"><span class="built_in">echo</span> 131072         &gt; /proc/sys/net/core/somaxconn</span><br><span class="line"><span class="built_in">echo</span> 262144         &gt; /proc/sys/net/ipv4/tcp_max_orphans</span><br><span class="line"><span class="built_in">echo</span> 262144         &gt; /proc/sys/net/core/netdev_max_backlog</span><br><span class="line"><span class="built_in">echo</span> 262144         &gt; /proc/sys/net/ipv4/tcp_max_syn_backlog</span><br><span class="line"><span class="built_in">echo</span> 4000000        &gt; /proc/sys/fs/nr_open</span><br><span class="line"><span class="built_in">echo</span> 8000000        &gt; /proc/sys/fs/file-max</span><br><span class="line"><span class="built_in">echo</span> 0              &gt; /proc/sys/net/ipv4/tcp_abort_on_overflow</span><br></pre></td></tr></table></figure>
+
+<p>为了方便在测试之后对系统配置进行还原，建议在修改前先保存原有配置。我这边写了一个简单的脚本，tune.sh中会自动执行store.sh保存你将要修改的配置到recover.sh中，在测试完成后执recover.sh即可恢复原先配置。</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 在测试前修改配置，tune.sh中会自动调用store.sh保存</span></span><br><span class="line">./tune.sh</span><br><span class="line"></span><br><span class="line"><span class="comment"># 在测试后恢复原先配置</span></span><br><span class="line">./recover.sh</span><br></pre></td></tr></table></figure>
+
+
+
+<p>注意客户端和服务端关心的参数并不完全相同，比如服务端一般对端口数没有要求，客户端对backlog没有要求。一般情况下图方便直接全部改了问题也不大。</p>
+<h3 id="客户端虚拟ip"><a href="#客户端虚拟ip" class="headerlink" title="客户端虚拟ip"></a>客户端虚拟ip</h3><p>有时候客户端可能需要多个ip地址进行测试，下面的脚本setip.sh根据测试机器的CPU核数在一个网卡上设置对应个数的ip地址</p>
+<div><div class="fold_hider"><div class="close hider_title">点击展开脚本</div></div><div class="fold">
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="meta">#!/bin/bash</span></span><br><span class="line"><span class="comment"># Sets multiple IPs on a device</span></span><br><span class="line"><span class="comment"># the number of IPs is same as the number of CPU cores</span></span><br><span class="line"><span class="comment"># Note the netmask 24 bits, and the IP is started from</span></span><br><span class="line"><span class="comment"># xxx.xxx.xxx.100 by default.</span></span><br><span class="line"><span class="comment">#</span></span><br><span class="line"><span class="comment"># Example: ./setip.sh eth0 192.169.100 100</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="title">abort</span></span>() &#123;</span><br><span class="line">    <span class="built_in">echo</span> <span class="string">&quot;<span class="variable">$1</span>&quot;</span></span><br><span class="line">    <span class="built_in">exit</span> 1</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> [ <span class="variable">$#</span> -lt 2 ]; <span class="keyword">then</span></span><br><span class="line">    abort <span class="string">&quot;Usage: <span class="variable">$0</span> dev network [startip]</span></span><br><span class="line"><span class="string">Example: ./setip.sh eth0 192.169.100 100&quot;</span></span><br><span class="line"><span class="keyword">fi</span></span><br><span class="line"></span><br><span class="line">dev=<span class="variable">$1</span></span><br><span class="line">net=<span class="variable">$2</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> [ <span class="variable">$#</span> -gt 2 ]; <span class="keyword">then</span></span><br><span class="line">    startip=<span class="variable">$3</span></span><br><span class="line"><span class="keyword">else</span></span><br><span class="line">    startip=100</span><br><span class="line"><span class="keyword">fi</span></span><br><span class="line"></span><br><span class="line">ip link show <span class="variable">$dev</span> &gt; /dev/null</span><br><span class="line"><span class="keyword">if</span> [ $? -ne 0 ]; <span class="keyword">then</span></span><br><span class="line">    abort <span class="string">&quot;device <span class="variable">$dev</span> not existed!&quot;</span></span><br><span class="line"><span class="keyword">fi</span></span><br><span class="line"></span><br><span class="line">cpu_num=$(cat /proc/cpuinfo |grep processor |wc -l)</span><br><span class="line"></span><br><span class="line"><span class="keyword">for</span> i <span class="keyword">in</span> $(seq <span class="variable">$startip</span> `expr <span class="variable">$cpu_num</span> + <span class="variable">$startip</span> - 1`)</span><br><span class="line"><span class="keyword">do</span></span><br><span class="line">        ifconfig <span class="variable">$dev</span>:<span class="variable">$i</span> <span class="variable">$net</span>.<span class="variable">$i</span>/24 up</span><br><span class="line"><span class="keyword">done</span></span><br></pre></td></tr></table></figure>
+
+</div></div>
+
+<p>删除IP可以通过对应的脚本delip.sh。</p>
+<h3 id="客户端测试脚本"><a href="#客户端测试脚本" class="headerlink" title="客户端测试脚本"></a>客户端测试脚本</h3><p>这里的客户端使用wrk2，为了方便测试，写了几个简单的脚本，test-tps.sh用于测试新建连接，test-tpt.sh用于测试吞吐量，test-max.sh用于测试最大并发连接，test-rps.sh用于测试长连接的HTTP业务。下面是新建连接的脚本，其他几个也是类似：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="meta">#!/bin/bash</span></span><br><span class="line"><span class="comment"># 新建连接 TPS</span></span><br><span class="line"></span><br><span class="line">server=192.168.100.20:55555</span><br><span class="line">net=192.168.100</span><br><span class="line">startip=100</span><br><span class="line"></span><br><span class="line">cpu_num=$(cat /proc/cpuinfo |grep processor |wc -l)</span><br><span class="line">cpu_num=$((<span class="variable">$cpu_num</span> - <span class="number">1</span>))</span><br><span class="line"><span class="keyword">for</span> i <span class="keyword">in</span> $(seq 0 <span class="variable">$cpu_num</span>); <span class="keyword">do</span></span><br><span class="line"><span class="comment"># specify separate IP for each process</span></span><br><span class="line">    taskset -c <span class="variable">$i</span> ./wrk2 -t 1 -c 10 -d 30s --timeout 15s -b <span class="variable">$net</span>.`expr <span class="variable">$i</span> + <span class="variable">$startip</span>` -H <span class="string">&#x27;Connection: close&#x27;</span> --clientcert sm2-user.pem --clientkey sm2-user.key --protocol gmvpn --cipher ECC-SM4-SM3 -R 1000 https://<span class="variable">$server</span>/0kb &amp;</span><br><span class="line"></span><br><span class="line"><span class="comment"># use single IP</span></span><br><span class="line">    <span class="comment">#taskset -c $i ./wrk2 -t 1 -c 10 -d 30s --timeout 15s -H &#x27;Connection: close&#x27; --clientcert sm2-user.pem --clientkey sm2-user.key --protocol gmvpn --cipher ECC-SM4-SM3 -R 1000 https://$server/0kb &amp;</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">done</span></span><br></pre></td></tr></table></figure>
+
+<p>为了最大化客户端的性能，我们使用了taskset将每个wrk2进程绑定到一个单独的CPU上，减少上下文切换带来的开销。不过这样每个wrk2实例都会打印一个测试结果，不方便进行观看和统计，所以写了一个脚本test.sh自动计算总和。</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="meta">#!/bin/bash</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># Calculates the sum of the wrk results</span></span><br><span class="line"><span class="comment"># Example: ./test-sum.sh tps</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> [ <span class="variable">$#</span> -eq 0 ]; <span class="keyword">then</span></span><br><span class="line">    <span class="built_in">test</span>=tps</span><br><span class="line"><span class="keyword">else</span></span><br><span class="line">    <span class="built_in">test</span>=<span class="variable">$1</span></span><br><span class="line"><span class="keyword">fi</span></span><br><span class="line"></span><br><span class="line">./<span class="built_in">test</span>-<span class="variable">$test</span>.sh | grep <span class="string">&quot;Requests/sec&quot;</span> | awk <span class="string">&#x27;BEGIN &#123;sum=0&#125; &#123;sum+=$2&#125; END&#123;print sum&#125;&#x27;</span></span><br></pre></td></tr></table></figure>
+
+<p>使用方法如下，参数中指定具体的测试（tps|tpt|max|rps）即可。</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ ./test.sh tps</span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="服务端网卡bonding"><a href="#服务端网卡bonding" class="headerlink" title="服务端网卡bonding"></a>服务端网卡bonding</h3><p>有时候单个网口的流量到了瓶颈，可能需要对多个网口进行绑定以达到流量翻倍的效果。下面的脚本将eth2、eth3、eth4、eth5这4个网卡绑定到bond0上。</p>
+<p>这里服务端和客户端都设置成了模式0，即roundrobin模式的负载均衡。</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="meta">#!/bin/bash</span></span><br><span class="line"></span><br><span class="line">modprobe bonding</span><br><span class="line"></span><br><span class="line"><span class="comment">#mode: 0 balance-rr, 1 active-backup, 2 balance-xor, 3broadcast</span></span><br><span class="line"><span class="comment"># 4 802.3ad, 5balance-tlb, 6 balance-alb</span></span><br><span class="line">ip link add bond0 <span class="built_in">type</span> bond mode 0 miimon 100</span><br><span class="line"></span><br><span class="line">ifconfig eth2 down</span><br><span class="line">ifconfig eth3 down</span><br><span class="line">ifconfig eth4 down</span><br><span class="line">ifconfig eth5 down</span><br><span class="line"></span><br><span class="line">sudo ip link <span class="built_in">set</span> eth2 master bond0</span><br><span class="line">sudo ip link <span class="built_in">set</span> eth3 master bond0</span><br><span class="line">sudo ip link <span class="built_in">set</span> eth4 master bond0</span><br><span class="line">sudo ip link <span class="built_in">set</span> eth5 master bond0</span><br><span class="line"></span><br><span class="line">ifconfig bond0 192.168.200.10/24</span><br><span class="line"></span><br><span class="line"><span class="comment"># delete bond0</span></span><br><span class="line"><span class="comment">#ip link delete bond0</span></span><br></pre></td></tr></table></figure>
+
+<p>关于bonding可以参考<a href="https://wiki.linuxfoundation.org/networking/bonding">这里</a></p>
+<h2 id="网卡队列及irq"><a href="#网卡队列及irq" class="headerlink" title="网卡队列及irq"></a>网卡队列及irq</h2><p>在实际测试中，你可能会发现某些个CPU上的si特别高，成为了性能瓶颈。这时候就需要将网卡队列分配到不同CPU核上进行软中断的处理。如果客户端也碰到了类似问题，那么也需要进行类似操作。</p>
+<p>为了方便测试，我写了一个脚本irqbind.sh可以自动进行网卡中断号的绑定及RPS的设置，使用方法如下：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 查看</span></span><br><span class="line">$ ./irqbind.sh eth0</span><br><span class="line"><span class="comment"># 设置</span></span><br><span class="line">$ ./irqbind.sh eth0 <span class="built_in">set</span></span><br></pre></td></tr></table></figure>
+
+<p>下面介绍下手动进行设置的流程，以对脚本中的操作有所了解：</p>
+<h3 id="网卡中断号绑定到CPU"><a href="#网卡中断号绑定到CPU" class="headerlink" title="网卡中断号绑定到CPU"></a>网卡中断号绑定到CPU</h3><p>irqbalance服务可以帮你绑定中断号，不过它是动态变化的，如果你对irqbalance的效果不满意，或者想静态绑定，也可以自己手动进行绑定。操作步骤如下：</p>
+<ul>
+<li><p><code>cat /proc/interrupts</code>查看对应网卡的中断号</p>
+<p>下面的218-249就是eth11这个网卡对应的中断号，该网卡拥有32个队列</p>
+<div><div class="fold_hider"><div class="close hider_title">点击展开详情</div></div><div class="fold">
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line"> 218:   17094773          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0         14         22          0          0          0          0      12697          0          0          0          0          0          0          0          0          0  IR-PCI-MSI-edge      eth11-TxRx-0</span><br><span class="line"> 219:       3119   13271410          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0  IR-PCI-MSI-edge      eth11-TxRx-1</span><br><span class="line"> 220:       2385          0   13265837          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0  IR-PCI-MSI-edge      eth11-TxRx-2</span><br><span class="line"> 221:         23          0          0   13290114          0          0          0          0          0          0          0          0       2064          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0  IR-PCI-MSI-edge      eth11-TxRx-3</span><br><span class="line">...</span><br><span class="line">...</span><br><span class="line"> 245:          0         23          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          5       2000    6603326          0          0          0          0          0          0          0     149556          0          0          0          0  IR-PCI-MSI-edge      eth11-TxRx-27</span><br><span class="line"> 246:          0         23          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          5    6869437          0          0       2000  IR-PCI-MSI-edge      eth11-TxRx-28</span><br><span class="line"> 247:          0         23          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          5          0          0    6846871       2000          0  IR-PCI-MSI-edge      eth11-TxRx-29</span><br><span class="line"> 248:          0         23          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          5          0          0          0       2000    6937093          0  IR-PCI-MSI-edge      eth11-TxRx-30</span><br><span class="line"> 249:          0         23          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          5          0          0          0       2000          0          0    6837127  IR-PCI-MSI-edge      eth11-TxRx-31</span><br></pre></td></tr></table></figure>
+
+</div></div>
+</li>
+<li><p>接下来将中断号绑定到CPU核上</p>
+<p>示例中218号中断绑定到1号CPU，以此类推</p>
+<div><div class="fold_hider"><div class="close hider_title">点击展开详情</div></div><div class="fold">
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="meta">#!/bin/bash</span></span><br><span class="line"><span class="built_in">echo</span> 00000001 &gt; /proc/irq/218/smp_affinity</span><br><span class="line"><span class="built_in">echo</span> 00000002 &gt; /proc/irq/219/smp_affinity</span><br><span class="line"><span class="built_in">echo</span> 00000004 &gt; /proc/irq/220/smp_affinity</span><br><span class="line"><span class="built_in">echo</span> 00000008 &gt; /proc/irq/221/smp_affinity</span><br><span class="line"><span class="built_in">echo</span> 00000010 &gt; /proc/irq/222/smp_affinity</span><br><span class="line"><span class="built_in">echo</span> 00000020 &gt; /proc/irq/223/smp_affinity</span><br><span class="line"><span class="built_in">echo</span> 00000040 &gt; /proc/irq/224/smp_affinity</span><br><span class="line"><span class="built_in">echo</span> 00000080 &gt; /proc/irq/225/smp_affinity</span><br><span class="line"><span class="comment"># ...</span></span><br><span class="line"><span class="built_in">echo</span> 01000000 &gt; /proc/irq/242/smp_affinity</span><br><span class="line"><span class="built_in">echo</span> 02000000 &gt; /proc/irq/243/smp_affinity</span><br><span class="line"><span class="built_in">echo</span> 04000000 &gt; /proc/irq/244/smp_affinity</span><br><span class="line"><span class="built_in">echo</span> 08000000 &gt; /proc/irq/245/smp_affinity</span><br><span class="line"><span class="built_in">echo</span> 10000000 &gt; /proc/irq/246/smp_affinity</span><br><span class="line"><span class="built_in">echo</span> 20000000 &gt; /proc/irq/247/smp_affinity</span><br><span class="line"><span class="built_in">echo</span> 40000000 &gt; /proc/irq/248/smp_affinity</span><br><span class="line"><span class="built_in">echo</span> 80000000 &gt; /proc/irq/249/smp_affinity</span><br></pre></td></tr></table></figure>
+
+</div></div></li>
+</ul>
+<h3 id="RPS"><a href="#RPS" class="headerlink" title="RPS"></a>RPS</h3><p>有时候你的网卡不支持多队列、或者队列数少于CPU核心数、又或是NIC的间接表（Indirection Table）的RX队列数少于CPU核心数，这个时候就需要借助内核的<a href="https://www.kernel.org/doc/Documentation/networking/scaling.txt">RPS&#x2F;RFS机制</a>，在软件层面再次进行分配。比如下面的例子，NIC的间接表最大RX队列数只有16</p>
+<div><div class="fold_hider"><div class="close hider_title">点击展开详情</div></div><div class="fold">
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># ethtool --show-rxfh-indir enp7s0f0</span></span><br><span class="line">RX flow <span class="built_in">hash</span> indirection table <span class="keyword">for</span> enp7s0f0 with 56 RX ring(s):</span><br><span class="line">    0:      0     1     2     3     4     5     6     7</span><br><span class="line">    8:      8     9    10    11    12    13    14    15</span><br><span class="line">   16:      0     1     2     3     4     5     6     7</span><br><span class="line">   24:      8     9    10    11    12    13    14    15</span><br><span class="line">   32:      0     1     2     3     4     5     6     7</span><br><span class="line">   40:      8     9    10    11    12    13    14    15</span><br><span class="line">   48:      0     1     2     3     4     5     6     7</span><br><span class="line">   56:      8     9    10    11    12    13    14    15</span><br><span class="line">   64:      0     1     2     3     4     5     6     7</span><br><span class="line">   72:      8     9    10    11    12    13    14    15</span><br><span class="line">   80:      0     1     2     3     4     5     6     7</span><br><span class="line">   88:      8     9    10    11    12    13    14    15</span><br><span class="line">   96:      0     1     2     3     4     5     6     7</span><br><span class="line">  104:      8     9    10    11    12    13    14    15</span><br><span class="line">  112:      0     1     2     3     4     5     6     7</span><br><span class="line">  120:      8     9    10    11    12    13    14    15</span><br><span class="line">RSS <span class="built_in">hash</span> key:</span><br><span class="line">fb:db:6a:ad:9d:49:5f:c7:d1:d9:d0:c8:bd:4c:e9:f3:60:c6:34:1e:09:c5:7f:f5:ae:bf:62:38:ca:83:a5:a2:40:c2:59:4b:32:92:6b:5b</span><br><span class="line">RSS <span class="built_in">hash</span> <span class="keyword">function</span>:</span><br><span class="line">    toeplitz: on</span><br><span class="line">    xor: off</span><br><span class="line">    crc32: off</span><br></pre></td></tr></table></figure>
+
+</div></div>
+
+<p>设置成大于16的值会失败</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># ethtool --set-rxfh-indir enp7s0f0 equal 56</span></span><br><span class="line">Cannot <span class="built_in">set</span> RX flow <span class="built_in">hash</span> configuration: Invalid argument</span><br></pre></td></tr></table></figure>
+
+<p>此时可以使用RPS将16个rx队列再分配到56个核上。</p>
+<div><div class="fold_hider"><div class="close hider_title">点击展开详情</div></div><div class="fold">
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="meta">#!/bin/bash</span></span><br><span class="line"><span class="built_in">echo</span> 010001,00010001 &gt; /sys/class/net/enp7s0f0/queues/rx-0/rps_cpus</span><br><span class="line"><span class="built_in">echo</span> 020002,00020002 &gt; /sys/class/net/enp7s0f0/queues/rx-1/rps_cpus</span><br><span class="line"><span class="built_in">echo</span> 040004,00040004 &gt; /sys/class/net/enp7s0f0/queues/rx-2/rps_cpus</span><br><span class="line"><span class="built_in">echo</span> 080008,00080008 &gt; /sys/class/net/enp7s0f0/queues/rx-3/rps_cpus</span><br><span class="line"><span class="built_in">echo</span> 100010,00100010 &gt; /sys/class/net/enp7s0f0/queues/rx-4/rps_cpus</span><br><span class="line"><span class="built_in">echo</span> 200020,00200020 &gt; /sys/class/net/enp7s0f0/queues/rx-5/rps_cpus</span><br><span class="line"><span class="built_in">echo</span> 400040,00400040 &gt; /sys/class/net/enp7s0f0/queues/rx-6/rps_cpus</span><br><span class="line"><span class="built_in">echo</span> 800080,00800080 &gt; /sys/class/net/enp7s0f0/queues/rx-7/rps_cpus</span><br><span class="line"><span class="built_in">echo</span> 000100,01000100 &gt; /sys/class/net/enp7s0f0/queues/rx-8/rps_cpus</span><br><span class="line"><span class="built_in">echo</span> 000200,02000200 &gt; /sys/class/net/enp7s0f0/queues/rx-9/rps_cpus</span><br><span class="line"><span class="built_in">echo</span> 000400,04000400 &gt; /sys/class/net/enp7s0f0/queues/rx-10/rps_cpus</span><br><span class="line"><span class="built_in">echo</span> 000800,08000800 &gt; /sys/class/net/enp7s0f0/queues/rx-11/rps_cpus</span><br><span class="line"><span class="built_in">echo</span> 001000,10001000 &gt; /sys/class/net/enp7s0f0/queues/rx-12/rps_cpus</span><br><span class="line"><span class="built_in">echo</span> 002000,20002000 &gt; /sys/class/net/enp7s0f0/queues/rx-13/rps_cpus</span><br><span class="line"><span class="built_in">echo</span> 004000,40004000 &gt; /sys/class/net/enp7s0f0/queues/rx-14/rps_cpus</span><br><span class="line"><span class="built_in">echo</span> 008000,80008000 &gt; /sys/class/net/enp7s0f0/queues/rx-15/rps_cpus</span><br></pre></td></tr></table></figure>
+
+</div></div>
+
+<p>下图很好的描述了上面发生的事情：</p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/d5d52392/RSS-RPS-REUSRPORT.jpg" alt="RSS-RPS-REUSRPORT" loading="lazy"></p>
+<p>网卡收到包送到多个队列中，然后将队列的中断号与CPU核心绑定，如果没有充分利用CPU，借助RPS再次分配到其他CPU核心上。每个CPU核上有一个ksoftirqd在工作。SO_REUSEPORT解决socket竞争的问题，每个进程有一个独立的socket，默认情况下是对数据流（源和目的的ip端口号）做哈希值来选择送到那个socket。但是这个地方其实还是存在一点竞争，同一个socket可能被不同的核选择，Linux内核从4.5版本起已经支持SO_ATTACH_REUSEPORT_CBPF&#x2F;EBPF，可以根据核心号来选择socket以消除softirq这里的竞争，配合上进程的CPU亲和性绑定可以最大程度的提升性能。不过Nginx目前还不支持这个选项。</p>
+<h1 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h1><ul>
+<li><a href="https://github.com/catbro666/ssl-perf-test">配置和脚本仓库ssl-perf-test</a></li>
+<li><a href="https://wiki.linuxfoundation.org/networking/bonding">bonding</a></li>
+</ul>
+]]></content>
+      <categories>
+        <category>性能</category>
+      </categories>
+      <tags>
+        <tag>SSL/TLS</tag>
+        <tag>Nginx</tag>
+        <tag>性能调优</tag>
+        <tag>RPS</tag>
       </tags>
   </entry>
 </search>
