@@ -17,6 +17,7 @@
 {"title":"C语言中的函数调用约定","url":"/posts/657c24ad/"},
 {"title":"Linux内核中隐藏的兵法—无中生有","url":"/posts/68dbb05c/"},
 {"title":"自己动手实现Lua--实现TAILCALL指令","url":"/posts/74970c0e/"},
+{"title":"Linux内核中隐藏的兵法—移花接木","url":"/posts/7be938f8/"},
 {"title":"如何在裸机上直接运行程序—王爽《汇编语言》课程设计2","url":"/posts/8054db72/"},
 {"title":"OpenSSL CVE-2022-0778漏洞问题复现与非法证书构造","url":"/posts/83951100/"},
 {"title":"Lua中如何实现类似gdb的断点调试--03通用变量修改及调用栈回溯","url":"/posts/a05a2f5f/"},

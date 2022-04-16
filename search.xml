@@ -5462,4 +5462,170 @@
         <tag>地址空间</tag>
       </tags>
   </entry>
+  <entry>
+    <title>Linux内核中隐藏的兵法—以逸待劳</title>
+    <url>/posts/5d011708/</url>
+    <content><![CDATA[<div class="note primary">
+            <p>在本系列之前的两篇文章<a href="../68dbb05c/">无中生有</a>与<a href="../7be938f8/">移花接木</a>中，我们探究了Linux中的进程创建，它可以说是进程管理中最重要的内容之一（另一个是进程调度）。本文我们将介绍的内容则更多地属于是内存管理范畴。（当然这也是相对而言的，作为Linux内核中最核心的部分，进程管理、内存管理、中断管理相互之间都是紧密联系的。）</p><p>也许你已经注意到了，无论是fork还是execve都没有主动去分配内存执行拷贝或读取的动作。fork时只是拷贝了页表并设置为用户只读，而execve时则只是准备了新的LDT局部表以及堆栈中的参数和环境表，而并没有实际读程序到内存中。</p><p>这就是本文将讨论的页异常中断：<strong>写保护异常&#x2F;写时复制机制</strong>和<strong>缺页异常</strong>。</p>
+          </div>
+
+<span id="more"></span>
+
+<blockquote>
+<p>后面的代码基于Linux 0.11</p>
+</blockquote>
+<h2 id="分页机制"><a href="#分页机制" class="headerlink" title="分页机制"></a>分页机制</h2><p>为了更好地理解后面的内容，我们先简单介绍下分页机制。</p>
+<h3 id="地址转换"><a href="#地址转换" class="headerlink" title="地址转换"></a>地址转换</h3><p>线性地址转换成物理地址的步骤如下：</p>
+<ol>
+<li>首先从cr3寄存器中获取到页目录的地址</li>
+<li>从线性地址的前10位获取到页目录项，页目录项中保存着对应页表的地址</li>
+<li>从线性地址中间10位获取到页表项，页表项中保存着对应页框的地址</li>
+<li>线性地址的最后12位即表示在页内的偏移值。</li>
+</ol>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">         31     22 21     12 11      0</span><br><span class="line">线性地址: | 页目录项 |  页表项 | 页内偏移 |</span><br></pre></td></tr></table></figure>
+
+<h3 id="页目录和页表"><a href="#页目录和页表" class="headerlink" title="页目录和页表"></a>页目录和页表</h3><p>页目录和页表的表项结构如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line"> 31             12 11   9    6 5   3   2   1  0</span><br><span class="line">|页框地址           |AVAIL|0 0|D|A|0 0|U/S|R/W|P|</span><br></pre></td></tr></table></figure>
+
+<p>如前所述，页目录项的高20位保存对应页表的地址，页表项的高20位则保存对应物理页框的地址。因为页地址总是4KB对齐的，所以表项的低位12位可作他用。这里保存了一些标志位：</p>
+<ul>
+<li>其中最低位P表示该表项是否有效，如果P&#x3D;1表示表项有效，P&#x3D;1则表示该表项无效，不能用于地址转换。在地址转换过程中如果遇到表项无效，会引发<strong>缺页异常</strong>，尝试共享页面或者分配新页。</li>
+<li>R&#x2F;W是读写位，为0时表示只读，为1时表示可读写，该位只限制用户态，对内核态不起作用。页目录项中的R&#x2F;W位对其所映射的所有页面起作用。如果碰到用户往只读的页面写数据，会引发<strong>写保护的页异常</strong>，尝试为进程分配新的空闲页。</li>
+<li>U&#x2F;S是用户&#x2F;超级用户标志，如果为1那么所有特权级都能访问，如果为0则只有内核态可以访问。同样地，页目录项中的U&#x2F;S位对其所映射的所有页面起作用。</li>
+<li>A位是已访问标志，当处理器访问页表项映射的页面时，页表表项的这个标志就会被置为1。当处理器访问页目录表项映射的任何页面时，页目录表项中这个标志就会被置为1。处理器只负责设置该标志，操作系统可通过定期地复位该标志来统计页面的使用情况。</li>
+<li>D位是已修改标志，当处理器对一个页面执行写操作时，就会设置对应页表表项的D标志。</li>
+</ul>
+<h2 id="写时复制机制-x2F-写保护页异常"><a href="#写时复制机制-x2F-写保护页异常" class="headerlink" title="写时复制机制&#x2F;写保护页异常"></a>写时复制机制&#x2F;写保护页异常</h2><h3 id="拷贝页表"><a href="#拷贝页表" class="headerlink" title="拷贝页表"></a>拷贝页表</h3><p>之前介绍fork的核心参数<code>copy_process</code>时，我们提到了其中的<code>copy_mem</code>在拷贝内存时是写时复制，但是并没有详细展开。我们先来看<code>copy_mem()</code>函数的实现：</p>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">copy_mem</span><span class="params">(<span class="keyword">int</span> nr,struct task_struct * p)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">long</span> old_data_base,new_data_base,data_limit;</span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">long</span> old_code_base,new_code_base,code_limit;</span><br><span class="line"></span><br><span class="line">    code_limit=get_limit(<span class="number">0x0f</span>);</span><br><span class="line">    data_limit=get_limit(<span class="number">0x17</span>);</span><br><span class="line">    old_code_base = get_base(current-&gt;ldt[<span class="number">1</span>]);</span><br><span class="line">    old_data_base = get_base(current-&gt;ldt[<span class="number">2</span>]);</span><br></pre></td></tr></table></figure>
+
+<p>首先是获取代码段的限长和基址</p>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="keyword">if</span> (old_data_base != old_code_base)</span><br><span class="line">    panic(<span class="string">&quot;We don&#x27;t support separate I&amp;D&quot;</span>);</span><br><span class="line"><span class="keyword">if</span> (data_limit &lt; code_limit)</span><br><span class="line">    panic(<span class="string">&quot;Bad data_limit&quot;</span>);</span><br></pre></td></tr></table></figure>
+
+<p>做些检查，Linux 0.11中代码段与数据段的基址是相同的，且数据段限长大于代码段。</p>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line">new_data_base = new_code_base = nr * <span class="number">0x4000000</span>;</span><br><span class="line">p-&gt;start_code = new_code_base;</span><br><span class="line">set_base(p-&gt;ldt[<span class="number">1</span>],new_code_base);</span><br><span class="line">set_base(p-&gt;ldt[<span class="number">2</span>],new_data_base);</span><br></pre></td></tr></table></figure>
+
+<p>设置新的代码段和数据段基址到LDT中</p>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line">    <span class="keyword">if</span> (copy_page_tables(old_data_base,new_data_base,data_limit)) &#123;</span><br><span class="line">        printk(<span class="string">&quot;free_page_tables: from copy_mem\n&quot;</span>);</span><br><span class="line">        free_page_tables(new_data_base,data_limit);</span><br><span class="line">        <span class="keyword">return</span> -ENOMEM;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>最后调用<code>copy_page_tables</code>对页表进行拷贝。可以看到这里只复制了数据段的页表。（因为Linux 0.11所有进程是共享页目录的，且Linux 0.11中代码段和数据段的基址是相同的，数据段长度不小于代码段，所以这里只需要复制数据段即可。）</p>
+<p>（Linux 0.11中最多支持同时64个进程，每个进程的线性基址根据其进程编号*64MB得到，即上面代码中的<code>nr * 0x4000000</code>。）</p>
+<p>既然只是复制了页表，页面的复制推迟到某一方进行写操作时，那么推迟复制这个动作是怎么实现的呢？这就需要跟到<code>copy_page_tables()</code>里面一探虚实了：</p>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">copy_page_tables</span><span class="params">(<span class="keyword">unsigned</span> <span class="keyword">long</span> from,<span class="keyword">unsigned</span> <span class="keyword">long</span> to,<span class="keyword">long</span> size)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">long</span> * from_page_table;</span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">long</span> * to_page_table;</span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">long</span> this_page;</span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">long</span> * from_dir, * to_dir;</span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">long</span> nr;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> ((from&amp;<span class="number">0x3fffff</span>) || (to&amp;<span class="number">0x3fffff</span>))</span><br><span class="line">        panic(<span class="string">&quot;copy_page_tables called with wrong alignment&quot;</span>);</span><br><span class="line">    from_dir = (<span class="keyword">unsigned</span> <span class="keyword">long</span> *) ((from&gt;&gt;<span class="number">20</span>) &amp; <span class="number">0xffc</span>); <span class="comment">/* _pg_dir = 0 */</span></span><br><span class="line">    to_dir = (<span class="keyword">unsigned</span> <span class="keyword">long</span> *) ((to&gt;&gt;<span class="number">20</span>) &amp; <span class="number">0xffc</span>);</span><br></pre></td></tr></table></figure>
+
+<p><code>from_dir</code>和<code>to_dir</code>是根据源段和目的段线性基址获取其在页目录中的目录项指针。结合前面分页机制中地址转换的介绍，可以知道<code>((from&gt;&gt;20) &amp; 0xffc)</code>其实就是线性地址前10位的值*4，因为每个页目录项是4个字节所以乘以4转换成了页目录项指针。所以<code>from_dir</code>和<code>to_dir</code>分别是源进程和目的进程的页目录项指针。</p>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line">size = ((<span class="keyword">unsigned</span>) (size+<span class="number">0x3fffff</span>)) &gt;&gt; <span class="number">22</span>;</span><br><span class="line"><span class="keyword">for</span>( ; size--&gt;<span class="number">0</span> ; from_dir++,to_dir++) &#123;</span><br><span class="line">    <span class="keyword">if</span> (<span class="number">1</span> &amp; *to_dir)</span><br><span class="line">        panic(<span class="string">&quot;copy_page_tables: already exist&quot;</span>);</span><br><span class="line">    <span class="keyword">if</span> (!(<span class="number">1</span> &amp; *from_dir))   <span class="comment">// 源目录项未被使用，跳过</span></span><br><span class="line">        <span class="keyword">continue</span>;</span><br><span class="line">    from_page_table = (<span class="keyword">unsigned</span> <span class="keyword">long</span> *) (<span class="number">0xfffff000</span> &amp; *from_dir);</span><br><span class="line">    <span class="keyword">if</span> (!(to_page_table = (<span class="keyword">unsigned</span> <span class="keyword">long</span> *) get_free_page()))</span><br><span class="line">        <span class="keyword">return</span> <span class="number">-1</span>;  <span class="comment">/* Out of memory, see freeing */</span></span><br><span class="line">    *to_dir = ((<span class="keyword">unsigned</span> <span class="keyword">long</span>) to_page_table) | <span class="number">7</span>; <span class="comment">// User, R/W, Present</span></span><br><span class="line">    nr = (from==<span class="number">0</span>)?<span class="number">0xA0</span>:<span class="number">1024</span>;</span><br><span class="line">    <span class="keyword">for</span> ( ; nr-- &gt; <span class="number">0</span> ; from_page_table++,to_page_table++) &#123;</span><br><span class="line">        this_page = *from_page_table;</span><br><span class="line">        <span class="keyword">if</span> (!(<span class="number">1</span> &amp; this_page)) <span class="comment">// 源页表项未被使用，跳过</span></span><br><span class="line">            <span class="keyword">continue</span>;</span><br><span class="line">        this_page &amp;= ~<span class="number">2</span>;     <span class="comment">// 目的页表项的R/W位置0，表示用户只读</span></span><br><span class="line">        *to_page_table = this_page;</span><br><span class="line">        <span class="keyword">if</span> (this_page &gt; LOW_MEM) &#123;</span><br><span class="line">            *from_page_table = this_page;  <span class="comment">// 不是LOW_MEM，源页表项所指内存页也只读</span></span><br><span class="line">            this_page -= LOW_MEM;</span><br><span class="line">            this_page &gt;&gt;= <span class="number">12</span>;</span><br><span class="line">            mem_map[this_page]++;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line">invalidate();  <span class="comment">// 刷新TLB地址变换高速缓存</span></span><br><span class="line"><span class="keyword">return</span> <span class="number">0</span>;</span><br></pre></td></tr></table></figure>
+
+<p>接下来就是两层循环对页目录项、页表项进行循环拷贝操作了。注意如果页目录项或页表项的最后1位为0（P位为0表示没有使用），则跳过。</p>
+<p>注意这一行<code>this_page &amp;= ~2</code>，这里将页表项的R&#x2F;W位置0，表示目的页对用户只读。最后如果源页面不是LOW_MEM，那么源页表项的R&#x2F;W位置也置0，同时增加了该页面的引用计数。正是通过这一动作，实现了推迟复制。</p>
+<blockquote>
+<p>但是这里将LOW_MEM排除了，所以在进程0第一次fork进程1的时候，进程0对其内存页仍然是可写的，并没有写时复制。所以进程0在main函数中的fork和pause才需要使用内嵌函数的形式，避免使用堆栈。如果进程0先将堆栈改了，然后进程1后面要写栈时复制的栈就是坏的。</p>
+</blockquote>
+<p>这还只是实现了<strong>写时复制机制（copy-on-write）</strong>的其中一半，这里只是将页面复制推迟了。<strong>写时复制机制（copy-on-write）</strong>的另外一半发生在<strong>写保护的页异常</strong>时。</p>
+<h3 id="写保护的页异常"><a href="#写保护的页异常" class="headerlink" title="写保护的页异常"></a>写保护的页异常</h3><p>前面在拷贝页表项时已经将其R&#x2F;W位置0，当后面用户往这个只读的页面写数据时，会引发<strong>写保护的页异常</strong>，尝试为进程分配新的空闲页。具体代码如下：</p>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">un_wp_page</span><span class="params">(<span class="keyword">unsigned</span> <span class="keyword">long</span> * table_entry)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">long</span> old_page,new_page;</span><br><span class="line"></span><br><span class="line">    old_page = <span class="number">0xfffff000</span> &amp; *table_entry;</span><br></pre></td></tr></table></figure>
+
+<p>参数<code>table_entry</code>是造成页异常的线性地址对应的页表项指针，<code>old_page</code>就是对应的物理页面地址。</p>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="keyword">if</span> (old_page &gt;= LOW_MEM &amp;&amp; mem_map[MAP_NR(old_page)]==<span class="number">1</span>) &#123;</span><br><span class="line">    *table_entry |= <span class="number">2</span>;</span><br><span class="line">    invalidate();</span><br><span class="line">    <span class="keyword">return</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>如果不是低端内存且引用数为1，说明并没有被共享，直接将对应页表项的R&#x2F;W置1即可。</p>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="keyword">if</span> (!(new_page=get_free_page()))</span><br><span class="line">    oom();</span><br></pre></td></tr></table></figure>
+
+<p>对于其他情况，则都需要分配一个新页</p>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line">    <span class="keyword">if</span> (old_page &gt;= LOW_MEM)</span><br><span class="line">        mem_map[MAP_NR(old_page)]--;</span><br><span class="line">    *table_entry = new_page | <span class="number">7</span>;  <span class="comment">// User, R/W, Present</span></span><br><span class="line">    invalidate();</span><br><span class="line">    copy_page(old_page,new_page);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>然后将对应的页表项设置为新分配页的物理地址并设置最后3位标志。</p>
+<p><strong>注意</strong>：这里只修改了当前进程的页表项，所以其他共享这个页面的进程的页表项中仍然还是只读的状态，当它们试图执行写操作时也同样会引发写保护异常。</p>
+<p>至此，<strong>写时复制机制</strong>的实现逻辑就完整了。</p>
+<p>最后提一下<code>invalidate()</code>函数，因为之前修改了页表，所以需要刷新TLB地址变换高速缓冲。这里是通过重置cr3寄存器来实现的。</p>
+<h2 id="页异常中断"><a href="#页异常中断" class="headerlink" title="页异常中断"></a>页异常中断</h2><h3 id="中断产生"><a href="#中断产生" class="headerlink" title="中断产生"></a>中断产生</h3><p>那么页异常中断是如何产生的呢？</p>
+<p>CPU在寻址的过程中如果碰到了页面不存在或者是写保护的（根据页表项的中标志位判断），就会引发页异常中断。我们接下来就来完整地看下页异常中断的处理过程：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">page_fault:</span><br><span class="line">    xchgl %eax,(%esp)	# 栈顶错误码与eax交换</span><br></pre></td></tr></table></figure>
+
+<p>这部分的代码跟之前在介绍系统调用时有些类似。首先刚进入中断处理程序时栈指针位于下图esp0的位置，中断过程已自动将用户态原堆栈段ss、原用户态堆栈指针esp、状态寄存器eflags、原用户代码段cs、原用户代码eip入栈。对于页异常中断，CPU还会自动将一个错误码压栈，这个错误码用于说明导致异常发生的原因及状态，只用了最后3位。</p>
+<ul>
+<li>位0（P）：0表示页不存在，1表示页级保护</li>
+<li>位1（W&#x2F;R）：0表示是读操作，1表示是写操作</li>
+<li>位2（U&#x2F;S）：0表示在超级用户下执行，1表示在用户模式下执行</li>
+</ul>
+<p>可以看到，这几位的意思跟页表项中最后3位的意思基本是一致的。</p>
+<p>中断处理程序中第一件事就是将当前栈顶的值（即错误码）换到eax寄存器中。</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">pushl %ecx</span><br><span class="line">pushl %edx</span><br><span class="line">push %ds</span><br><span class="line">push %es</span><br><span class="line">push %fs</span><br><span class="line">movl $0x10,%edx		# 内核数据段选择符</span><br><span class="line">mov %dx,%ds</span><br><span class="line">mov %dx,%es</span><br><span class="line">mov %dx,%fs</span><br></pre></td></tr></table></figure>
+
+<p>接着将一些用到的寄存器压栈，然后将ds、es、fs都设置为了内核数据段选择符。</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">    movl %cr2,%edx      # cr2是导致异常的线性地址</span><br><span class="line">    pushl %edx</span><br><span class="line">    pushl %eax</span><br><span class="line">    testl $1,%eax       # 测试错误码的P位</span><br><span class="line">    jne 1f</span><br><span class="line">    call do_no_page</span><br><span class="line">    jmp 2f</span><br><span class="line">1:  call do_wp_page</span><br><span class="line">2:  addl $8,%esp</span><br></pre></td></tr></table></figure>
+
+<p>随后从cr2寄存器中获取到导致异常的线性地址，将线性地址和错误码分别压栈，作为后面调用的C函数的参数。然后根据错误码的最低位P位决定调用缺页处理函数还是写保护处理函数。</p>
+<h3 id="内核堆栈情况"><a href="#内核堆栈情况" class="headerlink" title="内核堆栈情况"></a>内核堆栈情况</h3><p>依旧来看下内核堆栈的情况</p>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line">HIGH  +----------------------+</span><br><span class="line">      |          |  prev ss  |</span><br><span class="line">      +----------------------+</span><br><span class="line">      |       prev esp       |</span><br><span class="line">      +----------------------+</span><br><span class="line">      |        eflags        |</span><br><span class="line">      +----------------------+</span><br><span class="line">      |          |  prev cs  |</span><br><span class="line">      +----------------------+</span><br><span class="line">      |       prev eip       |</span><br><span class="line">      +----------------------+</span><br><span class="line">      |         eax          |&lt;-- esp0</span><br><span class="line">      +----------------------+</span><br><span class="line">      |         ecx          |</span><br><span class="line">      +----------------------+</span><br><span class="line">      |         edx          |  </span><br><span class="line">      +----------------------+</span><br><span class="line">      |          |     ds    |</span><br><span class="line">      +----------------------+</span><br><span class="line">      |          |     es    |</span><br><span class="line">      +----------------------+</span><br><span class="line">      |          |     fs    |</span><br><span class="line">      +----------------------+</span><br><span class="line">      |         cr2          |</span><br><span class="line">      +----------------------+</span><br><span class="line">      |      error_code      |</span><br><span class="line">      +----------------------+</span><br><span class="line">      |         eip          |&lt;-- esp1</span><br><span class="line">LOW   +----------------------+</span><br></pre></td></tr></table></figure>
+
+<p>刚进入中断处理程序时栈指针位于esp0的位置，接着将用到的寄存器ecx、edx、ds、es、fs分别压栈，然后将cr2和错误码压栈，作为调用的处理函数的参数。进入具体的处理函数之后，堆栈指针位于esp1位置。</p>
+<p>因为写保护的页异常处理函数我们前面已经看过了，接下来就来看下缺页处理函数。</p>
+<h2 id="缺页异常"><a href="#缺页异常" class="headerlink" title="缺页异常"></a>缺页异常</h2><h3 id="处理函数"><a href="#处理函数" class="headerlink" title="处理函数"></a>处理函数</h3><figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">do_no_page</span><span class="params">(<span class="keyword">unsigned</span> <span class="keyword">long</span> error_code,<span class="keyword">unsigned</span> <span class="keyword">long</span> address)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">int</span> nr[<span class="number">4</span>];</span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">long</span> tmp;</span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">long</span> page;</span><br><span class="line">    <span class="keyword">int</span> block,i;</span><br><span class="line"></span><br><span class="line">    address &amp;= <span class="number">0xfffff000</span>;</span><br><span class="line">    tmp = address - current-&gt;start_code;</span><br></pre></td></tr></table></figure>
+
+<p>首先将线性地址页对齐，然后计算其相对进程代码段起始地址的偏移。</p>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="keyword">if</span> (!current-&gt;executable || tmp &gt;= current-&gt;end_data) &#123;</span><br><span class="line">    get_empty_page(address);</span><br><span class="line">    <span class="keyword">return</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>紧接着如果当前进程没有对应的可执行程序，或者线性地址已经超出了数据段末尾，那就不是代码或数据段的页面，也就不可能共享其他进程的页面，也不需要额外的初始化操作，所以直接申请新的物理页面返回即可。</p>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="keyword">if</span> (share_page(tmp))</span><br><span class="line">    <span class="keyword">return</span>;</span><br><span class="line"><span class="keyword">if</span> (!(page = get_free_page()))</span><br><span class="line">    oom();</span><br></pre></td></tr></table></figure>
+
+<p>否则，就调用<code>share_page()</code>尝试共享页面，如果共享成功了就直接返回，否则就只能老老实实分配新的物理页面了并初始化了。共享页面的部分我们稍后再看，先继续看缺页处理函数的剩余部分。</p>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line">block = <span class="number">1</span> + tmp/BLOCK_SIZE;</span><br><span class="line"><span class="keyword">for</span> (i=<span class="number">0</span> ; i&lt;<span class="number">4</span> ; block++,i++)</span><br><span class="line">    nr[i] = bmap(current-&gt;executable,block);</span><br><span class="line">bread_page(page,current-&gt;executable-&gt;i_dev,nr);</span><br></pre></td></tr></table></figure>
+
+<p>如果没找到共享页面，那么就只能自己从磁盘中读取。从偏移地址tmp计算出缺页所在的数据块项，获取其在设备上对应的逻辑块号。因为Linux 0.11是使用的MINIX 1.0文件系统，将两个扇区作为一个数据块来处理，称之为磁盘块或盘块，所以1页是4个磁盘块。</p>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line">i = tmp + <span class="number">4096</span> - current-&gt;end_data;</span><br><span class="line">tmp = page + <span class="number">4096</span>;</span><br><span class="line"><span class="keyword">while</span> (i-- &gt; <span class="number">0</span>) &#123;</span><br><span class="line">    tmp--;</span><br><span class="line">    *(<span class="keyword">char</span> *)tmp = <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>如果新增的这个页面正好是数据段的最后一页，那么该页其中一部分可能会超出end_data，需要对这部分内存进行清零操作。</p>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line">    <span class="keyword">if</span> (put_page(page,address))</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    free_page(page);</span><br><span class="line">    oom();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>最后就是将物理页面映射到线性地址，即修改对应页表项。成功了直接返回，失败了说明内存不够了，释放新的那个页面之后oom()。</p>
+<h3 id="共享页面"><a href="#共享页面" class="headerlink" title="共享页面"></a>共享页面</h3><p><code>share_page()</code>函数也有点意思，它尝试找到一个进程可以和当前进程共享页面。我们来详细看一下。</p>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">int</span> <span class="title">share_page</span><span class="params">(<span class="keyword">unsigned</span> <span class="keyword">long</span> address)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">task_struct</span> ** <span class="title">p</span>;</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (!current-&gt;executable)</span><br><span class="line">        <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">if</span> (current-&gt;executable-&gt;i_count &lt; <span class="number">2</span>)</span><br><span class="line">        <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">for</span> (p = &amp;LAST_TASK ; p &gt; &amp;FIRST_TASK ; --p) &#123;</span><br><span class="line">        <span class="keyword">if</span> (!*p)</span><br><span class="line">            <span class="keyword">continue</span>;</span><br><span class="line">        <span class="keyword">if</span> (current == *p)</span><br><span class="line">            <span class="keyword">continue</span>;</span><br><span class="line">        <span class="keyword">if</span> ((*p)-&gt;executable != current-&gt;executable)</span><br><span class="line">            <span class="keyword">continue</span>;</span><br><span class="line">        <span class="keyword">if</span> (try_to_share(address,*p))</span><br><span class="line">            <span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>函数主体是遍历进程数组，尝试共享页面，不过首先要确保当前进程和被共享的进程是相同的可执行程序。核心函数是<code>try_to_share()</code>，我们来看下它的实现：</p>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">int</span> <span class="title">try_to_share</span><span class="params">(<span class="keyword">unsigned</span> <span class="keyword">long</span> address, struct task_struct * p)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">long</span> from;</span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">long</span> to;</span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">long</span> from_page;</span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">long</span> to_page;</span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">long</span> phys_addr;</span><br><span class="line"></span><br><span class="line">    from_page = to_page = ((address&gt;&gt;<span class="number">20</span>) &amp; <span class="number">0xffc</span>);</span><br><span class="line">    from_page += ((p-&gt;start_code&gt;&gt;<span class="number">20</span>) &amp; <span class="number">0xffc</span>);</span><br><span class="line">    to_page += ((current-&gt;start_code&gt;&gt;<span class="number">20</span>) &amp; <span class="number">0xffc</span>);</span><br></pre></td></tr></table></figure>
+
+<p>最前面部分是计算页目录的位置，跟之前在<code>copy_page_tables()</code>中看到的类似。因为参数address传的是一个相对偏移，所以需要加上进程的代码段起始地址。</p>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line">from = *(<span class="keyword">unsigned</span> <span class="keyword">long</span> *) from_page;</span><br><span class="line"><span class="keyword">if</span> (!(from &amp; <span class="number">1</span>))</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">from &amp;= <span class="number">0xfffff000</span>;</span><br><span class="line">from_page = from + ((address&gt;&gt;<span class="number">10</span>) &amp; <span class="number">0xffc</span>);</span><br><span class="line">phys_addr = *(<span class="keyword">unsigned</span> <span class="keyword">long</span> *) from_page;</span><br></pre></td></tr></table></figure>
+
+<p>接下来就检查页目录项最后1位，即确认是否存在相应的页表，如果不存在直接返回0，否则从页目录项中获取页表基址，加上线性地址中表示页表项的部分，获取到相应页表项。</p>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="keyword">if</span> ((phys_addr &amp; <span class="number">0x41</span>) != <span class="number">0x01</span>)</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br></pre></td></tr></table></figure>
+
+<p>然后检查页表项，如果页面不存在或者是脏的，直接返回0。</p>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line">phys_addr &amp;= <span class="number">0xfffff000</span>;</span><br><span class="line"><span class="keyword">if</span> (phys_addr &gt;= HIGH_MEMORY || phys_addr &lt; LOW_MEM)</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br></pre></td></tr></table></figure>
+
+<p>如果物理地址超出了系统最大支持的范围，或者属于内核空间，直接返回0。</p>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line">to = *(<span class="keyword">unsigned</span> <span class="keyword">long</span> *) to_page;</span><br><span class="line"><span class="keyword">if</span> (!(to &amp; <span class="number">1</span>)) &#123;</span><br><span class="line">    <span class="keyword">if</span> ((to = get_free_page()))</span><br><span class="line">        *(<span class="keyword">unsigned</span> <span class="keyword">long</span> *) to_page = to | <span class="number">7</span>;</span><br><span class="line">    <span class="keyword">else</span></span><br><span class="line">        oom();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>走到这里说明已经找到可以共享的页面了，from的部分搞定了。接下来就是修改to的部分，首先检查目的页目录项，如果相应的页表不存在，需要分配。</p>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line">to &amp;= <span class="number">0xfffff000</span>;</span><br><span class="line">to_page = to + ((address&gt;&gt;<span class="number">10</span>) &amp; <span class="number">0xffc</span>);</span><br><span class="line"><span class="keyword">if</span> (<span class="number">1</span> &amp; *(<span class="keyword">unsigned</span> <span class="keyword">long</span> *) to_page)</span><br><span class="line">    panic(<span class="string">&quot;try_to_share: to_page already exists&quot;</span>);</span><br></pre></td></tr></table></figure>
+
+<p>然后获取到页表项，如果目的页面已经存在说明出现bug了，直接panic。</p>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line">    *(<span class="keyword">unsigned</span> <span class="keyword">long</span> *) from_page &amp;= ~<span class="number">2</span>;</span><br><span class="line">    *(<span class="keyword">unsigned</span> <span class="keyword">long</span> *) to_page = *(<span class="keyword">unsigned</span> <span class="keyword">long</span> *) from_page;</span><br><span class="line">    invalidate();</span><br><span class="line">    phys_addr -= LOW_MEM;</span><br><span class="line">    phys_addr &gt;&gt;= <span class="number">12</span>;</span><br><span class="line">    mem_map[phys_addr]++;</span><br><span class="line">    <span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>最后就是进行共享操作了，将源和目的的页表项的R&#x2F;W位都设成只读，刷新TLB地址变换高速缓存，并增加对应物理页面的引用计算。这段代码是不是有点似曾相识，在fork中进行页表的拷贝时也有类似的操作。被共享的页面，如果后面碰到了写操作，同样会引发页写保护异常。</p>
+<h2 id="malloc测试"><a href="#malloc测试" class="headerlink" title="malloc测试"></a>malloc测试</h2><p>用户分配内存其实只是分配了虚拟内存，真正分配物理内存要推迟到用户对内存进行访问时。我们可以尝试malloc一个非常大的内存试试，下面的测试代码malloc了100G的内存，然后分别在第1个字节和最后一个字节进行写操作。</p>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdlib.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;unistd.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">        <span class="keyword">char</span> *p = <span class="built_in">malloc</span>(<span class="number">107374182400</span>); <span class="comment">/* 100G */</span></span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">&quot;p: %p\n&quot;</span>, p);</span><br><span class="line">        p[<span class="number">0</span>] = <span class="number">1</span>;</span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">&quot;p[0] = 1 ok\n&quot;</span>);</span><br><span class="line">        p[<span class="number">107374182399</span>] = <span class="number">1</span>;</span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">&quot;p[107374182399] = 1 ok\n&quot;</span>);</span><br><span class="line">        sleep(<span class="number">30</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>我们来实际测试下，可以看到这些操作都成功了。</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># echo 1 &gt; /proc/sys/vm/overcommit_memory</span></span><br><span class="line"><span class="comment"># gcc test.c</span></span><br><span class="line"><span class="comment"># ./a.out</span></span><br><span class="line">p: 0x7faeb88cc010</span><br><span class="line">p[0] = 1 ok</span><br><span class="line">p[107374182399] = 1 ok</span><br></pre></td></tr></table></figure>
+
+<p>观察进程内存的占用情况，可以看到虚拟内存占用到了100G，但是实际使用的物理内存只有700多K。</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># cat /proc/`pgrep a.out`/status</span></span><br><span class="line">Name:	a.out</span><br><span class="line">...</span><br><span class="line">VmSize:	104862108 kB</span><br><span class="line">...</span><br><span class="line">VmRSS:	     760 kB</span><br><span class="line">...</span><br></pre></td></tr></table></figure>
+
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>到这里我们以逸待劳（貌似用它来形容并不是完全确切，但我暂时想不到更好的词了🤷‍♂️）的部分也结束了，这应该算是内核内存管理中最核心的部分了。</p>
+<p>无论是缺页异常还是写保护页异常，其背后的基本思想是一致的，也就是实际物理内存的分配能推迟就推迟。毕竟内存是稀缺资源，分页机制本身引入的目的也是为了对内存的管理和使用更加精细。</p>
+<p>其实，该思想在其他很多地方也都有类似的应用。例如图片的懒加载，重定位的延迟绑定等。前者只有当网页需要显示该图片时才加载，后者则当第一次加载外部符号时才进行绑定。它们都可以缩短主体操作的时间，以及避免不必要的开销。</p>
+]]></content>
+      <categories>
+        <category>操作系统</category>
+      </categories>
+      <tags>
+        <tag>内存管理</tag>
+        <tag>写时复制</tag>
+        <tag>分页机制</tag>
+        <tag>页异常中断</tag>
+        <tag>缺页异常</tag>
+        <tag>写保护页异常</tag>
+      </tags>
+  </entry>
 </search>

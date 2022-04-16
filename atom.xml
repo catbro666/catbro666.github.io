@@ -6,7 +6,7 @@
   <link href="https://catbro666.github.io/atom.xml" rel="self"/>
   
   <link href="https://catbro666.github.io/"/>
-  <updated>2022-04-13T15:13:28.562Z</updated>
+  <updated>2022-04-16T10:07:23.006Z</updated>
   <id>https://catbro666.github.io/</id>
   
   <author>
@@ -15,6 +15,37 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Linux内核中隐藏的兵法—以逸待劳</title>
+    <link href="https://catbro666.github.io/posts/5d011708/"/>
+    <id>https://catbro666.github.io/posts/5d011708/</id>
+    <published>2022-04-15T14:21:30.000Z</published>
+    <updated>2022-04-16T10:07:23.006Z</updated>
+    
+    
+    <summary type="html">&lt;div class=&quot;note primary&quot;&gt;
+            &lt;p&gt;在本系列之前的两篇文章&lt;a href=&quot;../68dbb05c/&quot;&gt;无中生有&lt;/a&gt;与&lt;a href=&quot;../7be938f8/&quot;&gt;移花接木&lt;/a&gt;中，我们探究了Linux中的进程创建，它可以说是进程管理中最重要的内容之一（另一个是进程调度）。本文我们将介绍的内容则更多地属于是内存管理范畴。（当然这也是相对而言的，作为Linux内核中最核心的部分，进程管理、内存管理、中断管理相互之间都是紧密联系的。）&lt;/p&gt;&lt;p&gt;也许你已经注意到了，无论是fork还是execve都没有主动去分配内存执行拷贝或读取的动作。fork时只是拷贝了页表并设置为用户只读，而execve时则只是准备了新的LDT局部表以及堆栈中的参数和环境表，而并没有实际读程序到内存中。&lt;/p&gt;&lt;p&gt;这就是本文将讨论的页异常中断：&lt;strong&gt;写保护异常&amp;#x2F;写时复制机制&lt;/strong&gt;和&lt;strong&gt;缺页异常&lt;/strong&gt;。&lt;/p&gt;
+          &lt;/div&gt;</summary>
+    
+    
+    
+    <category term="操作系统" scheme="https://catbro666.github.io/categories/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/"/>
+    
+    
+    <category term="内存管理" scheme="https://catbro666.github.io/tags/%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86/"/>
+    
+    <category term="写时复制" scheme="https://catbro666.github.io/tags/%E5%86%99%E6%97%B6%E5%A4%8D%E5%88%B6/"/>
+    
+    <category term="分页机制" scheme="https://catbro666.github.io/tags/%E5%88%86%E9%A1%B5%E6%9C%BA%E5%88%B6/"/>
+    
+    <category term="页异常中断" scheme="https://catbro666.github.io/tags/%E9%A1%B5%E5%BC%82%E5%B8%B8%E4%B8%AD%E6%96%AD/"/>
+    
+    <category term="缺页异常" scheme="https://catbro666.github.io/tags/%E7%BC%BA%E9%A1%B5%E5%BC%82%E5%B8%B8/"/>
+    
+    <category term="写保护页异常" scheme="https://catbro666.github.io/tags/%E5%86%99%E4%BF%9D%E6%8A%A4%E9%A1%B5%E5%BC%82%E5%B8%B8/"/>
+    
+  </entry>
   
   <entry>
     <title>Linux内核中隐藏的兵法—移花接木</title>
@@ -471,30 +502,6 @@
     
     <summary type="html">&lt;div class=&quot;note primary&quot;&gt;
             &lt;p&gt;在第一篇的&lt;a href=&quot;../f9a188a7/&quot;&gt;01最小实现&lt;/a&gt;中，我们实现了一个断点调试的最小实现，在设置钩子函数时只加了line事件，显然这会对性能有很大的影响。而后来两篇&lt;a href=&quot;../f6e9079c&quot;&gt;02通用变量打印&lt;/a&gt;和&lt;a href=&quot;../a05a2f5f&quot;&gt;03通用变量修改及调用栈回溯&lt;/a&gt;则是提供了一些辅助的调试接口，并没有对钩子函数进行修改。&lt;/p&gt;&lt;p&gt;我们本篇将在钩子中引入call和return事件的处理，尝试对性能进行优化。&lt;/p&gt;</summary>
-    
-    
-    
-    <category term="编程开发" scheme="https://catbro666.github.io/categories/%E7%BC%96%E7%A8%8B%E5%BC%80%E5%8F%91/"/>
-    
-    <category term="Lua" scheme="https://catbro666.github.io/categories/%E7%BC%96%E7%A8%8B%E5%BC%80%E5%8F%91/Lua/"/>
-    
-    
-    <category term="Lua" scheme="https://catbro666.github.io/tags/Lua/"/>
-    
-    <category term="调试" scheme="https://catbro666.github.io/tags/%E8%B0%83%E8%AF%95/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Lua中如何实现类似gdb的断点调试--03通用变量修改及调用栈回溯</title>
-    <link href="https://catbro666.github.io/posts/a05a2f5f/"/>
-    <id>https://catbro666.github.io/posts/a05a2f5f/</id>
-    <published>2021-08-15T04:41:09.000Z</published>
-    <updated>2022-03-05T10:38:00.203Z</updated>
-    
-    
-    <summary type="html">&lt;div class=&quot;note primary&quot;&gt;
-            &lt;p&gt;在前面两篇&lt;a href=&quot;../f9a188a7/&quot;&gt;01最小实现&lt;/a&gt;及&lt;a href=&quot;../f6e9079c&quot;&gt;02通用变量打印&lt;/a&gt;中，我们已经实现了设置断点、删除断点及通用变量打印接口。&lt;/p&gt;&lt;p&gt;本篇将继续新增两个辅助的调试接口：调用栈回溯打印接口、通用变量设置接口。前者打印调用栈的回溯信息，后者可以方便地修改变量的值，支持局部变量、upvalue以及全局的&lt;code&gt;_ENV&lt;/code&gt;中的变量。&lt;/p&gt;</summary>
     
     
     
