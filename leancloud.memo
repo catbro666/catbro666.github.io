@@ -17,6 +17,7 @@
 {"title":"Linux内核是如何启动的","url":"/posts/615fc0b5/"},
 {"title":"C语言中的函数调用约定","url":"/posts/657c24ad/"},
 {"title":"Linux内核中隐藏的兵法—无中生有","url":"/posts/68dbb05c/"},
+{"title":"OpenSSL的async异步框架/OpenSSL协程","url":"/posts/6d5be1a5/"},
 {"title":"自己动手实现Lua--实现TAILCALL指令","url":"/posts/74970c0e/"},
 {"title":"Linux内核中隐藏的兵法—移花接木","url":"/posts/7be938f8/"},
 {"title":"如何在裸机上直接运行程序—王爽《汇编语言》课程设计2","url":"/posts/8054db72/"},
