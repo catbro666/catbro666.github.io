@@ -1,0 +1,1293 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.4.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/images/hiking-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/images/hiking-16.png">
+  <link rel="mask-icon" href="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/images/logo.svg" color="#222">
+  <meta name="google-site-verification" content="JT1HKSsLR6ZiapLatX1c6-7k-OcEM8cAMdR5pgCSptk">
+  <meta name="yandex-verification" content="5ab41d9d91227789">
+  <meta name="baidu-site-verification" content="code-9Qi2zUhBf4">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="https://fonts.loli.net/css?family=Noto Serif SC:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="//cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"catbro666.github.io","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","width":240,"display":"post","padding":18,"offset":42,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":"mac"},"back2top":{"enable":true,"sidebar":true,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="OpenSSL异步框架是在OpenSSL-1.1.0上引入的一个新特性。它理论上可以应用于任何的异步操作，但当前主要是用于在引擎框架中执行的加密学操作。本文首先介绍其底层原理，接着介绍OpenSSL的异步基础设施，最后着重分析ASYNC_JOB（OpenSSL中的协程）的处理流程（dispatcher和job之间是如何切换的）。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="OpenSSL的async异步框架&#x2F;OpenSSL协程">
+<meta property="og:url" content="https://catbro666.github.io/posts/6d5be1a5/index.html">
+<meta property="og:site_name" content="CatBro&#39;s Blog">
+<meta property="og:description" content="OpenSSL异步框架是在OpenSSL-1.1.0上引入的一个新特性。它理论上可以应用于任何的异步操作，但当前主要是用于在引擎框架中执行的加密学操作。本文首先介绍其底层原理，接着介绍OpenSSL的异步基础设施，最后着重分析ASYNC_JOB（OpenSSL中的协程）的处理流程（dispatcher和job之间是如何切换的）。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/6d5be1a5/async_job_processing_flow.png">
+<meta property="article:published_time" content="2022-04-26T14:37:45.000Z">
+<meta property="article:modified_time" content="2022-04-26T15:08:15.600Z">
+<meta property="article:author" content="猫猫哥">
+<meta property="article:tag" content="OpenSSL">
+<meta property="article:tag" content="协程">
+<meta property="article:tag" content="async异步框架">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/6d5be1a5/async_job_processing_flow.png">
+
+<link rel="canonical" href="https://catbro666.github.io/posts/6d5be1a5/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+<link rel="stylesheet" href="//cdn.jsdelivr.net/gh/theme-next/theme-next-needmoreshare2@1/needsharebutton.min.css"><style>
+#needsharebutton-postbottom {
+  cursor: pointer;
+  height: 26px;
+  margin-top: 10px;
+  position: relative;
+}
+#needsharebutton-postbottom .btn {
+  border: 1px solid $btn-default-border-color;
+  border-radius: 3px;
+  display: initial;
+  padding: 1px 4px;
+}
+</style><style>
+#needsharebutton-float {
+  bottom: 88px;
+  cursor: pointer;
+  left: -8px;
+  position: fixed;
+  z-index: 9999;
+}
+#needsharebutton-float .btn {
+  border: 1px solid $btn-default-border-color;
+  border-radius: 4px;
+  padding: 0 10px 0 14px;
+}
+</style>
+  <meta name="360-site-verification" content="e7586a6caf7e44316b4a27dfaf53e858"/>
+
+
+
+  <title>OpenSSL的async异步框架/OpenSSL协程 | CatBro's Blog</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-6PKG8T836C"></script>
+    <script>
+      if (CONFIG.hostname === location.hostname) {
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-6PKG8T836C');
+      }
+    </script>
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?43ceb843b17e732b0a5dd658f624cac5";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+<link rel="alternate" href="/atom.xml" title="CatBro's Blog" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">CatBro's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">Volar con el viento</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+        <li class="menu-item menu-item-hot">
+
+    <a href="/hot/" rel="section"><i class="fa fa-thermometer-half fa-fw"></i>热度排行</a>
+
+  </li>
+        <li class="menu-item menu-item-commonweal">
+
+    <a href="/404.html" rel="section"><i class="fa fa-heartbeat fa-fw"></i>公益 404</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="reading-progress-bar"></div>
+
+  <a href="https://github.com/catbro666" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener external nofollow noreferrer" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://catbro666.github.io/posts/6d5be1a5/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/images/avatar.gif">
+      <meta itemprop="name" content="猫猫哥">
+      <meta itemprop="description" content="如果说根号二是无理数，那么我就是个无理人">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="CatBro's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          OpenSSL的async异步框架/OpenSSL协程
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2022-04-26 22:37:45 / 修改时间：23:08:15" itemprop="dateCreated datePublished" datetime="2022-04-26T22:37:45+08:00">2022-04-26</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E5%8A%A0%E5%AF%86%E4%B8%8E%E5%AE%89%E5%85%A8/" itemprop="url" rel="index"><span itemprop="name">加密与安全</span></a>
+                </span>
+                  ，
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E7%BC%96%E7%A8%8B%E5%BC%80%E5%8F%91/" itemprop="url" rel="index"><span itemprop="name">编程开发</span></a>
+                </span>
+                  ，
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E5%8A%A0%E5%AF%86%E4%B8%8E%E5%AE%89%E5%85%A8/OpenSSL/" itemprop="url" rel="index"><span itemprop="name">OpenSSL</span></a>
+                </span>
+                  ，
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E7%BC%96%E7%A8%8B%E5%BC%80%E5%8F%91/Unix%E7%8E%AF%E5%A2%83%E7%BC%96%E7%A8%8B/" itemprop="url" rel="index"><span itemprop="name">Unix环境编程</span></a>
+                </span>
+            </span>
+
+          
+            <span id="/posts/6d5be1a5/" class="post-meta-item leancloud_visitors" data-flag-title="OpenSSL的async异步框架/OpenSSL协程" title="阅读次数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span class="leancloud-visitors-count"></span>
+            </span>
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="far fa-comment"></i>
+      </span>
+      <span class="post-meta-item-text">评论数：</span>
+    
+    <a title="valine" href="/posts/6d5be1a5/#valine-comments" itemprop="discussionUrl">
+      <span class="post-comments-count valine-comment-count" data-xid="/posts/6d5be1a5/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  <br>
+  <span class="post-meta-item" title="繁/简：">
+    <span class="post-meta-item-icon">
+      <i class="fas fa-yin-yang"></i>
+    </span>
+      <span class="post-meta-item-text">繁/简：</span>
+    <a id="translateLink" href="javascript:translatePage();" rel="external nofollow noreferrer">繁體</a>
+  </span>
+
+<script type="text/javascript" src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/js/tw_cn.js"></script>
+<script type="text/javascript">
+var defaultEncoding = 2; //网站编写字体是否繁体，1-繁体，2-简体
+var translateDelay = 0; //延迟时间,若不在前, 要设定延迟翻译时间, 如100表示100ms,默认为0
+var cookieDomain = "https://catbro666.github.io/"; //Cookie地址, 一定要设定, 通常为你的网址
+var msgToTraditionalChinese = "繁體"; //此处可以更改为你想要显示的文字
+var msgToSimplifiedChinese = "简体"; //同上，但两处均不建议更改
+var translateButtonId = "translateLink"; //默认互换id
+translateInitilization();
+</script>
+<br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>18k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>16 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <div class="note primary">
+            <p>OpenSSL异步框架是在OpenSSL-1.1.0上引入的一个新特性。它理论上可以应用于任何的异步操作，但当前主要是用于在引擎框架中执行的加密学操作。本文首先介绍其底层原理，接着介绍OpenSSL的异步基础设施，最后着重分析ASYNC_JOB（OpenSSL中的协程）的处理流程（dispatcher和job之间是如何切换的）。</p>
+          </div>
+
+<span id="more"></span>
+
+<p>引入异步框架主要是出于性能的考虑，对于普通的同步操作模式，API调用会一直阻塞直到请求完成。在API之下，要么执行一个忙循环等待响应，要么进行进程上下文切换。忙循环浪费CPU周期且无法并行运行多个操作，而进行上下文切换虽然允许并行，但是上下文切换的开销仍然是相当大的。</p>
+<p>而异步模型通过充分利用这些间隙来提升性能。提交请求之后并不等待任务完成，而是直接返回，当任务完成时再通知用户代码获取响应。</p>
+<blockquote>
+<p>下文中job和协程基本可以互换。</p>
+</blockquote>
+<h2 id="底层核心函数"><a href="#底层核心函数" class="headerlink" title="底层核心函数"></a>底层核心函数</h2><p>OpenSSL的异步框架，底层是基于以下几个核心函数。getcontex&#x2F;makecontext&#x2F;setcontext用于生成用户态的协程，setjmp&#x2F;longjmp用于在dispatcher&#x2F;job之间进行跳转切换。</p>
+<p>下面分别介绍下这几个核心函数：</p>
+<h3 id="ucontext-t"><a href="#ucontext-t" class="headerlink" title="ucontext_t"></a>ucontext_t</h3><p>首先<code>ucontext_t</code>结构体顾名思义是用户态的上下文</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">ucontext_t</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">long</span> <span class="keyword">int</span> __ctx(uc_flags);</span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">ucontext_t</span> *<span class="title">uc_link</span>;</span></span><br><span class="line">    <span class="keyword">stack_t</span> uc_stack;</span><br><span class="line">    <span class="keyword">mcontext_t</span> uc_mcontext;</span><br><span class="line">    <span class="keyword">sigset_t</span> uc_sigmask;</span><br><span class="line">    <span class="class"><span class="keyword">struct</span> _<span class="title">libc_fpstate</span> __<span class="title">fpregs_mem</span>;</span></span><br><span class="line">&#125; <span class="keyword">ucontext_t</span>;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>uc_link：指向当前context执行结束之后下一个执行的用户上下文。</li>
+<li>uc_stack：是该上下文的堆栈</li>
+<li>uc_mcontext：是硬件相关的，保存具体的上下文，如各寄存器的值</li>
+<li>uc_sigmask：执行上下文过程中，要屏蔽的信号集合</li>
+</ul>
+<h3 id="getcontext"><a href="#getcontext" class="headerlink" title="getcontext"></a>getcontext</h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">getcontext</span><span class="params">(<span class="keyword">ucontext_t</span> *ucp)</span></span>;</span><br></pre></td></tr></table></figure>
+
+<p>用户将<code>ucp</code>所指ucontext初始化为当前活跃的上下文。</p>
+<h3 id="setcontext"><a href="#setcontext" class="headerlink" title="setcontext"></a>setcontext</h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">setcontext</span><span class="params">(<span class="keyword">const</span> <span class="keyword">ucontext_t</span> *ucp)</span></span>;</span><br></pre></td></tr></table></figure>
+
+<p>恢复<code>ucp</code>所指定的上下文，该上下文是通过getcontext、makecontext、或信号处理函数第三个参数中获取到的。</p>
+<ul>
+<li>如果上下文是从getcontext调用中获取到的，那么程序将从getcontext位置继续执行，就好像是getcontext调用刚刚返回一样。</li>
+<li>如果上下文是从makecontext调用中获取到的，程序执行参数中指定的函数，当函数返回时继续执行makecontext时ucp参数中的uc_link，如果为NULL则OS线程中止。成功的调用不返回。</li>
+<li>如果context是从信号处理函数中获取的，结果未定义。</li>
+</ul>
+<h3 id="makecontext"><a href="#makecontext" class="headerlink" title="makecontext"></a>makecontext</h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">makecontext</span><span class="params">(<span class="keyword">ucontext_t</span> *ucp, <span class="keyword">void</span> (*func)(), <span class="keyword">int</span> argc, ...)</span></span>;</span><br></pre></td></tr></table></figure>
+
+<p>修改<code>ucp</code>指定的上下文，在调用makecontext之前调用者必须给这个上下文分配一个新的栈<code>ucp-&gt;uc_stack</code>，并定义一个后继的上下文<code>ucp-&gt;uc_link</code>。然后在调用makecontext之后通过setcontext或swapcontext激活这个上下文，传递argc后面的一系列int参数。当函数返回时，后继上下文被激活，如果后继上下文为NULL则线程结束。</p>
+<h3 id="swapcontext"><a href="#swapcontext" class="headerlink" title="swapcontext"></a>swapcontext</h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">swapcontext</span><span class="params">(<span class="keyword">ucontext_t</span> *oucp, <span class="keyword">ucontext_t</span> *ucp)</span></span>;</span><br></pre></td></tr></table></figure>
+
+<p>将当前上下文保存到<code>oucp</code>，然后激活<code>ucp</code>。类似于getcontext和setcontext的结合体。swapcontext成功时同样不返回，但是后续可以通过激活ocup返回，此时就好像swapcontext返回了0。</p>
+<p>关于这几个函数的用法示例，可以参考<a target="_blank" rel="noopener external nofollow noreferrer" href="https://linux.die.net/man/3/makecontext">makecontext(3)&#x2F;swapcontext(3)</a></p>
+<h3 id="setjmp-x2F-longjmp"><a href="#setjmp-x2F-longjmp" class="headerlink" title="setjmp&#x2F;longjmp"></a>setjmp&#x2F;longjmp</h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">setjmp</span><span class="params">(jmp_buf env)</span></span>;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">longjmp</span><span class="params">(jmp_buf env, <span class="keyword">int</span> val)</span></span>;</span><br></pre></td></tr></table></figure>
+
+
+
+<p>setjmp将栈上下文保存到参数<code>env</code>中，首次调用返回0。后续使用longjmp跳转到之前setjmp的位置，就像是刚从setjmp函数返回一样，此时的返回值是longjmp参数的非零值val。</p>
+<h3 id="一些疑问"><a href="#一些疑问" class="headerlink" title="一些疑问"></a>一些疑问</h3><ol>
+<li><p>为什么OpenSSL选择使用setjmp&#x2F;longjmp来进行协程切换，而不用swapcontext呢？</p>
+<p>因为swapcontext的开销比setjmp&#x2F;longjmp大？swapcontext提供了更多的控制，不过我并不是太确定。</p>
+<p>通过查找资料，找到了如下<a target="_blank" rel="noopener external nofollow noreferrer" href="https://mta.openssl.org/pipermail/openssl-commits/2015-November/002147.html">commit提交记录</a>，发现确实是出于如上考虑。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">commit 7070e5ca2fa41940d56599bf016a45cb1c0e03f0</span><br><span class="line">Author: Matt Caswell &lt;matt at openssl.org&gt;</span><br><span class="line">Date:   Tue May 5 15:08:39 2015 +0100</span><br><span class="line"></span><br><span class="line">    Use longjmp at setjmp where possible</span><br><span class="line">    </span><br><span class="line">    Where we can we should use longjmp and setjmp in preference to swapcontext/</span><br><span class="line">    setcontext as they seem to be more performant.</span><br><span class="line">    </span><br><span class="line">    Reviewed-by: Rich Salz &lt;rsalz at openssl.org&gt;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>你可能已经注意到了，OpenSSL中其实是使用了_setjmp&#x2F;_longjmp，而不是setjmp&#x2F;longjmp，两者有啥区别？</p>
+<p>区别是前者不操作信号掩码，而后者会。这会在上下文切换中带来速度的显著提升。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">commit 06b9ff06cc7fdd8f51abb92aaac39d3988a7090e</span><br><span class="line">Author: Matt Caswell &lt;matt at openssl.org&gt;</span><br><span class="line">Date:   Fri Oct 9 15:55:01 2015 +0100</span><br><span class="line"></span><br><span class="line">    Swap to using _longjmp/_setjmp instead of longjmp/setjmp</span><br><span class="line">    </span><br><span class="line">    _longjmp/_setjmp do not manipulate the signal mask whilst</span><br><span class="line">    longjmp/setjmp may do. Online sources suggest this could result</span><br><span class="line">    in a significant speed up in the context switching.</span><br><span class="line">    </span><br><span class="line">    Reviewed-by: Rich Salz &lt;rsalz at openssl.org&gt;</span><br></pre></td></tr></table></figure></li>
+</ol>
+<h2 id="异步框架基础设施"><a href="#异步框架基础设施" class="headerlink" title="异步框架基础设施"></a>异步框架基础设施</h2><p>OpenSSL通过<code>ASYNC_JOB</code>实现异步能力。一个job表示一个协程，它执行一段指定的代码，直到发生一些事件，通常是I&#x2F;O操作或者是调用硬件加速卡等。此时协程可以被暂停，将控制权交还给用户代码。当后续事件指示可以恢复job时，用户代码再恢复该job。</p>
+<p>async框架外部是用户代码，例如libssl，负责开始job、恢复job；async框架内部则封装了异步的API，通常是通过引擎来实现，负责暂停job以及恢复的通知机制。</p>
+<p><code>libssl - async - libcrypto(engine) - nonBlockingAPI</code></p>
+<p>外层指定一个job的入口函数并启动job，内层碰到异步API接口未完成就暂停该job，在暂停之前设置通知机制。这样当接口操作完成时，外层可以获取到通知，再一次继续之前暂停的job，最终job执行完毕，外层释放这个job。</p>
+<h3 id="数据结构"><a href="#数据结构" class="headerlink" title="数据结构"></a>数据结构</h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">async_fibre_st</span> &#123;</span></span><br><span class="line">    <span class="keyword">ucontext_t</span> fibre;</span><br><span class="line">    jmp_buf env;</span><br><span class="line">    <span class="keyword">int</span> env_init;</span><br><span class="line">&#125; async_fibre;</span><br></pre></td></tr></table></figure>
+
+<p>async_fibre表示上下文，包含了协程生成和切换时需要的信息。其中<code>ucontext_t</code>类型就是xxxcontext函数使用的上下文，<code>jmp_buf</code>类型则是setjmp保存的环境。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">async_ctx_st</span> &#123;</span></span><br><span class="line">    async_fibre dispatcher;</span><br><span class="line">    ASYNC_JOB *currjob;</span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">int</span> blocked;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>async_ctx_st是线程的异步上下文结构，每个线程有一个。其中的dispatcher表示主上下文，也可以认为是调度器，currjob则表示当前执行的job。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">async_job_st</span> &#123;</span></span><br><span class="line">    async_fibre fibrectx;</span><br><span class="line">    <span class="keyword">int</span> (*func) (<span class="keyword">void</span> *);</span><br><span class="line">    <span class="keyword">void</span> *funcargs;</span><br><span class="line">    <span class="keyword">int</span> ret;</span><br><span class="line">    <span class="keyword">int</span> status;</span><br><span class="line">    ASYNC_WAIT_CTX *waitctx;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">async_job_st</span> <span class="title">ASYNC_JOB</span>;</span></span><br></pre></td></tr></table></figure>
+
+<p>ASYNC_JOB表示一个job，其中fibrectx是上下文，func和funcargs是实际要执行的工作函数及其参数，ret用于保存工作函数的返回值，status记录job的当前状态。waitctx是通知机制需要使用的上下文。</p>
+<h3 id="主要接口"><a href="#主要接口" class="headerlink" title="主要接口"></a>主要接口</h3><p>OpenSSL提供了如下原语供使用：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;openssl/async.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">ASYNC_init_thread</span><span class="params">(<span class="keyword">size_t</span> max_size, <span class="keyword">size_t</span> init_size)</span></span>;</span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">ASYNC_cleanup_thread</span><span class="params">(<span class="keyword">void</span>)</span></span>;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">ASYNC_start_job</span><span class="params">(ASYNC_JOB **job, ASYNC_WAIT_CTX *ctx, <span class="keyword">int</span> *ret,</span></span></span><br><span class="line"><span class="params"><span class="function">                    <span class="keyword">int</span> (*func)(<span class="keyword">void</span> *), <span class="keyword">void</span> *args, <span class="keyword">size_t</span> size)</span></span>;</span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">ASYNC_pause_job</span><span class="params">(<span class="keyword">void</span>)</span></span>;</span><br><span class="line"></span><br><span class="line"><span class="function">ASYNC_JOB *<span class="title">ASYNC_get_current_job</span><span class="params">(<span class="keyword">void</span>)</span></span>;</span><br><span class="line"><span class="function">ASYNC_WAIT_CTX *<span class="title">ASYNC_get_wait_ctx</span><span class="params">(ASYNC_JOB *job)</span></span>;</span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">ASYNC_block_pause</span><span class="params">(<span class="keyword">void</span>)</span></span>;</span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">ASYNC_unblock_pause</span><span class="params">(<span class="keyword">void</span>)</span></span>;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">ASYNC_is_capable</span><span class="params">(<span class="keyword">void</span>)</span></span>;</span><br></pre></td></tr></table></figure>
+
+<p>其中ASYNC_init_thread和ASYNC_cleanup_thread用于初始化和清理异步job。如果是多线程的程序，每个线程都需要进行相应操作。其内部使用了thread-local数据。</p>
+<p>ASYNC_start_job和ASYNC_pause_job是核心的两个函数，其相当于Lua协程中的resume和yield。前者用于开始一个job，或者恢复一个job；后者用于暂停job。</p>
+<p>ASYNC_get_current_job返回当前执行的job的指针。如果不在job上下文中则返回NULL。</p>
+<p>关于接口的更多说明，见文末<a href="#%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99">参考资料</a>。</p>
+<h3 id="初始化"><a href="#初始化" class="headerlink" title="初始化"></a>初始化</h3><p>通常不需要显式进行初始化，在第一次调用接口时候会自动进行。</p>
+<p>其中会初始化thread-local变量，ctxkey和poolkey分别是async上下文和job池的键。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// crypto/async/async.c</span></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">async_init</span><span class="params">(<span class="keyword">void</span>)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (!CRYPTO_THREAD_init_local(&amp;ctxkey, <span class="literal">NULL</span>))</span><br><span class="line">        <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (!CRYPTO_THREAD_init_local(&amp;poolkey, <span class="literal">NULL</span>)) &#123;</span><br><span class="line">        CRYPTO_THREAD_cleanup_local(&amp;ctxkey);</span><br><span class="line">        <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="用户代码ASYNC-start-job"><a href="#用户代码ASYNC-start-job" class="headerlink" title="用户代码ASYNC_start_job"></a>用户代码ASYNC_start_job</h3><p>这里以libssl为例来看，SSL的很多接口如SSL_do_handshake&#x2F;SSL_read&#x2F;SSL_write等都支持了异步job</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// ssl/ssl_lib.c</span></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">SSL_do_handshake</span><span class="params">(SSL *s)</span></span></span><br><span class="line"><span class="function">    <span class="comment">// 第一次进来会调ssl_start_async_job，将job的处理函数和参数传进去了</span></span></span><br><span class="line"><span class="function">	<span class="title">if</span> <span class="params">(SSL_in_init(s) || SSL_in_before(s))</span> </span>&#123;</span><br><span class="line">        <span class="keyword">if</span> ((s-&gt;mode &amp; SSL_MODE_ASYNC) &amp;&amp; ASYNC_get_current_job() == <span class="literal">NULL</span>) &#123;</span><br><span class="line">            <span class="class"><span class="keyword">struct</span> <span class="title">ssl_async_args</span> <span class="title">args</span>;</span></span><br><span class="line"></span><br><span class="line">            args.s = s;</span><br><span class="line"></span><br><span class="line">            ret = ssl_start_async_job(s, &amp;args, ssl_do_handshake_intern);</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            ret = s-&gt;handshake_func(s);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里只是一个简单的包装，将具体的工作函数及其参数传入。其中ssl_async_args结构如下:</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">ssl_async_args</span> &#123;</span></span><br><span class="line">    SSL *s;</span><br><span class="line">    <span class="keyword">void</span> *buf;</span><br><span class="line">    <span class="keyword">size_t</span> num;</span><br><span class="line">    <span class="class"><span class="keyword">enum</span> &#123;</span> READFUNC, WRITEFUNC, OTHERFUNC &#125; type;</span><br><span class="line">    <span class="class"><span class="keyword">union</span> &#123;</span></span><br><span class="line">        <span class="keyword">int</span> (*func_read) (SSL *, <span class="keyword">void</span> *, <span class="keyword">size_t</span>, <span class="keyword">size_t</span> *);</span><br><span class="line">        <span class="keyword">int</span> (*func_write) (SSL *, <span class="keyword">const</span> <span class="keyword">void</span> *, <span class="keyword">size_t</span>, <span class="keyword">size_t</span> *);</span><br><span class="line">        <span class="keyword">int</span> (*func_other) (SSL *);</span><br><span class="line">    &#125; f;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+
+
+<p>ssl_start_async_job是ASYNC_start_job的一层包装，首先创建waitctx，然后调用ASYNC_start_job并处理返回值，将结果反馈给上层。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// ssl/ssl_lib.c</span></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">int</span> <span class="title">ssl_start_async_job</span><span class="params">(SSL *s, struct ssl_async_args *args,</span></span></span><br><span class="line"><span class="params"><span class="function">                               <span class="keyword">int</span> (*func) (<span class="keyword">void</span> *))</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">int</span> ret;</span><br><span class="line">    <span class="keyword">if</span> (s-&gt;waitctx == <span class="literal">NULL</span>) &#123;</span><br><span class="line">        s-&gt;waitctx = ASYNC_WAIT_CTX_new();</span><br><span class="line">        <span class="keyword">if</span> (s-&gt;waitctx == <span class="literal">NULL</span>)</span><br><span class="line">            <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">switch</span> (ASYNC_start_job(&amp;s-&gt;job, s-&gt;waitctx, &amp;ret, func, args,</span><br><span class="line">                            <span class="keyword">sizeof</span>(struct ssl_async_args))) &#123;</span><br><span class="line">    <span class="keyword">case</span> ASYNC_ERR:</span><br><span class="line">        s-&gt;rwstate = SSL_NOTHING;</span><br><span class="line">        SSLerr(SSL_F_SSL_START_ASYNC_JOB, SSL_R_FAILED_TO_INIT_ASYNC);</span><br><span class="line">        <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">    <span class="keyword">case</span> ASYNC_PAUSE:</span><br><span class="line">        s-&gt;rwstate = SSL_ASYNC_PAUSED;</span><br><span class="line">        <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">    <span class="keyword">case</span> ASYNC_NO_JOBS:</span><br><span class="line">        s-&gt;rwstate = SSL_ASYNC_NO_JOBS;</span><br><span class="line">        <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">    <span class="keyword">case</span> ASYNC_FINISH:</span><br><span class="line">        s-&gt;job = <span class="literal">NULL</span>;</span><br><span class="line">        <span class="keyword">return</span> ret;</span><br><span class="line">    <span class="keyword">default</span>:</span><br><span class="line">        s-&gt;rwstate = SSL_NOTHING;</span><br><span class="line">        SSLerr(SSL_F_SSL_START_ASYNC_JOB, ERR_R_INTERNAL_ERROR);</span><br><span class="line">        <span class="comment">/* Shouldn&#x27;t happen */</span></span><br><span class="line">        <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>其中返回值为<code>ASYNC_PAUSED</code>表示job暂停，对应SSL_get_error就返回<code>SSL_ERROR_WANT_ASYNC</code>。<code>ASYNC_FINISH</code>则表示job结束了。</p>
+<h3 id="内部代码ASYNC-pause-job"><a href="#内部代码ASYNC-pause-job" class="headerlink" title="内部代码ASYNC_pause_job"></a>内部代码ASYNC_pause_job</h3><p>暂停job是在协程内部调用，基本的使用方式如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">do</span> &#123;</span><br><span class="line">    sts = nonBlockingOperation();</span><br><span class="line">	<span class="keyword">if</span> (sts == STATUS_RETRY) &#123;</span><br><span class="line">    	ASYNC_pause_job();</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">while</span> (sts == STATUS_RETRY)</span><br></pre></td></tr></table></figure>
+
+<p>在调用非阻塞接口之后，如果是类似retry等结果表示需要等待，那么就调用ASYNC_pause_job暂停job，控制权归还给主控dispatcher，此时ASYNC_start_job返回ASYNC_PAUSE。</p>
+<p>当用户代码决定恢复job时，会再次调用ssl_start_async_job继而调用ASYNC_start_job，控制权又回到了协程中。</p>
+<p>此时ASYNC_pause_job返回，会再次调用之前的接口，如果还是需要等待则重复之前的操作，如果已经结束那么继续执行后面的代码。</p>
+<p>最终job执行结束之后，ASYNC_start_job会返回ASYNC_FINISH。</p>
+<h2 id="通知机制"><a href="#通知机制" class="headerlink" title="通知机制"></a>通知机制</h2><p>那么下次怎么恢复刚才暂停的那个job呢？这个就涉及其通知机制了。ASYNC_WAIT_CTX支持两种通知机制。</p>
+<h3 id="wait-fd机制"><a href="#wait-fd机制" class="headerlink" title="wait fd机制"></a>wait fd机制</h3><p>一种是通过一个wait fd进行通知，主要接口如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;openssl/async.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function">ASYNC_WAIT_CTX *<span class="title">ASYNC_WAIT_CTX_new</span><span class="params">(<span class="keyword">void</span>)</span></span>;</span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">ASYNC_WAIT_CTX_free</span><span class="params">(ASYNC_WAIT_CTX *ctx)</span></span>;</span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">ASYNC_WAIT_CTX_set_wait_fd</span><span class="params">(ASYNC_WAIT_CTX *ctx, <span class="keyword">const</span> <span class="keyword">void</span> *key,</span></span></span><br><span class="line"><span class="params"><span class="function">                               OSSL_ASYNC_FD fd,</span></span></span><br><span class="line"><span class="params"><span class="function">                               <span class="keyword">void</span> *custom_data,</span></span></span><br><span class="line"><span class="params"><span class="function">                               <span class="keyword">void</span> (*cleanup)(ASYNC_WAIT_CTX *, <span class="keyword">const</span> <span class="keyword">void</span> *,</span></span></span><br><span class="line"><span class="params"><span class="function">                                               OSSL_ASYNC_FD, <span class="keyword">void</span> *))</span></span>;</span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">ASYNC_WAIT_CTX_get_fd</span><span class="params">(ASYNC_WAIT_CTX *ctx, <span class="keyword">const</span> <span class="keyword">void</span> *key,</span></span></span><br><span class="line"><span class="params"><span class="function">                          OSSL_ASYNC_FD *fd, <span class="keyword">void</span> **custom_data)</span></span>;</span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">ASYNC_WAIT_CTX_get_all_fds</span><span class="params">(ASYNC_WAIT_CTX *ctx, OSSL_ASYNC_FD *fd,</span></span></span><br><span class="line"><span class="params"><span class="function">                               <span class="keyword">size_t</span> *numfds)</span></span>;</span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">ASYNC_WAIT_CTX_get_changed_fds</span><span class="params">(ASYNC_WAIT_CTX *ctx, OSSL_ASYNC_FD *addfd,</span></span></span><br><span class="line"><span class="params"><span class="function">                                   <span class="keyword">size_t</span> *numaddfds, OSSL_ASYNC_FD *delfd,</span></span></span><br><span class="line"><span class="params"><span class="function">                                   <span class="keyword">size_t</span> *numdelfds)</span></span>;</span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">ASYNC_WAIT_CTX_clear_fd</span><span class="params">(ASYNC_WAIT_CTX *ctx, <span class="keyword">const</span> <span class="keyword">void</span> *key)</span></span>;</span><br></pre></td></tr></table></figure>
+
+
+
+<p>内部代码中创建一个fd，然后调用ASYNC_WAIT_CTX_set_wait_fd()将fd加入到ASYNC_WAIT_CTX的fds中，该函数一般在ASYNC_pause_job()前调用。外部用户代码通过对应的get函数获取到这个fd，并将其加入epoll中。当这个fd上有读事件的时候就再次恢复之前的暂停的job。</p>
+<p>内部的异步操作接口并不总是支持epoll fd的，如果支持那就最好不过，直接ASYNC_WAIT_CTX_set_wait_fd()设置这个fd就可以。如果内部接口不支持，那么就只能进行轮询了，也就是接口外部不断地检查操作是否已经完成了。Intel的QAT Engine的旧版本就是采用的这种做法，它在ASYNC_pause_job()暂停job之前，会先往这个fd中写入数据，于是外部用户代码将该fd加入到epoll之后，读事件已经是处于激活状态。在下一次事件循环时就会恢复暂停的job，ASYNC_pause_job()中恢复job之后从fd中读取数据。下面是QAT Engine中的代码片段：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">do</span> &#123;</span><br><span class="line">    <span class="comment">// 省略...</span></span><br><span class="line">    sts = cpaCyRsaDecrypt(qat_instance_handles[inst_num], qat_rsaCallbackFn, &amp;op_done,</span><br><span class="line">            dec_op_data, output_buf);</span><br><span class="line">    <span class="keyword">if</span> (sts == CPA_STATUS_RETRY) &#123;</span><br><span class="line">        <span class="keyword">if</span> ((qat_wake_job(op_done.job, ASYNC_STATUS_EAGAIN) == <span class="number">0</span>) ||</span><br><span class="line">            (qat_pause_job(op_done.job, ASYNC_STATUS_EAGAIN) == <span class="number">0</span>)) &#123;</span><br><span class="line">            WARN(<span class="string">&quot;qat_wake_job or qat_pause_job failed\n&quot;</span>);</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">while</span> (sts == CPA_STATUS_RETRY);</span><br></pre></td></tr></table></figure>
+
+<p>其中<code>qat_wake_job</code>中会往fd中写入数据，<code>qat_pause_job</code>中会调用<code>ASYNC_pause_job</code>，在<code>ASYNC_pause_job</code>返回之后读取fd中的数据。</p>
+<h3 id="callback机制"><a href="#callback机制" class="headerlink" title="callback机制"></a>callback机制</h3><p>另一种是通过callback（OpenSSL 3.0上新增），也需要异步接口的支持。当引擎完成异步操作之后调用回调函数去通知用户代码，ASYNC_WAIT_CTX_set_callback()用于设置callback及其参数。回调函数需要是小的且非阻塞的。</p>
+<p>callback相关的接口如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;openssl/async.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> ASYNC_STATUS_UNSUPPORTED    0</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> ASYNC_STATUS_ERR            1</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> ASYNC_STATUS_OK             2</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> ASYNC_STATUS_EAGAIN         3</span></span><br><span class="line"><span class="function"><span class="keyword">typedef</span> <span class="title">int</span> <span class="params">(*ASYNC_callback_fn)</span><span class="params">(<span class="keyword">void</span> *arg)</span></span>;</span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">ASYNC_WAIT_CTX_set_callback</span><span class="params">(ASYNC_WAIT_CTX *ctx,</span></span></span><br><span class="line"><span class="params"><span class="function">                                ASYNC_callback_fn callback,</span></span></span><br><span class="line"><span class="params"><span class="function">                                <span class="keyword">void</span> *callback_arg)</span></span>;</span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">ASYNC_WAIT_CTX_get_callback</span><span class="params">(ASYNC_WAIT_CTX *ctx,</span></span></span><br><span class="line"><span class="params"><span class="function">                                ASYNC_callback_fn *callback,</span></span></span><br><span class="line"><span class="params"><span class="function">                                <span class="keyword">void</span> **callback_arg)</span></span>;</span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">ASYNC_WAIT_CTX_set_status</span><span class="params">(ASYNC_WAIT_CTX *ctx, <span class="keyword">int</span> status)</span></span>;</span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">ASYNC_WAIT_CTX_get_status</span><span class="params">(ASYNC_WAIT_CTX *ctx)</span></span>;</span><br></pre></td></tr></table></figure>
+
+<p>关于接口的更多说明，见文末<a href="#%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99">参考资料</a>。</p>
+<h2 id="ASYNC-job处理流程"><a href="#ASYNC-job处理流程" class="headerlink" title="ASYNC_job处理流程"></a>ASYNC_job处理流程</h2><p>总体的处理流程如下图所示：</p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/6d5be1a5/async_job_processing_flow.png" alt="async_job_processing_flow" loading="lazy"></p>
+<h3 id="job状态管理ASYNC-start-job"><a href="#job状态管理ASYNC-start-job" class="headerlink" title="job状态管理ASYNC_start_job"></a>job状态管理ASYNC_start_job</h3><p>如前所述，<code>ASYNC_start_job</code>开始一个新的job或者恢复之前的job，是job管理的核心函数。如果是开始一个新job就创建并执行新job，否则根据job的状态决定下一步的操作。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// crypto/async/async.c</span></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">ASYNC_start_job</span><span class="params">(ASYNC_JOB **job, ASYNC_WAIT_CTX *wctx, <span class="keyword">int</span> *ret,</span></span></span><br><span class="line"><span class="params"><span class="function">                    <span class="keyword">int</span> (*func)(<span class="keyword">void</span> *), <span class="keyword">void</span> *args, <span class="keyword">size_t</span> size)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    async_ctx *ctx;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (!OPENSSL_init_crypto(OPENSSL_INIT_ASYNC, <span class="literal">NULL</span>))</span><br><span class="line">        <span class="keyword">return</span> ASYNC_ERR;</span><br><span class="line"></span><br><span class="line">    ctx = async_get_ctx();</span><br><span class="line">    <span class="keyword">if</span> (ctx == <span class="literal">NULL</span>)</span><br><span class="line">        ctx = async_ctx_new();</span><br><span class="line">    <span class="keyword">if</span> (ctx == <span class="literal">NULL</span>)</span><br><span class="line">        <span class="keyword">return</span> ASYNC_ERR;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (*job)</span><br><span class="line">        ctx-&gt;currjob = *job;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> (;;) &#123;</span><br><span class="line">        <span class="keyword">if</span> (ctx-&gt;currjob != <span class="literal">NULL</span>) &#123;</span><br><span class="line">            <span class="keyword">if</span> (ctx-&gt;currjob-&gt;status == ASYNC_JOB_STOPPING) &#123;</span><br><span class="line">                *ret = ctx-&gt;currjob-&gt;ret;</span><br><span class="line">                ctx-&gt;currjob-&gt;waitctx = <span class="literal">NULL</span>;</span><br><span class="line">                async_release_job(ctx-&gt;currjob);</span><br><span class="line">                ctx-&gt;currjob = <span class="literal">NULL</span>;</span><br><span class="line">                *job = <span class="literal">NULL</span>;</span><br><span class="line">                <span class="keyword">return</span> ASYNC_FINISH;</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="keyword">if</span> (ctx-&gt;currjob-&gt;status == ASYNC_JOB_PAUSING) &#123;</span><br><span class="line">                *job = ctx-&gt;currjob;</span><br><span class="line">                ctx-&gt;currjob-&gt;status = ASYNC_JOB_PAUSED;</span><br><span class="line">                ctx-&gt;currjob = <span class="literal">NULL</span>;</span><br><span class="line">                <span class="keyword">return</span> ASYNC_PAUSE;</span><br><span class="line">            &#125;</span><br><span class="line">            </span><br><span class="line">            <span class="keyword">if</span> (ctx-&gt;currjob-&gt;status == ASYNC_JOB_PAUSED) &#123;</span><br><span class="line">                ctx-&gt;currjob = *job;</span><br><span class="line">                <span class="comment">/* Resume previous job */</span></span><br><span class="line">                <span class="keyword">if</span> (!async_fibre_swapcontext(&amp;ctx-&gt;dispatcher,</span><br><span class="line">                        &amp;ctx-&gt;currjob-&gt;fibrectx, <span class="number">1</span>)) &#123;</span><br><span class="line">                    ASYNCerr(ASYNC_F_ASYNC_START_JOB,</span><br><span class="line">                             ASYNC_R_FAILED_TO_SWAP_CONTEXT);</span><br><span class="line">                    <span class="keyword">goto</span> err;</span><br><span class="line">                &#125;</span><br><span class="line">                <span class="keyword">continue</span>;</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="comment">/* Should not happen */</span></span><br><span class="line">            ASYNCerr(ASYNC_F_ASYNC_START_JOB, ERR_R_INTERNAL_ERROR);</span><br><span class="line">            async_release_job(ctx-&gt;currjob);</span><br><span class="line">            ctx-&gt;currjob = <span class="literal">NULL</span>;</span><br><span class="line">            *job = <span class="literal">NULL</span>;</span><br><span class="line">            <span class="keyword">return</span> ASYNC_ERR;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">/* Start a new job */</span></span><br><span class="line">        <span class="keyword">if</span> ((ctx-&gt;currjob = async_get_pool_job()) == <span class="literal">NULL</span>)</span><br><span class="line">            <span class="keyword">return</span> ASYNC_NO_JOBS;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (args != <span class="literal">NULL</span>) &#123;</span><br><span class="line">            ctx-&gt;currjob-&gt;funcargs = OPENSSL_malloc(size);</span><br><span class="line">            <span class="keyword">if</span> (ctx-&gt;currjob-&gt;funcargs == <span class="literal">NULL</span>) &#123;</span><br><span class="line">                ASYNCerr(ASYNC_F_ASYNC_START_JOB, ERR_R_MALLOC_FAILURE);</span><br><span class="line">                async_release_job(ctx-&gt;currjob);</span><br><span class="line">                ctx-&gt;currjob = <span class="literal">NULL</span>;</span><br><span class="line">                <span class="keyword">return</span> ASYNC_ERR;</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="built_in">memcpy</span>(ctx-&gt;currjob-&gt;funcargs, args, size);</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            ctx-&gt;currjob-&gt;funcargs = <span class="literal">NULL</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        </span><br><span class="line">        ctx-&gt;currjob-&gt;func = func;</span><br><span class="line">        ctx-&gt;currjob-&gt;waitctx = wctx;</span><br><span class="line">        <span class="keyword">if</span> (!async_fibre_swapcontext(&amp;ctx-&gt;dispatcher,</span><br><span class="line">                &amp;ctx-&gt;currjob-&gt;fibrectx, <span class="number">1</span>)) &#123;</span><br><span class="line">            ASYNCerr(ASYNC_F_ASYNC_START_JOB, ASYNC_R_FAILED_TO_SWAP_CONTEXT);</span><br><span class="line">            <span class="keyword">goto</span> err;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">err:</span><br><span class="line">    async_release_job(ctx-&gt;currjob);</span><br><span class="line">    ctx-&gt;currjob = <span class="literal">NULL</span>;</span><br><span class="line">    *job = <span class="literal">NULL</span>;</span><br><span class="line">    <span class="keyword">return</span> ASYNC_ERR;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="创建job"><a href="#创建job" class="headerlink" title="创建job"></a>创建job</h3><p>如果是开始一个新的job，从pool获取一个，如果池中没有则创建。job刚创建时的状态为<strong>ASYNC_JOB_RUNNING</strong>。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// crypto/async/async.c</span></span><br><span class="line"><span class="function"><span class="keyword">static</span> ASYNC_JOB *<span class="title">async_get_pool_job</span><span class="params">(<span class="keyword">void</span>)</span> </span>&#123;</span><br><span class="line">    ASYNC_JOB *job;</span><br><span class="line">    async_pool *pool;</span><br><span class="line"></span><br><span class="line">    pool = (async_pool *)CRYPTO_THREAD_get_local(&amp;poolkey);</span><br><span class="line">    <span class="keyword">if</span> (pool == <span class="literal">NULL</span>) &#123;</span><br><span class="line">        <span class="comment">/*</span></span><br><span class="line"><span class="comment">         * Pool has not been initialised, so init with the defaults, i.e.</span></span><br><span class="line"><span class="comment">         * no max size and no pre-created jobs</span></span><br><span class="line"><span class="comment">         */</span></span><br><span class="line">        <span class="keyword">if</span> (ASYNC_init_thread(<span class="number">0</span>, <span class="number">0</span>) == <span class="number">0</span>)</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">NULL</span>;</span><br><span class="line">        pool = (async_pool *)CRYPTO_THREAD_get_local(&amp;poolkey);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    job = sk_ASYNC_JOB_pop(pool-&gt;jobs);</span><br><span class="line">    <span class="keyword">if</span> (job == <span class="literal">NULL</span>) &#123;</span><br><span class="line">        <span class="comment">/* Pool is empty */</span></span><br><span class="line">        <span class="keyword">if</span> ((pool-&gt;max_size != <span class="number">0</span>) &amp;&amp; (pool-&gt;curr_size &gt;= pool-&gt;max_size))</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">NULL</span>;</span><br><span class="line"></span><br><span class="line">        job = async_job_new();</span><br><span class="line">        <span class="keyword">if</span> (job != <span class="literal">NULL</span>) &#123;</span><br><span class="line">            <span class="keyword">if</span> (! async_fibre_makecontext(&amp;job-&gt;fibrectx)) &#123;</span><br><span class="line">                async_job_free(job);</span><br><span class="line">                <span class="keyword">return</span> <span class="literal">NULL</span>;</span><br><span class="line">            &#125;</span><br><span class="line">            pool-&gt;curr_size++;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> job;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>创建上下文通过<code>async_fibre_makecontext</code>完成，这里的入口函数是<code>async_start_func</code>，它对实际的工作函数进行一层包装。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// crypto/async/arch/async_posix.c</span></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">async_fibre_makecontext</span><span class="params">(async_fibre *fibre)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    fibre-&gt;env_init = <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">if</span> (getcontext(&amp;fibre-&gt;fibre) == <span class="number">0</span>) &#123;</span><br><span class="line">        fibre-&gt;fibre.uc_stack.ss_sp = OPENSSL_malloc(STACKSIZE);</span><br><span class="line">        <span class="keyword">if</span> (fibre-&gt;fibre.uc_stack.ss_sp != <span class="literal">NULL</span>) &#123;</span><br><span class="line">            fibre-&gt;fibre.uc_stack.ss_size = STACKSIZE;</span><br><span class="line">            fibre-&gt;fibre.uc_link = <span class="literal">NULL</span>;</span><br><span class="line">            makecontext(&amp;fibre-&gt;fibre, async_start_func, <span class="number">0</span>);</span><br><span class="line">            <span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        fibre-&gt;fibre.uc_stack.ss_sp = <span class="literal">NULL</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="包装入口函数"><a href="#包装入口函数" class="headerlink" title="包装入口函数"></a>包装入口函数</h3><p><code>async_start_func</code>中执行job的工作函数，返回之后再切换回dispatcher，</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// crypto/async/async.c</span></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">async_start_func</span><span class="params">(<span class="keyword">void</span>)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    ASYNC_JOB *job;</span><br><span class="line">    async_ctx *ctx = async_get_ctx();</span><br><span class="line"></span><br><span class="line">    <span class="keyword">while</span> (<span class="number">1</span>) &#123;</span><br><span class="line">        <span class="comment">/* Run the job */</span></span><br><span class="line">        job = ctx-&gt;currjob;</span><br><span class="line">        job-&gt;ret = job-&gt;func(job-&gt;funcargs);</span><br><span class="line"></span><br><span class="line">        <span class="comment">/* Stop the job */</span></span><br><span class="line">        job-&gt;status = ASYNC_JOB_STOPPING;</span><br><span class="line">        <span class="keyword">if</span> (!async_fibre_swapcontext(&amp;job-&gt;fibrectx,</span><br><span class="line">                                     &amp;ctx-&gt;dispatcher, <span class="number">1</span>)) &#123;</span><br><span class="line">            <span class="comment">/*</span></span><br><span class="line"><span class="comment">             * Should not happen. Getting here will close the thread...can&#x27;t do</span></span><br><span class="line"><span class="comment">             * much about it</span></span><br><span class="line"><span class="comment">             */</span></span><br><span class="line">            ASYNCerr(ASYNC_F_ASYNC_START_FUNC, ASYNC_R_FAILED_TO_SWAP_CONTEXT);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="协程切换核心函数"><a href="#协程切换核心函数" class="headerlink" title="协程切换核心函数"></a>协程切换核心函数</h3><p><code>async_fibre_swapcontext</code>是切换的核心函数，其实现如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// crypto/async/arch/async_posix.h</span></span><br><span class="line"><span class="function"><span class="keyword">static</span> ossl_inline <span class="keyword">int</span> <span class="title">async_fibre_swapcontext</span><span class="params">(async_fibre *o, async_fibre *n, <span class="keyword">int</span> r)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    o-&gt;env_init = <span class="number">1</span>;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (!r || !_setjmp(o-&gt;env)) &#123;</span><br><span class="line">        <span class="keyword">if</span> (n-&gt;env_init)</span><br><span class="line">            _longjmp(n-&gt;env, <span class="number">1</span>);</span><br><span class="line">        <span class="keyword">else</span></span><br><span class="line">            setcontext(&amp;n-&gt;fibre);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>其中<code>env_init</code>用于表示对应的协程上下文是否已经开始运行，如果还没有则调用<code>setcontext</code>开始，否则直接调用<code>_longjmp</code>进跳转，这里主要是为了性能考虑。</p>
+<p>接下来的讲解将围绕这个切换函数和ASYNC_start_job。</p>
+<h3 id="开始job-dispatcher-gt-job"><a href="#开始job-dispatcher-gt-job" class="headerlink" title="开始job: dispatcher-&gt;job"></a>开始job: dispatcher-&gt;job</h3><p>前面说了，刚创建的job是ASYNC_JOB_RUNNING状态，<strong>第一次</strong>调用上下文切换函数<code>async_fibre_swapcontext</code>，从dispatcher切到job。</p>
+<p>首先将dispatcher的<code>env_init</code>置1，<code>setjmp</code>保存环境到dispatcher的env中，由于此时<code>n-&gt;env_init</code>为0，所以调用<code>setcontext</code>开始执行<code>async_start_func</code>，在其中执行job的工作函数。</p>
+<h3 id="暂停job-job-gt-dispatcher"><a href="#暂停job-job-gt-dispatcher" class="headerlink" title="暂停job: job-&gt;dispatcher"></a>暂停job: job-&gt;dispatcher</h3><p>如果在job处理过程中发生阻塞，会调用<code>ASYNC_pause_job</code>切换回dispatcher，此时job状态变成<strong>ASYCNC_JOB_PAUSING</strong>。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">ASYNC_pause_job</span><span class="params">(<span class="keyword">void</span>)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    ASYNC_JOB *job;</span><br><span class="line">    async_ctx *ctx = async_get_ctx();</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (ctx == <span class="literal">NULL</span></span><br><span class="line">            || ctx-&gt;currjob == <span class="literal">NULL</span></span><br><span class="line">            || ctx-&gt;blocked) &#123;</span><br><span class="line">        <span class="comment">/*</span></span><br><span class="line"><span class="comment">         * Could be we&#x27;ve deliberately not been started within a job so this is</span></span><br><span class="line"><span class="comment">         * counted as success.</span></span><br><span class="line"><span class="comment">         */</span></span><br><span class="line">        <span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    job = ctx-&gt;currjob;</span><br><span class="line">    job-&gt;status = ASYNC_JOB_PAUSING;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (!async_fibre_swapcontext(&amp;job-&gt;fibrectx,</span><br><span class="line">                                 &amp;ctx-&gt;dispatcher, <span class="number">1</span>)) &#123;</span><br><span class="line">        ASYNCerr(ASYNC_F_ASYNC_PAUSE_JOB, ASYNC_R_FAILED_TO_SWAP_CONTEXT);</span><br><span class="line">        <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">/* Reset counts of added and deleted fds */</span></span><br><span class="line">    async_wait_ctx_reset_counts(job-&gt;waitctx);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>ASYNC_pause_job</code>中<strong>第二次</strong>调用上下文切换函数，这次从job切换回dispatcher。</p>
+<p>将job的<code>env_init</code>置1，<code>setjmp</code>保存job的环境（恢复时用到），因为此时<code>n-&gt;env_init</code>为1，所以<code>longjmp</code>回第一次调用<code>async_fibre_swapcontext</code>时的<code>setjmp</code>位置返回。</p>
+<p>于是就回到了<code>ASYNC_start_job</code>函数中，dispatcher在<code>ASYNC_start_job</code>中继续下一次for循环，因为此时job状态为ASYCNC_JOB_PAUSING，所以执行如下操作：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (ctx-&gt;currjob-&gt;status == ASYNC_JOB_PAUSING) &#123;</span><br><span class="line">    *job = ctx-&gt;currjob;</span><br><span class="line">    ctx-&gt;currjob-&gt;status = ASYNC_JOB_PAUSED;</span><br><span class="line">    ctx-&gt;currjob = <span class="literal">NULL</span>;</span><br><span class="line">    <span class="keyword">return</span> ASYNC_PAUSE;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>将SSL中的job指针设为当前job，更改状态为<strong>ASYCNC_JOB_PAUSED</strong>，将ctx中currjob置空。这几个设置操作是为了下次可以正常恢复job，设置完之后返回ASYNC_PAUSE。上层的<code>ssl_start_async_job</code>则将ssl的rwstate置为SSL_ASYNC_PAUSED，再外层的SSL接口如SSL_do_handshake返回-1。</p>
+<p>然后外层检测到SSL_ASYNC_PAUSED，可以通过调用<code>SSL_get_changed_async_fds</code>，它封装了<code>ASYNC_WAIT_CTX_get_changed_fds</code>，获取fd加入到epoll中（<a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/intel/asynch_mode_nginx">asynch_mode_nginx</a>中的ngx_ssl_async_process_fds）。</p>
+<h3 id="恢复job-dispatcher-gt-job"><a href="#恢复job-dispatcher-gt-job" class="headerlink" title="恢复job: dispatcher-&gt;job"></a>恢复job: dispatcher-&gt;job</h3><p>当fd的读事件激活时，就会执行对应的事件处理函数再次恢复job。以asynch_mode_nginx为例，可能是如下的handler函数，<code>ngx_ssl_handshake_async_handler</code>、<code>ngx_ssl_read_async_handler</code>、<code>ngx_ssl_write_async_handler</code>、<code>ngx_ssl_shutdown_async_handler</code>。在handler中再次进入到<code>ssl_start_async_job</code>，并调用<code>ASYNC_start_job</code>。</p>
+<p>此时job的状态为SSL_ASYNC_PAUSED，于是走到下面这里再次进入<code>async_fibre_swapcontext</code>。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (ctx-&gt;currjob-&gt;status == ASYNC_JOB_PAUSED) &#123;</span><br><span class="line">    ctx-&gt;currjob = *job;</span><br><span class="line">    <span class="comment">/* Resume previous job */</span></span><br><span class="line">    <span class="keyword">if</span> (!async_fibre_swapcontext(&amp;ctx-&gt;dispatcher,</span><br><span class="line">            &amp;ctx-&gt;currjob-&gt;fibrectx, <span class="number">1</span>)) &#123;</span><br><span class="line">        ASYNCerr(ASYNC_F_ASYNC_START_JOB,</span><br><span class="line">                 ASYNC_R_FAILED_TO_SWAP_CONTEXT);</span><br><span class="line">        <span class="keyword">goto</span> err;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">continue</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>第三次</strong>进入<code>async_fibre_swapcontext</code>，从dispatcher切换到job。</p>
+<p>同样将dispatcher的<code>env_init</code>置1，<code>setjmp</code>保存环境到dispatcher的env中，此时job的env_init已经是1了，所以这次是通过<code>longjmp</code>回到第二次切换<code>setjmp</code>的地方，继续执行<code>ASYNC_pause_job</code>后续的代码。</p>
+<h3 id="结束job-job-gt-dispatcher"><a href="#结束job-job-gt-dispatcher" class="headerlink" title="结束job: job-&gt;dispatcher"></a>结束job: job-&gt;dispatcher</h3><p>假设这次job正常执行结束了，即<code>async_start_func</code>中的<code>job-&gt;func</code>返回，此时job的状态变成<strong>ASYNC_JOB_STOPPING</strong>，然后再次从job切换回dispatcher。</p>
+<p><strong>第四次</strong>进入<code>async_fibre_swapcontext</code>，跟第二次进入时一样，将job的<code>env_init</code>置1，<code>setjmp</code>保存job的环境，因为此时<code>n-&gt;env_init</code>为1，所以<code>longjmp</code>回第三次调用<code>async_fibre_swapcontext</code>时的<code>setjmp</code>位置返回。dispatcher在<code>ASYNC_start_job</code>中继续下一次for循环，因为此时job状态为STOPING，所以执行如下清理操作，将返回值传递出去了：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (ctx-&gt;currjob-&gt;status == ASYNC_JOB_STOPPING) &#123;</span><br><span class="line">    *ret = ctx-&gt;currjob-&gt;ret;</span><br><span class="line">    ctx-&gt;currjob-&gt;waitctx = <span class="literal">NULL</span>;</span><br><span class="line">    async_release_job(ctx-&gt;currjob);</span><br><span class="line">    ctx-&gt;currjob = <span class="literal">NULL</span>;</span><br><span class="line">    *job = <span class="literal">NULL</span>;</span><br><span class="line">    <span class="keyword">return</span> ASYNC_FINISH;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>回到外层<code>ssl_start_async_job</code>返回ret，这样这个job就结束了。不过ASYNC_WAIT_CTX并没有清理掉，<code>ASYNC_WAIT_CTX_free</code>是<code>在SSL_free</code>里面调用的，它里面会清理fd。</p>
+<p>以上便是job的完整生命周期。</p>
+<h2 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h2><p><a target="_blank" rel="noopener external nofollow noreferrer" href="https://01.org/sites/default/files/downloads/intelr-quickassist-technology/337003-001-intelquickassisttechnologyandopenssl-110.pdf">Intel® QuickAssist Technology(Intel® QAT) and OpenSSL-1.1.0: Performance</a></p>
+<p><a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/openssl/openssl">OpenSSL-1.1.1源码</a></p>
+<p><a target="_blank" rel="noopener external nofollow noreferrer" href="https://linux.die.net/man/2/getcontext">getcontext(2)&#x2F;setcontext(2)</a></p>
+<p><a target="_blank" rel="noopener external nofollow noreferrer" href="https://linux.die.net/man/3/makecontext">makecontext(3)&#x2F;swapcontext(3)</a></p>
+<p><a target="_blank" rel="noopener external nofollow noreferrer" href="https://linux.die.net/man/3/setjmp">setjmp(3))</a></p>
+<p><a target="_blank" rel="noopener external nofollow noreferrer" href="https://linux.die.net/man/3/longjmp">longjmp(3)</a></p>
+<p><a target="_blank" rel="noopener external nofollow noreferrer" href="https://mta.openssl.org/pipermail/openssl-commits/2015-November/002147.html">async commit提交记录</a></p>
+<p><a target="_blank" rel="noopener external nofollow noreferrer" href="https://www.openssl.org/docs/man3.0/man3/ASYNC_start_job.html">ASYNC_start_job</a></p>
+<p><a target="_blank" rel="noopener external nofollow noreferrer" href="https://www.openssl.org/docs/man3.0/man3/ASYNC_WAIT_CTX_set_wait_fd.html">ASYNC_WAIT_CTX_set_wait_fd</a></p>
+<p><a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/intel/asynch_mode_nginx">asynch_mode_nginx</a></p>
+<p><a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/intel/QAT_Engine">QAT_Engine</a></p>
+
+    </div>
+
+    
+    
+    
+      
+  <div class="popular-posts-header">相关文章推荐</div>
+  <ul class="popular-posts">
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/posts/83951100/" rel="bookmark">OpenSSL CVE-2022-0778漏洞问题复现与非法证书构造</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/posts/150430f0/" rel="bookmark">Openresty Lua协程调度机制</a></div>
+    </li>
+  </ul>
+<div class="post-widgets">
+      <div id="needsharebutton-postbottom">
+        <span class="btn">
+          <i class="fa fa-share-alt" aria-hidden="true"></i>
+        </span>
+      </div>
+    </div><div>
+    
+        <div style="text-align:center;font-size:22px;letter-spacing:10px;user-select:none;color:#bbb;">-------------本文结束<i class="fa fa-paw"></i>感谢您的阅读-------------</div>
+    
+</div>
+
+
+
+        
+
+<div>
+<ul class="post-copyright">
+  <li class="post-copyright-author">
+    <strong>本文作者： </strong>猫猫哥
+  </li>
+  <li class="post-copyright-link">
+    <strong>本文链接：</strong>
+    <a href="https://catbro666.github.io/posts/6d5be1a5/" title="OpenSSL的async异步框架&#x2F;OpenSSL协程">https://catbro666.github.io/posts/6d5be1a5/</a>
+  </li>
+  <li class="post-copyright-license">
+    <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/zh-CN" rel="noopener external nofollow noreferrer" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+        
+
+  <div class="followme">
+    <p>欢迎关注我的其它发布渠道</p>
+
+    <div class="social-list">
+
+        <div class="social-item">
+          <a target="_blank" class="social-link" href="/atom.xml">
+            <span class="icon">
+              <i class="fa fa-rss"></i>
+            </span>
+
+            <span class="label">RSS</span>
+          </a>
+        </div>
+    </div>
+  </div>
+
+
+      <footer class="post-footer">
+          
+          <div class="post-tags">
+              <a href="/tags/OpenSSL/" rel="tag"><i class="fa fa-tag"></i> OpenSSL</a>
+              <a href="/tags/%E5%8D%8F%E7%A8%8B/" rel="tag"><i class="fa fa-tag"></i> 协程</a>
+              <a href="/tags/async%E5%BC%82%E6%AD%A5%E6%A1%86%E6%9E%B6/" rel="tag"><i class="fa fa-tag"></i> async异步框架</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/posts/5d011708/" rel="prev" title="Linux内核中隐藏的兵法—以逸待劳">
+      <i class="fa fa-chevron-left"></i> Linux内核中隐藏的兵法—以逸待劳
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+    <div class="comments" id="valine-comments"></div>
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%BA%95%E5%B1%82%E6%A0%B8%E5%BF%83%E5%87%BD%E6%95%B0"><span class="nav-number">1.</span> <span class="nav-text">底层核心函数</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#ucontext-t"><span class="nav-number">1.1.</span> <span class="nav-text">ucontext_t</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#getcontext"><span class="nav-number">1.2.</span> <span class="nav-text">getcontext</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#setcontext"><span class="nav-number">1.3.</span> <span class="nav-text">setcontext</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#makecontext"><span class="nav-number">1.4.</span> <span class="nav-text">makecontext</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#swapcontext"><span class="nav-number">1.5.</span> <span class="nav-text">swapcontext</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#setjmp-x2F-longjmp"><span class="nav-number">1.6.</span> <span class="nav-text">setjmp&#x2F;longjmp</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%80%E4%BA%9B%E7%96%91%E9%97%AE"><span class="nav-number">1.7.</span> <span class="nav-text">一些疑问</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%BC%82%E6%AD%A5%E6%A1%86%E6%9E%B6%E5%9F%BA%E7%A1%80%E8%AE%BE%E6%96%BD"><span class="nav-number">2.</span> <span class="nav-text">异步框架基础设施</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84"><span class="nav-number">2.1.</span> <span class="nav-text">数据结构</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%BB%E8%A6%81%E6%8E%A5%E5%8F%A3"><span class="nav-number">2.2.</span> <span class="nav-text">主要接口</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%88%9D%E5%A7%8B%E5%8C%96"><span class="nav-number">2.3.</span> <span class="nav-text">初始化</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%94%A8%E6%88%B7%E4%BB%A3%E7%A0%81ASYNC-start-job"><span class="nav-number">2.4.</span> <span class="nav-text">用户代码ASYNC_start_job</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%86%85%E9%83%A8%E4%BB%A3%E7%A0%81ASYNC-pause-job"><span class="nav-number">2.5.</span> <span class="nav-text">内部代码ASYNC_pause_job</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%80%9A%E7%9F%A5%E6%9C%BA%E5%88%B6"><span class="nav-number">3.</span> <span class="nav-text">通知机制</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#wait-fd%E6%9C%BA%E5%88%B6"><span class="nav-number">3.1.</span> <span class="nav-text">wait fd机制</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#callback%E6%9C%BA%E5%88%B6"><span class="nav-number">3.2.</span> <span class="nav-text">callback机制</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#ASYNC-job%E5%A4%84%E7%90%86%E6%B5%81%E7%A8%8B"><span class="nav-number">4.</span> <span class="nav-text">ASYNC_job处理流程</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#job%E7%8A%B6%E6%80%81%E7%AE%A1%E7%90%86ASYNC-start-job"><span class="nav-number">4.1.</span> <span class="nav-text">job状态管理ASYNC_start_job</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%88%9B%E5%BB%BAjob"><span class="nav-number">4.2.</span> <span class="nav-text">创建job</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8C%85%E8%A3%85%E5%85%A5%E5%8F%A3%E5%87%BD%E6%95%B0"><span class="nav-number">4.3.</span> <span class="nav-text">包装入口函数</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8D%8F%E7%A8%8B%E5%88%87%E6%8D%A2%E6%A0%B8%E5%BF%83%E5%87%BD%E6%95%B0"><span class="nav-number">4.4.</span> <span class="nav-text">协程切换核心函数</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%BC%80%E5%A7%8Bjob-dispatcher-gt-job"><span class="nav-number">4.5.</span> <span class="nav-text">开始job: dispatcher-&gt;job</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%9A%82%E5%81%9Cjob-job-gt-dispatcher"><span class="nav-number">4.6.</span> <span class="nav-text">暂停job: job-&gt;dispatcher</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%81%A2%E5%A4%8Djob-dispatcher-gt-job"><span class="nav-number">4.7.</span> <span class="nav-text">恢复job: dispatcher-&gt;job</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BB%93%E6%9D%9Fjob-job-gt-dispatcher"><span class="nav-number">4.8.</span> <span class="nav-text">结束job: job-&gt;dispatcher</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99"><span class="nav-number">5.</span> <span class="nav-text">参考资料</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">猫猫哥</p>
+  <div class="site-description" itemprop="description">如果说根号二是无理数，那么我就是个无理人</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">33</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">10</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">46</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/catbro666" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;catbro666" rel="noopener external nofollow noreferrer" target="_blank"><i class="fab fa-github fa-fw"></i></a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:chzf_zju@163.com" title="E-Mail → mailto:chzf_zju@163.com" rel="noopener external nofollow noreferrer" target="_blank"><i class="fa fa-envelope fa-fw"></i></a>
+      </span>
+  </div>
+  <div class="cc-license motion-element" itemprop="license">
+    <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/zh-CN" class="cc-opacity" rel="noopener external nofollow noreferrer" target="_blank"><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/images/cc-by-nc-sa.svg" alt="Creative Commons"></a>
+  </div>
+
+
+<div style="">
+  <canvas id="canvas" style="width:60%;">当前浏览器不支持canvas，请更换浏览器后再试</canvas>
+</div>
+<script>
+(function(){
+
+   var digit=
+    [
+        [
+            [0,0,1,1,1,0,0],
+            [0,1,1,0,1,1,0],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,0,1,1,0],
+            [0,0,1,1,1,0,0]
+        ],//0
+        [
+            [0,0,0,1,1,0,0],
+            [0,1,1,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [1,1,1,1,1,1,1]
+        ],//1
+        [
+            [0,1,1,1,1,1,0],
+            [1,1,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,0,0],
+            [0,0,1,1,0,0,0],
+            [0,1,1,0,0,0,0],
+            [1,1,0,0,0,0,0],
+            [1,1,0,0,0,1,1],
+            [1,1,1,1,1,1,1]
+        ],//2
+        [
+            [1,1,1,1,1,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,0,0,1,1,0],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,1,1,0]
+        ],//3
+        [
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,1,0],
+            [0,0,1,1,1,1,0],
+            [0,1,1,0,1,1,0],
+            [1,1,0,0,1,1,0],
+            [1,1,1,1,1,1,1],
+            [0,0,0,0,1,1,0],
+            [0,0,0,0,1,1,0],
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,1,1]
+        ],//4
+        [
+            [1,1,1,1,1,1,1],
+            [1,1,0,0,0,0,0],
+            [1,1,0,0,0,0,0],
+            [1,1,1,1,1,1,0],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,1,1,0]
+        ],//5
+        [
+            [0,0,0,0,1,1,0],
+            [0,0,1,1,0,0,0],
+            [0,1,1,0,0,0,0],
+            [1,1,0,0,0,0,0],
+            [1,1,0,1,1,1,0],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,1,1,0]
+        ],//6
+        [
+            [1,1,1,1,1,1,1],
+            [1,1,0,0,0,1,1],
+            [0,0,0,0,1,1,0],
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,1,1,0,0,0],
+            [0,0,1,1,0,0,0],
+            [0,0,1,1,0,0,0],
+            [0,0,1,1,0,0,0]
+        ],//7
+        [
+            [0,1,1,1,1,1,0],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,1,1,0],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,1,1,0]
+        ],//8
+        [
+            [0,1,1,1,1,1,0],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,0,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,0,0],
+            [0,1,1,0,0,0,0]
+        ],//9
+        [
+            [0,0,0,0,0,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,0,0,0,0,0]
+        ]//:
+    ];
+
+var canvas = document.getElementById('canvas');
+
+if(canvas.getContext){
+    var cxt = canvas.getContext('2d');
+    //声明canvas的宽高
+    var H = 100,W = 700;
+    canvas.height = H;
+    canvas.width = W;
+    cxt.fillStyle = '#f00';
+    cxt.fillRect(10,10,50,50);
+
+    //存储时间数据
+    var data = [];
+    //存储运动的小球
+    var balls = [];
+    //设置粒子半径
+    var R = canvas.height/20-1;
+    (function(){
+        var temp = /(\d)(\d):(\d)(\d):(\d)(\d)/.exec(new Date());
+        //存储时间数字，由十位小时、个位小时、冒号、十位分钟、个位分钟、冒号、十位秒钟、个位秒钟这7个数字组成
+        data.push(temp[1],temp[2],10,temp[3],temp[4],10,temp[5],temp[6]);
+    })();
+
+    /*生成点阵数字*/
+    function renderDigit(index,num){
+        for(var i = 0; i < digit[num].length; i++){
+            for(var j = 0; j < digit[num][i].length; j++){
+                if(digit[num][i][j] == 1){
+                    cxt.beginPath();
+                    cxt.arc(14*(R+2)*index + j*2*(R+1)+(R+1),i*2*(R+1)+(R+1),R,0,2*Math.PI);
+                    cxt.closePath();
+                    cxt.fill();
+                }
+            }
+        }
+    }
+
+    /*更新时钟*/
+    function updateDigitTime(){
+        var changeNumArray = [];
+        var temp = /(\d)(\d):(\d)(\d):(\d)(\d)/.exec(new Date());
+        var NewData = [];
+        NewData.push(temp[1],temp[2],10,temp[3],temp[4],10,temp[5],temp[6]);
+        for(var i = data.length-1; i >=0 ; i--){
+            //时间发生变化
+            if(NewData[i] !== data[i]){
+                //将变化的数字值和在data数组中的索引存储在changeNumArray数组中
+                changeNumArray.push(i+'_'+(Number(data[i])+1)%10);
+            }
+        }
+        //增加小球
+        for(var i = 0; i< changeNumArray.length; i++){
+            addBalls.apply(this,changeNumArray[i].split('_'));
+        }
+        data = NewData.concat();
+    }
+
+    /*更新小球状态*/
+    function updateBalls(){
+        for(var i = 0; i < balls.length; i++){
+            balls[i].stepY += balls[i].disY;
+            balls[i].x += balls[i].stepX;
+            balls[i].y += balls[i].stepY;
+            if(balls[i].x > W + R || balls[i].y > H + R){
+                balls.splice(i,1);
+                i--;
+            }
+        }
+    }
+
+    /*增加要运动的小球*/
+    function addBalls(index,num){
+        var numArray = [1,2,3];
+        var colorArray =  ["#3BE","#09C","#A6C","#93C","#9C0","#690","#FB3","#F80","#F44","#C00"];
+        for(var i = 0; i < digit[num].length; i++){
+            for(var j = 0; j < digit[num][i].length; j++){
+                if(digit[num][i][j] == 1){
+                    var ball = {
+                        x:14*(R+2)*index + j*2*(R+1)+(R+1),
+                        y:i*2*(R+1)+(R+1),
+                        stepX:Math.floor(Math.random() * 4 -2),
+                        stepY:-2*numArray[Math.floor(Math.random()*numArray.length)],
+                        color:colorArray[Math.floor(Math.random()*colorArray.length)],
+                        disY:1
+                    };
+                    balls.push(ball);
+                }
+            }
+        }
+    }
+
+    /*渲染*/
+    function render(){
+        //重置画布宽度，达到清空画布的效果
+        canvas.height = 100;
+        //渲染时钟
+        for(var i = 0; i < data.length; i++){
+            renderDigit(i,data[i]);
+        }
+        //渲染小球
+        for(var i = 0; i < balls.length; i++){
+            cxt.beginPath();
+            cxt.arc(balls[i].x,balls[i].y,R,0,2*Math.PI);
+            cxt.fillStyle = balls[i].color;
+            cxt.closePath();
+            cxt.fill();
+        }
+    }
+
+    clearInterval(oTimer);
+    var oTimer = setInterval(function(){
+        //更新时钟
+        updateDigitTime();
+        //更新小球状态
+        updateBalls();
+        //渲染
+        render();
+    },50);
+}
+
+})();
+</script>
+
+
+      </div>
+        <div class="back-to-top motion-element">
+          <i class="fa fa-arrow-up"></i>
+          <span>0%</span>
+        </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 2019 – 
+  <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">猫猫哥</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+      <span class="post-meta-item-text">站点总字数：</span>
+    <span title="站点总字数">376k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+      <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
+    <span title="站点阅读时长">5:42</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener external nofollow noreferrer" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener external nofollow noreferrer" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+<script>
+  (function() {
+    function leancloudSelector(url) {
+      url = encodeURI(url);
+      return document.getElementById(url).querySelector('.leancloud-visitors-count');
+    }
+
+    function addCount(Counter) {
+      var visitors = document.querySelector('.leancloud_visitors');
+      var url = decodeURI(visitors.id);
+      var title = visitors.dataset.flagTitle;
+
+      Counter('get', '/classes/Counter?where=' + encodeURIComponent(JSON.stringify({ url })))
+        .then(response => response.json())
+        .then(({ results }) => {
+          if (results.length > 0) {
+            var counter = results[0];
+            leancloudSelector(url).innerText = counter.time + 1;
+            Counter('put', '/classes/Counter/' + counter.objectId, { time: { '__op': 'Increment', 'amount': 1 } })
+              .catch(error => {
+                console.error('Failed to save visitor count', error);
+              });
+          } else {
+              leancloudSelector(url).innerText = 'Counter not initialized! More info at console err msg.';
+              console.error('ATTENTION! LeanCloud counter has security bug, see how to solve it here: https://github.com/theme-next/hexo-leancloud-counter-security. \n However, you can still use LeanCloud without security, by setting `security` option to `false`.');
+            
+          }
+        })
+        .catch(error => {
+          console.error('LeanCloud Counter Error', error);
+        });
+    }
+
+    function showTime(Counter) {
+      var visitors = document.querySelectorAll('.leancloud_visitors');
+      var entries = [...visitors].map(element => {
+        return decodeURI(element.id);
+      });
+
+      Counter('get', '/classes/Counter?where=' + encodeURIComponent(JSON.stringify({ url: { '$in': entries } })))
+        .then(response => response.json())
+        .then(({ results }) => {
+          for (let url of entries) {
+            let target = results.find(item => item.url === url);
+            leancloudSelector(url).innerText = target ? target.time : 0;
+          }
+        })
+        .catch(error => {
+          console.error('LeanCloud Counter Error', error);
+        });
+    }
+
+    let { app_id, app_key, server_url } = {"enable":true,"app_id":"0Syy5qyXX1qTBOGiD0vUzpHb-MdYXbMMI","app_key":"B3MuN4GIHf7ru1ojTSkjjI9a","server_url":null,"security":true,"betterPerformance":true};
+    function fetchData(api_server) {
+      var Counter = (method, url, data) => {
+        return fetch(`${api_server}/1.1${url}`, {
+          method,
+          headers: {
+            'X-LC-Id'     : app_id,
+            'X-LC-Key'    : app_key,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(data)
+        });
+      };
+      if (CONFIG.page.isPost) {
+        if (CONFIG.hostname !== location.hostname) return;
+        addCount(Counter);
+      } else if (document.querySelectorAll('.post-title-link').length >= 1) {
+        showTime(Counter);
+      }
+    }
+
+    let api_server = app_id.slice(-9) !== '-MdYXbMMI' ? server_url : `https://${app_id.slice(0, 8).toLowerCase()}.api.lncldglobal.com`;
+
+    if (api_server) {
+      fetchData(api_server);
+    } else {
+      fetch('https://app-router.leancloud.cn/2/route?appId=' + app_id)
+        .then(response => response.json())
+        .then(({ api_server }) => {
+          fetchData('https://' + api_server);
+        });
+    }
+  })();
+</script>
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="//cdn.jsdelivr.net/npm/animejs@3.1.0/lib/anime.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/velocity-animate@1/velocity.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/velocity-animate@1/velocity.ui.min.js"></script>
+
+<script src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/js/utils.js"></script>
+
+<script src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/js/motion.js"></script>
+
+
+<script src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/js/schemes/pisces.js"></script>
+
+
+<script src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/js/next-boot.js"></script>
+
+
+
+
+  
+  <script>
+    (function(){
+      var canonicalURL, curProtocol;
+      //Get the <link> tag
+      var x=document.getElementsByTagName("link");
+		//Find the last canonical URL
+		if(x.length > 0){
+			for (i=0;i<x.length;i++){
+				if(x[i].rel.toLowerCase() == 'canonical' && x[i].href){
+					canonicalURL=x[i].href;
+				}
+			}
+		}
+    //Get protocol
+	    if (!canonicalURL){
+	    	curProtocol = window.location.protocol.split(':')[0];
+	    }
+	    else{
+	    	curProtocol = canonicalURL.split(':')[0];
+	    }
+      //Get current URL if the canonical URL does not exist
+	    if (!canonicalURL) canonicalURL = window.location.href;
+	    //Assign script content. Replace current URL with the canonical URL
+      !function(){var e=/([http|https]:\/\/[a-zA-Z0-9\_\.]+\.baidu\.com)/gi,r=canonicalURL,t=document.referrer;if(!e.test(r)){var n=(String(curProtocol).toLowerCase() === 'https')?"https://sp0.baidu.com/9_Q4simg2RQJ8t7jm9iCKT-xh_/s.gif":"//api.share.baidu.com/s.gif";t?(n+="?r="+encodeURIComponent(document.referrer),r&&(n+="&l="+r)):r&&(n+="?l="+r);var i=new Image;i.src=n}}(window);})();
+  </script>
+
+
+
+
+  
+<script src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+  
+<div id="needsharebutton-float">
+      <span class="btn">
+        <i class="fa fa-share-alt" aria-hidden="true"></i>
+      </span>
+    </div>
+  <script src="//cdn.jsdelivr.net/gh/theme-next/theme-next-needmoreshare2@1/needsharebutton.min.js"></script>
+  <script>
+      pbOptions = {};
+        pbOptions.iconStyle = "box";
+        pbOptions.boxForm = "horizontal";
+        pbOptions.position = "bottomCenter";
+        pbOptions.networks = "Weibo,Wechat,Douban,QQZone,Twitter,Facebook";
+      new needShareButton('#needsharebutton-postbottom', pbOptions);
+      flOptions = {};
+        flOptions.iconStyle = "box";
+        flOptions.boxForm = "horizontal";
+        flOptions.position = "middleRight";
+        flOptions.networks = "Weibo,Wechat,Douban,QQZone,Twitter,Facebook";
+      new needShareButton('#needsharebutton-float', flOptions);
+  </script>
+
+<script>
+NexT.utils.loadComments(document.querySelector('#valine-comments'), () => {
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/valine@1/dist/Valine.min.js', () => {
+    var GUEST = ['nick', 'mail', 'link'];
+    var guest = 'nick,mail,link';
+    guest = guest.split(',').filter(item => {
+      return GUEST.includes(item);
+    });
+    new Valine({
+      el         : '#valine-comments',
+      verify     : false,
+      notify     : true,
+      appId      : '0Syy5qyXX1qTBOGiD0vUzpHb-MdYXbMMI',
+      appKey     : 'B3MuN4GIHf7ru1ojTSkjjI9a',
+      placeholder: "欢迎留言讨论，记得在上方【邮箱】处填上邮箱地址，可以收到回复通知哦(^。^)",
+      avatar     : 'retro',
+      meta       : guest,
+      pageSize   : '10' || 10,
+      visitor    : false,
+      lang       : '' || 'zh-cn',
+      path       : location.pathname,
+      recordIP   : false,
+      serverURLs : 'https://0syy5qyx.api.lncldglobal.com'
+    });
+  }, window.Valine);
+});
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/jquery/dist/jquery.min.js"></script>
+
+
+
+  <script async src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/js/cursor/fireworks.js"></script>
+
+
+
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/js/fold_action.js"></script>
+
+
+</body>
+</html>

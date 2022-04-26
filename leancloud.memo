@@ -12,6 +12,7 @@
 {"title":"Hello World","url":"/posts/4a17b156/"},
 {"title":"SSL及GMVPN握手协议详解","url":"/posts/59c71edb/"},
 {"title":"Lua中如何实现类似gdb的断点调试—08支持通过包名称添加断点","url":"/posts/5c25711/"},
+{"title":"Linux内核中隐藏的兵法—以逸待劳","url":"/posts/5d011708/"},
 {"title":"深入理解mmap--内核代码分析及驱动demo示例","url":"/posts/5ec4fb12/"},
 {"title":"Linux内核是如何启动的","url":"/posts/615fc0b5/"},
 {"title":"C语言中的函数调用约定","url":"/posts/657c24ad/"},

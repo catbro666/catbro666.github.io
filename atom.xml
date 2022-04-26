@@ -6,7 +6,7 @@
   <link href="https://catbro666.github.io/atom.xml" rel="self"/>
   
   <link href="https://catbro666.github.io/"/>
-  <updated>2022-04-16T10:07:23.006Z</updated>
+  <updated>2022-04-26T15:08:15.600Z</updated>
   <id>https://catbro666.github.io/</id>
   
   <author>
@@ -17,11 +17,42 @@
   <generator uri="https://hexo.io/">Hexo</generator>
   
   <entry>
+    <title>OpenSSL的async异步框架/OpenSSL协程</title>
+    <link href="https://catbro666.github.io/posts/6d5be1a5/"/>
+    <id>https://catbro666.github.io/posts/6d5be1a5/</id>
+    <published>2022-04-26T14:37:45.000Z</published>
+    <updated>2022-04-26T15:08:15.600Z</updated>
+    
+    
+    <summary type="html">&lt;div class=&quot;note primary&quot;&gt;
+            &lt;p&gt;OpenSSL异步框架是在OpenSSL-1.1.0上引入的一个新特性。它理论上可以应用于任何的异步操作，但当前主要是用于在引擎框架中执行的加密学操作。本文首先介绍其底层原理，接着介绍OpenSSL的异步基础设施，最后着重分析ASYNC_JOB（OpenSSL中的协程）的处理流程（dispatcher和job之间是如何切换的）。&lt;/p&gt;
+          &lt;/div&gt;</summary>
+    
+    
+    
+    <category term="加密与安全" scheme="https://catbro666.github.io/categories/%E5%8A%A0%E5%AF%86%E4%B8%8E%E5%AE%89%E5%85%A8/"/>
+    
+    <category term="编程开发" scheme="https://catbro666.github.io/categories/%E7%BC%96%E7%A8%8B%E5%BC%80%E5%8F%91/"/>
+    
+    <category term="OpenSSL" scheme="https://catbro666.github.io/categories/%E5%8A%A0%E5%AF%86%E4%B8%8E%E5%AE%89%E5%85%A8/OpenSSL/"/>
+    
+    <category term="Unix环境编程" scheme="https://catbro666.github.io/categories/%E7%BC%96%E7%A8%8B%E5%BC%80%E5%8F%91/Unix%E7%8E%AF%E5%A2%83%E7%BC%96%E7%A8%8B/"/>
+    
+    
+    <category term="OpenSSL" scheme="https://catbro666.github.io/tags/OpenSSL/"/>
+    
+    <category term="协程" scheme="https://catbro666.github.io/tags/%E5%8D%8F%E7%A8%8B/"/>
+    
+    <category term="async异步框架" scheme="https://catbro666.github.io/tags/async%E5%BC%82%E6%AD%A5%E6%A1%86%E6%9E%B6/"/>
+    
+  </entry>
+  
+  <entry>
     <title>Linux内核中隐藏的兵法—以逸待劳</title>
     <link href="https://catbro666.github.io/posts/5d011708/"/>
     <id>https://catbro666.github.io/posts/5d011708/</id>
     <published>2022-04-15T14:21:30.000Z</published>
-    <updated>2022-04-16T10:07:23.006Z</updated>
+    <updated>2022-04-16T10:16:22.008Z</updated>
     
     
     <summary type="html">&lt;div class=&quot;note primary&quot;&gt;
@@ -327,7 +358,7 @@
     <link href="https://catbro666.github.io/posts/4198933e/"/>
     <id>https://catbro666.github.io/posts/4198933e/</id>
     <published>2021-11-07T09:52:11.000Z</published>
-    <updated>2022-04-05T13:18:44.403Z</updated>
+    <updated>2022-04-16T10:37:36.542Z</updated>
     
     
     <summary type="html">&lt;div class=&quot;note primary&quot;&gt;
@@ -340,12 +371,8 @@
     
     <category term="Nginx/OpenResty" scheme="https://catbro666.github.io/categories/%E7%BC%96%E7%A8%8B%E5%BC%80%E5%8F%91/Nginx-OpenResty/"/>
     
-    <category term="性能" scheme="https://catbro666.github.io/categories/%E6%80%A7%E8%83%BD/"/>
-    
     
     <category term="Nginx" scheme="https://catbro666.github.io/tags/Nginx/"/>
-    
-    <category term="性能调优" scheme="https://catbro666.github.io/tags/%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98/"/>
     
   </entry>
   
@@ -478,30 +505,6 @@
     
     <summary type="html">&lt;div class=&quot;note primary&quot;&gt;
             &lt;p&gt;在上一篇&lt;a href=&quot;../c1ecd715/&quot;&gt;04优化钩子事件处理&lt;/a&gt;中，我们在钩子函数中引入了call和return事件的处理，对性能进行了优化。&lt;/p&gt;&lt;p&gt;细心的同学可能已经发现了，我们的hook函数中call事件和line都需要对整个断点表进行遍历，这其中其实是存在着一些冗余的。因为call事件只关心函数是否有断点，而line事件则只关心本函数内有哪些断点。所以我们可以想办法优化一下断点信息的数据结构，进一步提升性能。&lt;/p&gt;</summary>
-    
-    
-    
-    <category term="编程开发" scheme="https://catbro666.github.io/categories/%E7%BC%96%E7%A8%8B%E5%BC%80%E5%8F%91/"/>
-    
-    <category term="Lua" scheme="https://catbro666.github.io/categories/%E7%BC%96%E7%A8%8B%E5%BC%80%E5%8F%91/Lua/"/>
-    
-    
-    <category term="Lua" scheme="https://catbro666.github.io/tags/Lua/"/>
-    
-    <category term="调试" scheme="https://catbro666.github.io/tags/%E8%B0%83%E8%AF%95/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Lua中如何实现类似gdb的断点调试--04优化钩子事件处理</title>
-    <link href="https://catbro666.github.io/posts/c1ecd715/"/>
-    <id>https://catbro666.github.io/posts/c1ecd715/</id>
-    <published>2021-08-16T11:52:15.000Z</published>
-    <updated>2022-03-05T10:37:04.044Z</updated>
-    
-    
-    <summary type="html">&lt;div class=&quot;note primary&quot;&gt;
-            &lt;p&gt;在第一篇的&lt;a href=&quot;../f9a188a7/&quot;&gt;01最小实现&lt;/a&gt;中，我们实现了一个断点调试的最小实现，在设置钩子函数时只加了line事件，显然这会对性能有很大的影响。而后来两篇&lt;a href=&quot;../f6e9079c&quot;&gt;02通用变量打印&lt;/a&gt;和&lt;a href=&quot;../a05a2f5f&quot;&gt;03通用变量修改及调用栈回溯&lt;/a&gt;则是提供了一些辅助的调试接口，并没有对钩子函数进行修改。&lt;/p&gt;&lt;p&gt;我们本篇将在钩子中引入call和return事件的处理，尝试对性能进行优化。&lt;/p&gt;</summary>
     
     
     
