@@ -5859,7 +5859,7 @@
 
 
 <p>其中padding的长度，要保证加密范围的长度是块加密算法块长度(SM4为16)的整数倍，即加上ESP尾之后的长度是block长度的整数倍。</p>
-<p><img src="%E6%96%87%E6%A1%A3/%E5%8A%A0%E5%AF%86%E6%96%87%E4%BB%B6%E5%A4%B9%E7%A7%BB%E5%87%BA/%E5%87%BA%E5%B7%AE%E6%8A%A5%E5%91%8A/IPsec%E5%9B%BD%E5%AF%86%E6%A3%80%E6%B5%8B/ESP%E6%A0%BC%E5%BC%8F1.jpg" alt="ESP格式1" loading="lazy"></p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/4921760e/ESP%E6%A0%BC%E5%BC%8F1.jpg" alt="ESP格式1" loading="lazy"></p>
 <p>密文数据跟认证数据的长度尚无法判断。</p>
 <h1 id="原因分析"><a href="#原因分析" class="headerlink" title="原因分析"></a>原因分析</h1><p>ESP包的长度不对，可能的原因有：</p>
 <ol>
@@ -6236,29 +6236,29 @@
 <p>从下表测试结果可以看到，kretprobes比kprobes慢，uprobes&#x2F;uretprobes比kprobes&#x2F;kretprobes要慢得多。</p>
 <p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/46dd3f4b/bpftrace-per-event-cost.png" alt="bpftrace-per-event-cost" loading="lazy"></p>
 <p>测试环境：Linux 4.15，i7-8650U CPU @ 1.90GHz，使用taskset绑到一个CPU上。</p>
-<h1 id="优缺点比较"><a href="#优缺点比较" class="headerlink" title="优缺点比较"></a>优缺点比较</h1><h3 id="bpftrace优缺点："><a href="#bpftrace优缺点：" class="headerlink" title="bpftrace优缺点："></a>bpftrace优缺点：</h3><h4 id="BPF限制"><a href="#BPF限制" class="headerlink" title="BPF限制"></a>BPF限制</h4><ul>
+<h1 id="优缺点比较"><a href="#优缺点比较" class="headerlink" title="优缺点比较"></a>优缺点比较</h1><h2 id="bpftrace优缺点："><a href="#bpftrace优缺点：" class="headerlink" title="bpftrace优缺点："></a>bpftrace优缺点：</h2><h3 id="BPF限制"><a href="#BPF限制" class="headerlink" title="BPF限制"></a>BPF限制</h3><ul>
 <li>不能调用任意的内核函数：只能调用BPF helper。</li>
 <li>BPF程序不能做循环，因为必须在规定时间内结束。后续(Linux 5.3)会支持受限的循环。（随着即将添加的循环，您可能会开始怀疑BPF是否将成为图灵完整的。 BPF指令集本身允许创建图灵完备的自动机，但是由于验证器引入的安全性限制，BPF程序不是图灵完整的。）</li>
 <li>BPF栈大小限制为<code>MAX_BPF_STACK</code>，设置为512，多用几个字符串就用完了。解决方法是使用BPF映射存储替代</li>
 <li>指令数限制为4096。Linux5.2大幅增加了这个限制。</li>
 </ul>
-<h4 id="bpftrace其他缺点"><a href="#bpftrace其他缺点" class="headerlink" title="bpftrace其他缺点"></a>bpftrace其他缺点</h4><ul>
+<h3 id="bpftrace其他缺点"><a href="#bpftrace其他缺点" class="headerlink" title="bpftrace其他缺点"></a>bpftrace其他缺点</h3><ul>
 <li>探针附到函数一定偏移处不是很方法</li>
 <li>无法直接获取被探测应用程序中函数局部变量值</li>
 <li>结构体的访问非常麻烦，需要将所有依赖的头文件及其路径都包含进来</li>
 <li>内核版本要求较高，且在较旧的发行版上安装体验不佳</li>
 </ul>
-<h4 id="bpftrace优点"><a href="#bpftrace优点" class="headerlink" title="bpftrace优点"></a>bpftrace优点</h4><ul>
+<h3 id="bpftrace优点"><a href="#bpftrace优点" class="headerlink" title="bpftrace优点"></a>bpftrace优点</h3><ul>
 <li>bpftrace基于内置Linux技术，不用追赶内核版本改动，稳定性更高</li>
 <li>脚本执行速度比systemtap快（使用llvm编译成BPF）</li>
 </ul>
-<h3 id="systemtap优缺点"><a href="#systemtap优缺点" class="headerlink" title="systemtap优缺点"></a>systemtap优缺点</h3><h4 id="缺点"><a href="#缺点" class="headerlink" title="缺点"></a>缺点</h4><ul>
+<h2 id="systemtap优缺点"><a href="#systemtap优缺点" class="headerlink" title="systemtap优缺点"></a>systemtap优缺点</h2><h3 id="缺点"><a href="#缺点" class="headerlink" title="缺点"></a>缺点</h3><ul>
 <li>基于内核模块技术，在RHEL以外的系统上都不可靠</li>
 <li>不是内置于内核，需要追赶内核版本改动，稳定性不如bpftrace</li>
 <li>脚本执行速度比systemtap慢，且在生产环境需要gcc编译工具链、内核头文件</li>
 <li>依赖dwarf，需要安装内核符号，用户层程序则在编译时需要-g</li>
 </ul>
-<h4 id="优点"><a href="#优点" class="headerlink" title="优点"></a>优点</h4><ul>
+<h3 id="优点"><a href="#优点" class="headerlink" title="优点"></a>优点</h3><ul>
 <li>脚本语言支持的特性更全，如函数偏移、循环、函数局部变量、结构体引用</li>
 <li>具有成熟的用户态符号自动加载，可以写比较复杂的探针处理程序</li>
 <li>systemtap中有大量帮助程序(tapset)，可用于检测不同的目标</li>
@@ -6304,6 +6304,8 @@
 <figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="meta">#!/bin/bash</span></span><br><span class="line">stap -v test.stp -c <span class="string">&quot;./overhead <span class="variable">$1</span> <span class="variable">$2</span>&quot;</span></span><br></pre></td></tr></table></figure>
 
 </div></div>
+
+
 
 <h1 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h1><ul>
 <li><a href="https://sourceware.org/systemtap/SystemTap_Beginners_Guide/">systemtap新手指南</a></li>
