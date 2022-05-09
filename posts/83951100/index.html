@@ -34,7 +34,7 @@
 <meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/83951100/asn1-structure-of-x509-after.png">
 <meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/83951100/infinite-loop-when-parsing-invalid-cert.png">
 <meta property="article:published_time" content="2022-03-19T14:53:34.000Z">
-<meta property="article:modified_time" content="2022-03-21T10:19:28.687Z">
+<meta property="article:modified_time" content="2022-05-09T15:06:15.087Z">
 <meta property="article:author" content="猫猫哥">
 <meta property="article:tag" content="OpenSSL">
 <meta property="article:tag" content="CVE">
@@ -292,7 +292,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-03-21 18:19:28" itemprop="dateModified" datetime="2022-03-21T18:19:28+08:00">2022-03-21</time>
+                <time title="修改时间：2022-05-09 23:06:15" itemprop="dateModified" datetime="2022-05-09T23:06:15+08:00">2022-05-09</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -354,7 +354,7 @@ translateInitilization();
                 <i class="far fa-file-word"></i>
               </span>
                 <span class="post-meta-item-text">本文字数：</span>
-              <span>7.5k</span>
+              <span>7.7k</span>
             </span>
             <span class="post-meta-item" title="阅读时长">
               <span class="post-meta-item-icon">
@@ -468,7 +468,7 @@ translateInitilization();
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">$ openssl x509 -<span class="keyword">in</span> cert.der -text -noout -inform DER</span><br><span class="line">...</span><br><span class="line">                Field Type: prime-field</span><br><span class="line">                Prime:</span><br><span class="line">                    00:ff:ff:ff:ff:00:00:00:01:00:00:00:00:00:00:</span><br><span class="line">                    00:00:00:00:00:00:ff:ff:ff:ff:ff:ff:ff:ff:ff:</span><br><span class="line">                    ff:ff:ff</span><br><span class="line">                A:</span><br><span class="line">                    00:ff:ff:ff:ff:00:00:00:01:00:00:00:00:00:00:</span><br><span class="line">                    00:00:00:00:00:00:ff:ff:ff:ff:ff:ff:ff:ff:ff:</span><br><span class="line">                    ff:ff:<span class="built_in">fc</span></span><br><span class="line">                B:</span><br><span class="line">                    5a:c6:35:d8:aa:3a:93:e7:b3:eb:bd:55:76:98:86:</span><br><span class="line">                    bc:65:1d:06:b0:cc:53:b0:f6:3b:ce:3c:3e:27:d2:</span><br><span class="line">                    60:4b</span><br><span class="line">                Generator (compressed):</span><br><span class="line">                    03:6b:17:d1:f2:e1:2c:42:47:f8:bc:e6:e5:63:a4:</span><br><span class="line">                    40:f2:77:03:7d:81:2d:eb:33:a0:f4:a1:39:45:d8:</span><br><span class="line">                    98:c2:96</span><br><span class="line">                Order:</span><br><span class="line">                    00:ff:ff:ff:ff:00:00:00:00:ff:ff:ff:ff:ff:ff:</span><br><span class="line">                    ff:ff:bc:e6:fa:ad:a7:17:9e:84:f3:b9:ca:c2:<span class="built_in">fc</span>:</span><br><span class="line">                    63:25:51</span><br><span class="line">...                    </span><br></pre></td></tr></table></figure>
 
 <p>其中的Prime、A、B、Generator就是我们需要修改的目标参数。那么我们应该将其改成什么呢？然后又通过什么方法进行修改呢？</p>
-<h2 id="构造非法证书-1"><a href="#构造非法证书-1" class="headerlink" title="构造非法证书"></a>构造非法证书</h2><p>首先，在实际动手之前我们先需要搞清楚这几个值是什么意思、需要满足什么关系。定义在有限域上的椭圆曲线满足如下方程<br>$$<br>y^2 \equiv x^3+ax+b\quad (mod\ p)<br>$$<br>其中的a就是曲线参数A，b就是曲线参数B，p即为曲线参数Prime，a、b、p参数确定了一条椭圆曲线。解压缩点坐标就是根据x坐标来计算y坐标，从上面的公式可以看到这需要用到求平方根的运算：<br>$$<br>y&#x3D;\sqrt{x^3+ax+b}\quad (mod\ p)<br>$$<br>我们沿用之前使用的697&#x2F;696组合，即此时 p &#x3D; 697，$x^3+ax+b&#x3D;696$。我们只要选择合适的a、b、x是后面那个等式成立就可以了。</p>
+<h2 id="手动构造非法证书"><a href="#手动构造非法证书" class="headerlink" title="手动构造非法证书"></a>手动构造非法证书</h2><p>首先，在实际动手之前我们先需要搞清楚这几个值是什么意思、需要满足什么关系。定义在有限域上的椭圆曲线满足如下方程<br>$$<br>y^2 \equiv x^3+ax+b\quad (mod\ p)<br>$$<br>其中的a就是曲线参数A，b就是曲线参数B，p即为曲线参数Prime，a、b、p参数确定了一条椭圆曲线。解压缩点坐标就是根据x坐标来计算y坐标，从上面的公式可以看到这需要用到求平方根的运算：<br>$$<br>y&#x3D;\sqrt{x^3+ax+b}\quad (mod\ p)<br>$$<br>我们沿用之前使用的697&#x2F;696组合，即此时 p &#x3D; 697，$x^3+ax+b&#x3D;696$。我们只要选择合适的a、b、x是后面那个等式成立就可以了。</p>
 <p>我们令x&#x3D;8，a&#x3D;23，b&#x3D;0，等式成立。</p>
 <p>接下来就要着手修改我们的证书，徒手修改ASN1结构真的是要了我的老命，大家如果知道有什么方便的工具还请不吝赐教。我使用的工具主要是<code>xxd</code>转成hex格式进行编辑，完成之后再<code>xxd -r</code>转回去。（感谢wllm-rbnt提供的asn1template工具，详细描述见后面）</p>
 <ol>
@@ -570,6 +570,12 @@ translateInitilization();
 
 <p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/83951100/asn1-structure-of-x509-after.png" alt="asn1-structure-of-x509-after" loading="lazy"></p>
 <p>划红线的部分都已经被我们修改了，且证书的ASN1编码是正常的。</p>
+<h2 id="使用可编程方式创建非法证书和私钥"><a href="#使用可编程方式创建非法证书和私钥" class="headerlink" title="使用可编程方式创建非法证书和私钥"></a>使用可编程方式创建非法证书和私钥</h2><p><a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/catbro666/CVE-2022-0778/blob/master/my_bad_cert.c">代码见这里</a></p>
+<blockquote>
+<p>测试了OpenSSL 1.1.1和1.0.2</p>
+</blockquote>
+<p>我们仍然使用上面用到的a, b, p, x, y值，并且将私钥设置为1，所以公钥点跟generator一样。</p>
+<p>使用<code>gcc -o my_bad_cert my_bad_cert.c -lcrypto</code>编译程序，然后运行<code>./my_bad_cert</code>就可以创建一个非法证书和私钥了。</p>
 <h2 id="使用非法证书测试"><a href="#使用非法证书测试" class="headerlink" title="使用非法证书测试"></a>使用非法证书测试</h2><p>OK，现在我们来解析这个构造的非法证书试试，不出意外的话就会进入无限循环了。</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">openssl x509 -<span class="keyword">in</span> cert.der.new -inform DER -text -noout</span><br></pre></td></tr></table></figure>
 
@@ -722,7 +728,7 @@ translateInitilization();
 
       <!--noindex-->
       <div class="post-toc-wrap sidebar-panel">
-          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E6%BC%8F%E6%B4%9E%E6%8F%8F%E8%BF%B0-1"><span class="nav-number">1.</span> <span class="nav-text">漏洞描述[^1]</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%87%BD%E6%95%B0%E5%88%86%E6%9E%90"><span class="nav-number">2.</span> <span class="nav-text">函数分析</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%A4%8D%E7%8E%B0%E9%97%AE%E9%A2%98"><span class="nav-number">3.</span> <span class="nav-text">复现问题</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E6%9E%84%E9%80%A0%E9%9D%9E%E6%B3%95%E8%AF%81%E4%B9%A6"><span class="nav-number">4.</span> <span class="nav-text">构造非法证书</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%88%9B%E5%BB%BA%E4%B8%80%E4%B8%AA%E6%AD%A3%E5%B8%B8%E7%9A%84%E5%B8%A6%E6%98%BE%E5%BC%8F%E6%9B%B2%E7%BA%BF%E5%8F%82%E6%95%B0%E7%9A%84%E8%AF%81%E4%B9%A6"><span class="nav-number">4.1.</span> <span class="nav-text">创建一个正常的带显式曲线参数的证书</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%9E%84%E9%80%A0%E9%9D%9E%E6%B3%95%E8%AF%81%E4%B9%A6-1"><span class="nav-number">4.2.</span> <span class="nav-text">构造非法证书</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BD%BF%E7%94%A8%E9%9D%9E%E6%B3%95%E8%AF%81%E4%B9%A6%E6%B5%8B%E8%AF%95"><span class="nav-number">4.3.</span> <span class="nav-text">使用非法证书测试</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%8F%82%E8%80%83%E6%9D%90%E6%96%99"><span class="nav-number">5.</span> <span class="nav-text">参考材料</span></a></li></ol></div>
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E6%BC%8F%E6%B4%9E%E6%8F%8F%E8%BF%B0-1"><span class="nav-number">1.</span> <span class="nav-text">漏洞描述[^1]</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%87%BD%E6%95%B0%E5%88%86%E6%9E%90"><span class="nav-number">2.</span> <span class="nav-text">函数分析</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%A4%8D%E7%8E%B0%E9%97%AE%E9%A2%98"><span class="nav-number">3.</span> <span class="nav-text">复现问题</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E6%9E%84%E9%80%A0%E9%9D%9E%E6%B3%95%E8%AF%81%E4%B9%A6"><span class="nav-number">4.</span> <span class="nav-text">构造非法证书</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%88%9B%E5%BB%BA%E4%B8%80%E4%B8%AA%E6%AD%A3%E5%B8%B8%E7%9A%84%E5%B8%A6%E6%98%BE%E5%BC%8F%E6%9B%B2%E7%BA%BF%E5%8F%82%E6%95%B0%E7%9A%84%E8%AF%81%E4%B9%A6"><span class="nav-number">4.1.</span> <span class="nav-text">创建一个正常的带显式曲线参数的证书</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%89%8B%E5%8A%A8%E6%9E%84%E9%80%A0%E9%9D%9E%E6%B3%95%E8%AF%81%E4%B9%A6"><span class="nav-number">4.2.</span> <span class="nav-text">手动构造非法证书</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BD%BF%E7%94%A8%E5%8F%AF%E7%BC%96%E7%A8%8B%E6%96%B9%E5%BC%8F%E5%88%9B%E5%BB%BA%E9%9D%9E%E6%B3%95%E8%AF%81%E4%B9%A6%E5%92%8C%E7%A7%81%E9%92%A5"><span class="nav-number">4.3.</span> <span class="nav-text">使用可编程方式创建非法证书和私钥</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BD%BF%E7%94%A8%E9%9D%9E%E6%B3%95%E8%AF%81%E4%B9%A6%E6%B5%8B%E8%AF%95"><span class="nav-number">4.4.</span> <span class="nav-text">使用非法证书测试</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%8F%82%E8%80%83%E6%9D%90%E6%96%99"><span class="nav-number">5.</span> <span class="nav-text">参考材料</span></a></li></ol></div>
       </div>
       <!--/noindex-->
 
@@ -736,20 +742,20 @@ translateInitilization();
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">33</span>
+          <span class="site-state-item-count">35</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
             <a href="/categories/">
           
-        <span class="site-state-item-count">10</span>
+        <span class="site-state-item-count">11</span>
         <span class="site-state-item-name">分类</span></a>
       </div>
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">46</span>
+        <span class="site-state-item-count">52</span>
         <span class="site-state-item-name">标签</span></a>
       </div>
   </nav>
@@ -1066,13 +1072,13 @@ if(canvas.getContext){
       <i class="fa fa-chart-area"></i>
     </span>
       <span class="post-meta-item-text">站点总字数：</span>
-    <span title="站点总字数">376k</span>
+    <span title="站点总字数">395k</span>
     <span class="post-meta-divider">|</span>
     <span class="post-meta-item-icon">
       <i class="fa fa-coffee"></i>
     </span>
       <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
-    <span title="站点阅读时长">5:42</span>
+    <span title="站点阅读时长">5:59</span>
 </div>
   <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener external nofollow noreferrer" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener external nofollow noreferrer" target="_blank">NexT.Gemini</a> 强力驱动
   </div>

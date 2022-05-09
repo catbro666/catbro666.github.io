@@ -6,7 +6,7 @@
   <link href="https://catbro666.github.io/atom.xml" rel="self"/>
   
   <link href="https://catbro666.github.io/"/>
-  <updated>2022-04-26T15:23:46.281Z</updated>
+  <updated>2022-05-09T15:48:42.250Z</updated>
   <id>https://catbro666.github.io/</id>
   
   <author>
@@ -17,11 +17,61 @@
   <generator uri="https://hexo.io/">Hexo</generator>
   
   <entry>
+    <title>记录一个IPsec VPN检测时ESP包解密失败问题的定位过程</title>
+    <link href="https://catbro666.github.io/posts/4921760e/"/>
+    <id>https://catbro666.github.io/posts/4921760e/</id>
+    <published>2022-05-09T14:35:51.000Z</published>
+    <updated>2022-05-09T15:48:42.250Z</updated>
+    
+    
+    <summary type="html">&lt;div class=&quot;note primary&quot;&gt;
+            &lt;p&gt;本文记录一次IPsec VPN检测时ESP解密失败问题的定位过程。涉及到IPsec VPN协议、加密算法、内核xfrm框架等知识。&lt;/p&gt;
+          &lt;/div&gt;</summary>
+    
+    
+    
+    <category term="排错与性能" scheme="https://catbro666.github.io/categories/%E6%8E%92%E9%94%99%E4%B8%8E%E6%80%A7%E8%83%BD/"/>
+    
+    
+    <category term="IPSec" scheme="https://catbro666.github.io/tags/IPSec/"/>
+    
+    <category term="ESP" scheme="https://catbro666.github.io/tags/ESP/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>systemtap与bpftrace使用评估及对比</title>
+    <link href="https://catbro666.github.io/posts/46dd3f4b/"/>
+    <id>https://catbro666.github.io/posts/46dd3f4b/</id>
+    <published>2022-05-09T12:57:29.000Z</published>
+    <updated>2022-05-09T14:26:56.601Z</updated>
+    
+    
+    <summary type="html">&lt;div class=&quot;note primary&quot;&gt;
+            &lt;p&gt;eBPF和systemtap这两个非常强大的工具，它们弥补了静态调试工具的不足，可以完成很多静态调试工具无法完成的事情。例如很多跟时序相关的问题、概率性偶发的问题、压力测试下才能出现的问题、以及像云上这种不方便调试的环境，可能只能通过&lt;strong&gt;动态调试&lt;/strong&gt;的手段来定位分析问题。&lt;/p&gt;&lt;p&gt;它们将进程本身当作是一个数据库，从中获取所关心的信息进行活体分析。当然前提是你得对这个数据库本身有足够的了解，知道去哪里获取信息，以及获取什么信息。对于内核态就是对内核本身的理解，在用户态则是对用户程序的理解。&lt;/p&gt;&lt;p&gt;本文只是浅浅地试用评估了一下两者，并做了简单对比。要想熟练使用，功夫在诗外！&lt;/p&gt;
+          &lt;/div&gt;</summary>
+    
+    
+    
+    <category term="性能" scheme="https://catbro666.github.io/categories/%E6%80%A7%E8%83%BD/"/>
+    
+    
+    <category term="systemtap" scheme="https://catbro666.github.io/tags/systemtap/"/>
+    
+    <category term="eBPF" scheme="https://catbro666.github.io/tags/eBPF/"/>
+    
+    <category term="bpftrace" scheme="https://catbro666.github.io/tags/bpftrace/"/>
+    
+    <category term="动态追踪" scheme="https://catbro666.github.io/tags/%E5%8A%A8%E6%80%81%E8%BF%BD%E8%B8%AA/"/>
+    
+  </entry>
+  
+  <entry>
     <title>OpenSSL的async异步框架/OpenSSL协程</title>
     <link href="https://catbro666.github.io/posts/6d5be1a5/"/>
     <id>https://catbro666.github.io/posts/6d5be1a5/</id>
     <published>2022-04-26T14:37:45.000Z</published>
-    <updated>2022-04-26T15:23:46.281Z</updated>
+    <updated>2022-04-27T12:27:30.408Z</updated>
     
     
     <summary type="html">&lt;div class=&quot;note primary&quot;&gt;
@@ -108,7 +158,7 @@
     <link href="https://catbro666.github.io/posts/d5d52392/"/>
     <id>https://catbro666.github.io/posts/d5d52392/</id>
     <published>2022-04-05T13:25:03.000Z</published>
-    <updated>2022-04-06T13:13:08.322Z</updated>
+    <updated>2022-05-09T15:49:49.849Z</updated>
     
     
     <summary type="html">&lt;div class=&quot;note primary&quot;&gt;
@@ -117,7 +167,7 @@
     
     
     
-    <category term="性能" scheme="https://catbro666.github.io/categories/%E6%80%A7%E8%83%BD/"/>
+    <category term="排错与性能" scheme="https://catbro666.github.io/categories/%E6%8E%92%E9%94%99%E4%B8%8E%E6%80%A7%E8%83%BD/"/>
     
     
     <category term="SSL/TLS" scheme="https://catbro666.github.io/tags/SSL-TLS/"/>
@@ -162,7 +212,7 @@
     <link href="https://catbro666.github.io/posts/83951100/"/>
     <id>https://catbro666.github.io/posts/83951100/</id>
     <published>2022-03-19T14:53:34.000Z</published>
-    <updated>2022-03-21T10:19:28.687Z</updated>
+    <updated>2022-05-09T15:06:15.087Z</updated>
     
     
     <summary type="html">&lt;div class=&quot;note primary&quot;&gt;
@@ -457,54 +507,6 @@
     
     <summary type="html">&lt;div class=&quot;note primary&quot;&gt;
             &lt;p&gt;我们之前已经支持了通过函数来添加断点，并且已经支持了行号的检查和自动修正。但是通过函数来添加断点有一些限制，如果在当前的位置无法访问目标函数，那我们就无法对其添加断点。&lt;/p&gt;&lt;p&gt;于是，本篇我们将扩展断点设置的接口，支持通过函数名称添加断点，以突破这个限制。&lt;/p&gt;</summary>
-    
-    
-    
-    <category term="编程开发" scheme="https://catbro666.github.io/categories/%E7%BC%96%E7%A8%8B%E5%BC%80%E5%8F%91/"/>
-    
-    <category term="Lua" scheme="https://catbro666.github.io/categories/%E7%BC%96%E7%A8%8B%E5%BC%80%E5%8F%91/Lua/"/>
-    
-    
-    <category term="Lua" scheme="https://catbro666.github.io/tags/Lua/"/>
-    
-    <category term="调试" scheme="https://catbro666.github.io/tags/%E8%B0%83%E8%AF%95/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Lua中如何实现类似gdb的断点调试—06断点行号检查与自动修正</title>
-    <link href="https://catbro666.github.io/posts/fa52978d/"/>
-    <id>https://catbro666.github.io/posts/fa52978d/</id>
-    <published>2021-08-18T12:55:57.000Z</published>
-    <updated>2022-03-05T10:38:45.092Z</updated>
-    
-    
-    <summary type="html">&lt;div class=&quot;note primary&quot;&gt;
-            &lt;p&gt;前面两篇我们对性能做了一个优化，接下来继续来丰富调试器的特性。&lt;/p&gt;&lt;p&gt;我们前面提到过，函数内并不是所有行都是有效行，空行和注释行就不是有效行。我们之前在添加断点的时候，并没有对行号进行检查，任何行号都能成功添加断点。所以如果添加的断点行号是无效的，那么永远也不会断到那里。但是钩子里并不知道它是无效的，call事件仍然会以为函数有断点从而启动line事件，造成CPU的浪费。&lt;/p&gt;&lt;p&gt;所以本篇，我们将对断点的行号进行检查，对于不在函数范围内的行号直接添加断点失败；在函数范围内的行号则自动修正为下一个有效的行号；另外支持不指定行号，默认为函数的第一个有效行。&lt;/p&gt;</summary>
-    
-    
-    
-    <category term="编程开发" scheme="https://catbro666.github.io/categories/%E7%BC%96%E7%A8%8B%E5%BC%80%E5%8F%91/"/>
-    
-    <category term="Lua" scheme="https://catbro666.github.io/categories/%E7%BC%96%E7%A8%8B%E5%BC%80%E5%8F%91/Lua/"/>
-    
-    
-    <category term="Lua" scheme="https://catbro666.github.io/tags/Lua/"/>
-    
-    <category term="调试" scheme="https://catbro666.github.io/tags/%E8%B0%83%E8%AF%95/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Lua中如何实现类似gdb的断点调试--05优化断点信息数据结构</title>
-    <link href="https://catbro666.github.io/posts/2e777dd3/"/>
-    <id>https://catbro666.github.io/posts/2e777dd3/</id>
-    <published>2021-08-17T12:40:09.000Z</published>
-    <updated>2022-03-05T10:38:21.976Z</updated>
-    
-    
-    <summary type="html">&lt;div class=&quot;note primary&quot;&gt;
-            &lt;p&gt;在上一篇&lt;a href=&quot;../c1ecd715/&quot;&gt;04优化钩子事件处理&lt;/a&gt;中，我们在钩子函数中引入了call和return事件的处理，对性能进行了优化。&lt;/p&gt;&lt;p&gt;细心的同学可能已经发现了，我们的hook函数中call事件和line都需要对整个断点表进行遍历，这其中其实是存在着一些冗余的。因为call事件只关心函数是否有断点，而line事件则只关心本函数内有哪些断点。所以我们可以想办法优化一下断点信息的数据结构，进一步提升性能。&lt;/p&gt;</summary>
     
     
     

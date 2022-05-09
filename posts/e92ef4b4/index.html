@@ -61,7 +61,7 @@
 <meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/TLS-full-handshake-flow.svg">
 <meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/SSL-keyexchange-RSA.jpeg">
 <meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/SSL-keyexchange-DH.jpeg">
-<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/TLS1_2-Key-Calculation.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/59c71edb/TLS1.2_KeyCalculation.png">
 <meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/TLS-half-handshake-flow.svg">
 <meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/session_resumption_with_session_id.jpeg">
 <meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/session_resumption_with_session_ticket.jpeg">
@@ -71,7 +71,7 @@
 <meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/Simplified_Heartbleed_explanation.svg">
 <meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/TLS1_3-Key-Schedule.png">
 <meta property="article:published_time" content="2021-08-08T15:32:26.000Z">
-<meta property="article:modified_time" content="2022-03-05T10:44:18.639Z">
+<meta property="article:modified_time" content="2022-05-09T15:56:39.877Z">
 <meta property="article:author" content="猫猫哥">
 <meta property="article:tag" content="SSL&#x2F;TLS">
 <meta property="article:tag" content="密码学">
@@ -328,7 +328,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-03-05 18:44:18" itemprop="dateModified" datetime="2022-03-05T18:44:18+08:00">2022-03-05</time>
+                <time title="修改时间：2022-05-09 23:56:39" itemprop="dateModified" datetime="2022-05-09T23:56:39+08:00">2022-05-09</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -647,7 +647,7 @@ translateInitilization();
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">client_write_MAC_key[SecurityParameters.mac_key_length]</span><br><span class="line">server_write_MAC_key[SecurityParameters.mac_key_length]</span><br><span class="line">client_write_key[SecurityParameters.enc_key_length]</span><br><span class="line">server_write_key[SecurityParameters.enc_key_length]</span><br><span class="line">client_write_IV[SecurityParameters.fixed_iv_length]</span><br><span class="line">server_write_IV[SecurityParameters.fixed_iv_length]</span><br></pre></td></tr></table></figure>
 
 <p>画成图的话大概是下面这个样子。</p>
-<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/TLS1_2-Key-Calculation.png" alt="TLS1_2-Key-Calculation" loading="lazy"></p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/59c71edb/TLS1.2_KeyCalculation.png" alt="TLS1.2_KeyCalculation" loading="lazy"></p>
 <h2 id="Session重用"><a href="#Session重用" class="headerlink" title="Session重用"></a>Session重用</h2><p>SSL握手额外引入了<strong>两次交互</strong>以及<strong>CPU密集型</strong>的算法运算。每次连接都进行SSL握手时非常耗费性能的，有没有什么办法进行性能优化呢？显然提升硬件性能、软件性能都是有效的方法。其实SSL从协议层面也考虑了这个问题，它提供了“会话重用”的特性。双方在建立前一次SSL连接之后，可以将SSL会话保存下来。下一次想要在建立SSL连接的时候，可以直接恢复之前的SSL会话，从而简化SSL握手流程。Session重用的时候只需要进行一次SSL握手交互，而且不需要再进行身份认证和密钥交换，从而大幅减小了整个流程的延迟和计算开销。</p>
 <p>事实上，如果浏览器要对同个站点发起多个连接，它通常就会等第一个SSL握手完成后再发起其他的连接，这样其他的连接就可以复用之前的那个Session。</p>
 <p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/TLS-half-handshake-flow.svg" alt="TLS-half-handshake-flow" loading="lazy"></p>
@@ -976,20 +976,20 @@ translateInitilization();
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">33</span>
+          <span class="site-state-item-count">35</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
             <a href="/categories/">
           
-        <span class="site-state-item-count">10</span>
+        <span class="site-state-item-count">11</span>
         <span class="site-state-item-name">分类</span></a>
       </div>
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">46</span>
+        <span class="site-state-item-count">52</span>
         <span class="site-state-item-name">标签</span></a>
       </div>
   </nav>
@@ -1306,13 +1306,13 @@ if(canvas.getContext){
       <i class="fa fa-chart-area"></i>
     </span>
       <span class="post-meta-item-text">站点总字数：</span>
-    <span title="站点总字数">376k</span>
+    <span title="站点总字数">395k</span>
     <span class="post-meta-divider">|</span>
     <span class="post-meta-item-icon">
       <i class="fa fa-coffee"></i>
     </span>
       <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
-    <span title="站点阅读时长">5:42</span>
+    <span title="站点阅读时长">5:59</span>
 </div>
   <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener external nofollow noreferrer" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener external nofollow noreferrer" target="_blank">NexT.Gemini</a> 强力驱动
   </div>

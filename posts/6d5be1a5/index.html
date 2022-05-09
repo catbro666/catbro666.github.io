@@ -32,7 +32,7 @@
 <meta property="og:locale" content="zh_CN">
 <meta property="og:image" content="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/6d5be1a5/async_job_processing_flow.png">
 <meta property="article:published_time" content="2022-04-26T14:37:45.000Z">
-<meta property="article:modified_time" content="2022-04-26T15:23:46.281Z">
+<meta property="article:modified_time" content="2022-04-27T12:27:30.408Z">
 <meta property="article:author" content="猫猫哥">
 <meta property="article:tag" content="OpenSSL">
 <meta property="article:tag" content="协程">
@@ -282,10 +282,16 @@
                 <i class="far fa-calendar"></i>
               </span>
               <span class="post-meta-item-text">发表于</span>
-              
 
-              <time title="创建时间：2022-04-26 22:37:45 / 修改时间：23:23:46" itemprop="dateCreated datePublished" datetime="2022-04-26T22:37:45+08:00">2022-04-26</time>
+              <time title="创建时间：2022-04-26 22:37:45" itemprop="dateCreated datePublished" datetime="2022-04-26T22:37:45+08:00">2022-04-26</time>
             </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2022-04-27 20:27:30" itemprop="dateModified" datetime="2022-04-27T20:27:30+08:00">2022-04-27</time>
+              </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
                 <i class="far fa-folder"></i>
@@ -397,7 +403,7 @@ translateInitilization();
 </ul>
 <h3 id="getcontext"><a href="#getcontext" class="headerlink" title="getcontext"></a>getcontext</h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">getcontext</span><span class="params">(<span class="keyword">ucontext_t</span> *ucp)</span></span>;</span><br></pre></td></tr></table></figure>
 
-<p>用户将<code>ucp</code>所指ucontext初始化为当前活跃的上下文。</p>
+<p>用于将<code>ucp</code>所指ucontext初始化为当前活跃的上下文。</p>
 <h3 id="setcontext"><a href="#setcontext" class="headerlink" title="setcontext"></a>setcontext</h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">setcontext</span><span class="params">(<span class="keyword">const</span> <span class="keyword">ucontext_t</span> *ucp)</span></span>;</span><br></pre></td></tr></table></figure>
 
 <p>恢复<code>ucp</code>所指定的上下文，该上下文是通过getcontext、makecontext、或信号处理函数第三个参数中获取到的。</p>
@@ -497,7 +503,7 @@ translateInitilization();
 <h3 id="创建job"><a href="#创建job" class="headerlink" title="创建job"></a>创建job</h3><p>如果是开始一个新的job，从pool获取一个，如果池中没有则创建。job刚创建时的状态为<strong>ASYNC_JOB_RUNNING</strong>。</p>
 <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// crypto/async/async.c</span></span><br><span class="line"><span class="function"><span class="keyword">static</span> ASYNC_JOB *<span class="title">async_get_pool_job</span><span class="params">(<span class="keyword">void</span>)</span> </span>&#123;</span><br><span class="line">    ASYNC_JOB *job;</span><br><span class="line">    async_pool *pool;</span><br><span class="line"></span><br><span class="line">    pool = (async_pool *)CRYPTO_THREAD_get_local(&amp;poolkey);</span><br><span class="line">    <span class="keyword">if</span> (pool == <span class="literal">NULL</span>) &#123;</span><br><span class="line">        <span class="comment">/*</span></span><br><span class="line"><span class="comment">         * Pool has not been initialised, so init with the defaults, i.e.</span></span><br><span class="line"><span class="comment">         * no max size and no pre-created jobs</span></span><br><span class="line"><span class="comment">         */</span></span><br><span class="line">        <span class="keyword">if</span> (ASYNC_init_thread(<span class="number">0</span>, <span class="number">0</span>) == <span class="number">0</span>)</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">NULL</span>;</span><br><span class="line">        pool = (async_pool *)CRYPTO_THREAD_get_local(&amp;poolkey);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    job = sk_ASYNC_JOB_pop(pool-&gt;jobs);</span><br><span class="line">    <span class="keyword">if</span> (job == <span class="literal">NULL</span>) &#123;</span><br><span class="line">        <span class="comment">/* Pool is empty */</span></span><br><span class="line">        <span class="keyword">if</span> ((pool-&gt;max_size != <span class="number">0</span>) &amp;&amp; (pool-&gt;curr_size &gt;= pool-&gt;max_size))</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">NULL</span>;</span><br><span class="line"></span><br><span class="line">        job = async_job_new();</span><br><span class="line">        <span class="keyword">if</span> (job != <span class="literal">NULL</span>) &#123;</span><br><span class="line">            <span class="keyword">if</span> (! async_fibre_makecontext(&amp;job-&gt;fibrectx)) &#123;</span><br><span class="line">                async_job_free(job);</span><br><span class="line">                <span class="keyword">return</span> <span class="literal">NULL</span>;</span><br><span class="line">            &#125;</span><br><span class="line">            pool-&gt;curr_size++;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> job;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
-<p>创建上下文通过<code>async_fibre_makecontext</code>完成，这里的入口函数是<code>async_start_func</code>，它对实际的工作函数进行一层包装。</p>
+<p>创建上下文通过<code>async_fibre_makecontext</code>完成，这里的入口函数是<code>async_start_func</code>，它对实际的工作函数进行了一层包装。</p>
 <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// crypto/async/arch/async_posix.c</span></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">async_fibre_makecontext</span><span class="params">(async_fibre *fibre)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    fibre-&gt;env_init = <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">if</span> (getcontext(&amp;fibre-&gt;fibre) == <span class="number">0</span>) &#123;</span><br><span class="line">        fibre-&gt;fibre.uc_stack.ss_sp = OPENSSL_malloc(STACKSIZE);</span><br><span class="line">        <span class="keyword">if</span> (fibre-&gt;fibre.uc_stack.ss_sp != <span class="literal">NULL</span>) &#123;</span><br><span class="line">            fibre-&gt;fibre.uc_stack.ss_size = STACKSIZE;</span><br><span class="line">            fibre-&gt;fibre.uc_link = <span class="literal">NULL</span>;</span><br><span class="line">            makecontext(&amp;fibre-&gt;fibre, async_start_func, <span class="number">0</span>);</span><br><span class="line">            <span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        fibre-&gt;fibre.uc_stack.ss_sp = <span class="literal">NULL</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
 <h3 id="包装入口函数"><a href="#包装入口函数" class="headerlink" title="包装入口函数"></a>包装入口函数</h3><p><code>async_start_func</code>中执行job的工作函数，返回之后再切换回dispatcher，</p>
@@ -506,9 +512,9 @@ translateInitilization();
 <h3 id="协程切换核心函数"><a href="#协程切换核心函数" class="headerlink" title="协程切换核心函数"></a>协程切换核心函数</h3><p><code>async_fibre_swapcontext</code>是切换的核心函数，其实现如下：</p>
 <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// crypto/async/arch/async_posix.h</span></span><br><span class="line"><span class="function"><span class="keyword">static</span> ossl_inline <span class="keyword">int</span> <span class="title">async_fibre_swapcontext</span><span class="params">(async_fibre *o, async_fibre *n, <span class="keyword">int</span> r)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    o-&gt;env_init = <span class="number">1</span>;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (!r || !_setjmp(o-&gt;env)) &#123;</span><br><span class="line">        <span class="keyword">if</span> (n-&gt;env_init)</span><br><span class="line">            _longjmp(n-&gt;env, <span class="number">1</span>);</span><br><span class="line">        <span class="keyword">else</span></span><br><span class="line">            setcontext(&amp;n-&gt;fibre);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
-<p>其中<code>env_init</code>用于表示对应的协程上下文是否已经开始运行，如果还没有则调用<code>setcontext</code>开始，否则直接调用<code>_longjmp</code>进跳转，这里主要是为了性能考虑。</p>
+<p>其中<code>env_init</code>用于表示对应的协程上下文是否已经开始运行，如果还没有则调用<code>setcontext</code>开始，否则直接调用<code>_longjmp</code>进行跳转，这里主要是为了性能考虑。</p>
 <p>接下来的讲解将围绕这个切换函数和ASYNC_start_job。</p>
-<h3 id="开始job-dispatcher-gt-job"><a href="#开始job-dispatcher-gt-job" class="headerlink" title="开始job: dispatcher-&gt;job"></a>开始job: dispatcher-&gt;job</h3><p>前面说了，刚创建的job是ASYNC_JOB_RUNNING状态，<strong>第一次</strong>调用上下文切换函数<code>async_fibre_swapcontext</code>，从dispatcher切到job。</p>
+<h3 id="开始job-dispatcher-gt-job"><a href="#开始job-dispatcher-gt-job" class="headerlink" title="开始job: dispatcher-&gt;job"></a>开始job: dispatcher-&gt;job</h3><p>前面提到了，刚创建的job是ASYNC_JOB_RUNNING状态，<strong>第一次</strong>调用上下文切换函数<code>async_fibre_swapcontext</code>，从dispatcher切到job。</p>
 <p>首先将dispatcher的<code>env_init</code>置1，<code>setjmp</code>保存环境到dispatcher的env中，由于此时<code>n-&gt;env_init</code>为0，所以调用<code>setcontext</code>开始执行<code>async_start_func</code>，在其中执行job的工作函数。</p>
 <h3 id="暂停job-job-gt-dispatcher"><a href="#暂停job-job-gt-dispatcher" class="headerlink" title="暂停job: job-&gt;dispatcher"></a>暂停job: job-&gt;dispatcher</h3><p>如果在job处理过程中发生阻塞，会调用<code>ASYNC_pause_job</code>切换回dispatcher，此时job状态变成<strong>ASYCNC_JOB_PAUSING</strong>。</p>
 <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">ASYNC_pause_job</span><span class="params">(<span class="keyword">void</span>)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    ASYNC_JOB *job;</span><br><span class="line">    async_ctx *ctx = async_get_ctx();</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (ctx == <span class="literal">NULL</span></span><br><span class="line">            || ctx-&gt;currjob == <span class="literal">NULL</span></span><br><span class="line">            || ctx-&gt;blocked) &#123;</span><br><span class="line">        <span class="comment">/*</span></span><br><span class="line"><span class="comment">         * Could be we&#x27;ve deliberately not been started within a job so this is</span></span><br><span class="line"><span class="comment">         * counted as success.</span></span><br><span class="line"><span class="comment">         */</span></span><br><span class="line">        <span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    job = ctx-&gt;currjob;</span><br><span class="line">    job-&gt;status = ASYNC_JOB_PAUSING;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (!async_fibre_swapcontext(&amp;job-&gt;fibrectx,</span><br><span class="line">                                 &amp;ctx-&gt;dispatcher, <span class="number">1</span>)) &#123;</span><br><span class="line">        ASYNCerr(ASYNC_F_ASYNC_PAUSE_JOB, ASYNC_R_FAILED_TO_SWAP_CONTEXT);</span><br><span class="line">        <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">/* Reset counts of added and deleted fds */</span></span><br><span class="line">    async_wait_ctx_reset_counts(job-&gt;waitctx);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
@@ -640,7 +646,10 @@ translateInitilization();
     <a href="/posts/5d011708/" rel="prev" title="Linux内核中隐藏的兵法—以逸待劳">
       <i class="fa fa-chevron-left"></i> Linux内核中隐藏的兵法—以逸待劳
     </a></div>
-      <div class="post-nav-item"></div>
+      <div class="post-nav-item">
+    <a href="/posts/46dd3f4b/" rel="next" title="systemtap与bpftrace使用评估及对比">
+      systemtap与bpftrace使用评估及对比 <i class="fa fa-chevron-right"></i>
+    </a></div>
     </div>
       </footer>
     
@@ -714,20 +723,20 @@ translateInitilization();
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">33</span>
+          <span class="site-state-item-count">35</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
             <a href="/categories/">
           
-        <span class="site-state-item-count">10</span>
+        <span class="site-state-item-count">11</span>
         <span class="site-state-item-name">分类</span></a>
       </div>
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">46</span>
+        <span class="site-state-item-count">52</span>
         <span class="site-state-item-name">标签</span></a>
       </div>
   </nav>
@@ -1044,13 +1053,13 @@ if(canvas.getContext){
       <i class="fa fa-chart-area"></i>
     </span>
       <span class="post-meta-item-text">站点总字数：</span>
-    <span title="站点总字数">376k</span>
+    <span title="站点总字数">395k</span>
     <span class="post-meta-divider">|</span>
     <span class="post-meta-item-icon">
       <i class="fa fa-coffee"></i>
     </span>
       <span class="post-meta-item-text">站点阅读时长 &asymp;</span>
-    <span title="站点阅读时长">5:42</span>
+    <span title="站点阅读时长">5:59</span>
 </div>
   <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener external nofollow noreferrer" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener external nofollow noreferrer" target="_blank">NexT.Gemini</a> 强力驱动
   </div>

@@ -98,7 +98,7 @@
 <figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ openssl x509 -<span class="keyword">in</span> cert.der -text -noout -inform DER</span><br><span class="line">...</span><br><span class="line">                Field Type: prime-field</span><br><span class="line">                Prime:</span><br><span class="line">                    00:ff:ff:ff:ff:00:00:00:01:00:00:00:00:00:00:</span><br><span class="line">                    00:00:00:00:00:00:ff:ff:ff:ff:ff:ff:ff:ff:ff:</span><br><span class="line">                    ff:ff:ff</span><br><span class="line">                A:</span><br><span class="line">                    00:ff:ff:ff:ff:00:00:00:01:00:00:00:00:00:00:</span><br><span class="line">                    00:00:00:00:00:00:ff:ff:ff:ff:ff:ff:ff:ff:ff:</span><br><span class="line">                    ff:ff:<span class="built_in">fc</span></span><br><span class="line">                B:</span><br><span class="line">                    5a:c6:35:d8:aa:3a:93:e7:b3:eb:bd:55:76:98:86:</span><br><span class="line">                    bc:65:1d:06:b0:cc:53:b0:f6:3b:ce:3c:3e:27:d2:</span><br><span class="line">                    60:4b</span><br><span class="line">                Generator (compressed):</span><br><span class="line">                    03:6b:17:d1:f2:e1:2c:42:47:f8:bc:e6:e5:63:a4:</span><br><span class="line">                    40:f2:77:03:7d:81:2d:eb:33:a0:f4:a1:39:45:d8:</span><br><span class="line">                    98:c2:96</span><br><span class="line">                Order:</span><br><span class="line">                    00:ff:ff:ff:ff:00:00:00:00:ff:ff:ff:ff:ff:ff:</span><br><span class="line">                    ff:ff:bc:e6:fa:ad:a7:17:9e:84:f3:b9:ca:c2:<span class="built_in">fc</span>:</span><br><span class="line">                    63:25:51</span><br><span class="line">...                    </span><br></pre></td></tr></table></figure>
 
 <p>其中的Prime、A、B、Generator就是我们需要修改的目标参数。那么我们应该将其改成什么呢？然后又通过什么方法进行修改呢？</p>
-<h2 id="构造非法证书-1"><a href="#构造非法证书-1" class="headerlink" title="构造非法证书"></a>构造非法证书</h2><p>首先，在实际动手之前我们先需要搞清楚这几个值是什么意思、需要满足什么关系。定义在有限域上的椭圆曲线满足如下方程<br>$$<br>y^2 \equiv x^3+ax+b\quad (mod\ p)<br>$$<br>其中的a就是曲线参数A，b就是曲线参数B，p即为曲线参数Prime，a、b、p参数确定了一条椭圆曲线。解压缩点坐标就是根据x坐标来计算y坐标，从上面的公式可以看到这需要用到求平方根的运算：<br>$$<br>y&#x3D;\sqrt{x^3+ax+b}\quad (mod\ p)<br>$$<br>我们沿用之前使用的697&#x2F;696组合，即此时 p &#x3D; 697，$x^3+ax+b&#x3D;696$。我们只要选择合适的a、b、x是后面那个等式成立就可以了。</p>
+<h2 id="手动构造非法证书"><a href="#手动构造非法证书" class="headerlink" title="手动构造非法证书"></a>手动构造非法证书</h2><p>首先，在实际动手之前我们先需要搞清楚这几个值是什么意思、需要满足什么关系。定义在有限域上的椭圆曲线满足如下方程<br>$$<br>y^2 \equiv x^3+ax+b\quad (mod\ p)<br>$$<br>其中的a就是曲线参数A，b就是曲线参数B，p即为曲线参数Prime，a、b、p参数确定了一条椭圆曲线。解压缩点坐标就是根据x坐标来计算y坐标，从上面的公式可以看到这需要用到求平方根的运算：<br>$$<br>y&#x3D;\sqrt{x^3+ax+b}\quad (mod\ p)<br>$$<br>我们沿用之前使用的697&#x2F;696组合，即此时 p &#x3D; 697，$x^3+ax+b&#x3D;696$。我们只要选择合适的a、b、x是后面那个等式成立就可以了。</p>
 <p>我们令x&#x3D;8，a&#x3D;23，b&#x3D;0，等式成立。</p>
 <p>接下来就要着手修改我们的证书，徒手修改ASN1结构真的是要了我的老命，大家如果知道有什么方便的工具还请不吝赐教。我使用的工具主要是<code>xxd</code>转成hex格式进行编辑，完成之后再<code>xxd -r</code>转回去。（感谢wllm-rbnt提供的asn1template工具，详细描述见后面）</p>
 <ol>
@@ -200,6 +200,12 @@
 
 <p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/83951100/asn1-structure-of-x509-after.png" alt="asn1-structure-of-x509-after" loading="lazy"></p>
 <p>划红线的部分都已经被我们修改了，且证书的ASN1编码是正常的。</p>
+<h2 id="使用可编程方式创建非法证书和私钥"><a href="#使用可编程方式创建非法证书和私钥" class="headerlink" title="使用可编程方式创建非法证书和私钥"></a>使用可编程方式创建非法证书和私钥</h2><p><a href="https://github.com/catbro666/CVE-2022-0778/blob/master/my_bad_cert.c">代码见这里</a></p>
+<blockquote>
+<p>测试了OpenSSL 1.1.1和1.0.2</p>
+</blockquote>
+<p>我们仍然使用上面用到的a, b, p, x, y值，并且将私钥设置为1，所以公钥点跟generator一样。</p>
+<p>使用<code>gcc -o my_bad_cert my_bad_cert.c -lcrypto</code>编译程序，然后运行<code>./my_bad_cert</code>就可以创建一个非法证书和私钥了。</p>
 <h2 id="使用非法证书测试"><a href="#使用非法证书测试" class="headerlink" title="使用非法证书测试"></a>使用非法证书测试</h2><p>OK，现在我们来解析这个构造的非法证书试试，不出意外的话就会进入无限循环了。</p>
 <figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">openssl x509 -<span class="keyword">in</span> cert.der.new -inform DER -text -noout</span><br></pre></td></tr></table></figure>
 
@@ -4469,7 +4475,7 @@
 <figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">client_write_MAC_key[SecurityParameters.mac_key_length]</span><br><span class="line">server_write_MAC_key[SecurityParameters.mac_key_length]</span><br><span class="line">client_write_key[SecurityParameters.enc_key_length]</span><br><span class="line">server_write_key[SecurityParameters.enc_key_length]</span><br><span class="line">client_write_IV[SecurityParameters.fixed_iv_length]</span><br><span class="line">server_write_IV[SecurityParameters.fixed_iv_length]</span><br></pre></td></tr></table></figure>
 
 <p>画成图的话大概是下面这个样子。</p>
-<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/TLS1_2-Key-Calculation.png" alt="TLS1_2-Key-Calculation" loading="lazy"></p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/59c71edb/TLS1.2_KeyCalculation.png" alt="TLS1.2_KeyCalculation" loading="lazy"></p>
 <h2 id="Session重用"><a href="#Session重用" class="headerlink" title="Session重用"></a>Session重用</h2><p>SSL握手额外引入了<strong>两次交互</strong>以及<strong>CPU密集型</strong>的算法运算。每次连接都进行SSL握手时非常耗费性能的，有没有什么办法进行性能优化呢？显然提升硬件性能、软件性能都是有效的方法。其实SSL从协议层面也考虑了这个问题，它提供了“会话重用”的特性。双方在建立前一次SSL连接之后，可以将SSL会话保存下来。下一次想要在建立SSL连接的时候，可以直接恢复之前的SSL会话，从而简化SSL握手流程。Session重用的时候只需要进行一次SSL握手交互，而且不需要再进行身份认证和密钥交换，从而大幅减小了整个流程的延迟和计算开销。</p>
 <p>事实上，如果浏览器要对同个站点发起多个连接，它通常就会等第一个SSL握手完成后再发起其他的连接，这样其他的连接就可以复用之前的那个Session。</p>
 <p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/e92ef4b4/TLS-half-handshake-flow.svg" alt="TLS-half-handshake-flow" loading="lazy"></p>
@@ -5356,7 +5362,7 @@
 </ul>
 ]]></content>
       <categories>
-        <category>性能</category>
+        <category>排错与性能</category>
       </categories>
       <tags>
         <tag>SSL/TLS</tag>
@@ -5653,7 +5659,7 @@
 </ul>
 <h3 id="getcontext"><a href="#getcontext" class="headerlink" title="getcontext"></a>getcontext</h3><figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">getcontext</span><span class="params">(<span class="keyword">ucontext_t</span> *ucp)</span></span>;</span><br></pre></td></tr></table></figure>
 
-<p>用户将<code>ucp</code>所指ucontext初始化为当前活跃的上下文。</p>
+<p>用于将<code>ucp</code>所指ucontext初始化为当前活跃的上下文。</p>
 <h3 id="setcontext"><a href="#setcontext" class="headerlink" title="setcontext"></a>setcontext</h3><figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">setcontext</span><span class="params">(<span class="keyword">const</span> <span class="keyword">ucontext_t</span> *ucp)</span></span>;</span><br></pre></td></tr></table></figure>
 
 <p>恢复<code>ucp</code>所指定的上下文，该上下文是通过getcontext、makecontext、或信号处理函数第三个参数中获取到的。</p>
@@ -5753,7 +5759,7 @@
 <h3 id="创建job"><a href="#创建job" class="headerlink" title="创建job"></a>创建job</h3><p>如果是开始一个新的job，从pool获取一个，如果池中没有则创建。job刚创建时的状态为<strong>ASYNC_JOB_RUNNING</strong>。</p>
 <figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="comment">// crypto/async/async.c</span></span><br><span class="line"><span class="function"><span class="keyword">static</span> ASYNC_JOB *<span class="title">async_get_pool_job</span><span class="params">(<span class="keyword">void</span>)</span> </span>&#123;</span><br><span class="line">    ASYNC_JOB *job;</span><br><span class="line">    async_pool *pool;</span><br><span class="line"></span><br><span class="line">    pool = (async_pool *)CRYPTO_THREAD_get_local(&amp;poolkey);</span><br><span class="line">    <span class="keyword">if</span> (pool == <span class="literal">NULL</span>) &#123;</span><br><span class="line">        <span class="comment">/*</span></span><br><span class="line"><span class="comment">         * Pool has not been initialised, so init with the defaults, i.e.</span></span><br><span class="line"><span class="comment">         * no max size and no pre-created jobs</span></span><br><span class="line"><span class="comment">         */</span></span><br><span class="line">        <span class="keyword">if</span> (ASYNC_init_thread(<span class="number">0</span>, <span class="number">0</span>) == <span class="number">0</span>)</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">NULL</span>;</span><br><span class="line">        pool = (async_pool *)CRYPTO_THREAD_get_local(&amp;poolkey);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    job = sk_ASYNC_JOB_pop(pool-&gt;jobs);</span><br><span class="line">    <span class="keyword">if</span> (job == <span class="literal">NULL</span>) &#123;</span><br><span class="line">        <span class="comment">/* Pool is empty */</span></span><br><span class="line">        <span class="keyword">if</span> ((pool-&gt;max_size != <span class="number">0</span>) &amp;&amp; (pool-&gt;curr_size &gt;= pool-&gt;max_size))</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">NULL</span>;</span><br><span class="line"></span><br><span class="line">        job = async_job_new();</span><br><span class="line">        <span class="keyword">if</span> (job != <span class="literal">NULL</span>) &#123;</span><br><span class="line">            <span class="keyword">if</span> (! async_fibre_makecontext(&amp;job-&gt;fibrectx)) &#123;</span><br><span class="line">                async_job_free(job);</span><br><span class="line">                <span class="keyword">return</span> <span class="literal">NULL</span>;</span><br><span class="line">            &#125;</span><br><span class="line">            pool-&gt;curr_size++;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> job;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
-<p>创建上下文通过<code>async_fibre_makecontext</code>完成，这里的入口函数是<code>async_start_func</code>，它对实际的工作函数进行一层包装。</p>
+<p>创建上下文通过<code>async_fibre_makecontext</code>完成，这里的入口函数是<code>async_start_func</code>，它对实际的工作函数进行了一层包装。</p>
 <figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="comment">// crypto/async/arch/async_posix.c</span></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">async_fibre_makecontext</span><span class="params">(async_fibre *fibre)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    fibre-&gt;env_init = <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">if</span> (getcontext(&amp;fibre-&gt;fibre) == <span class="number">0</span>) &#123;</span><br><span class="line">        fibre-&gt;fibre.uc_stack.ss_sp = OPENSSL_malloc(STACKSIZE);</span><br><span class="line">        <span class="keyword">if</span> (fibre-&gt;fibre.uc_stack.ss_sp != <span class="literal">NULL</span>) &#123;</span><br><span class="line">            fibre-&gt;fibre.uc_stack.ss_size = STACKSIZE;</span><br><span class="line">            fibre-&gt;fibre.uc_link = <span class="literal">NULL</span>;</span><br><span class="line">            makecontext(&amp;fibre-&gt;fibre, async_start_func, <span class="number">0</span>);</span><br><span class="line">            <span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        fibre-&gt;fibre.uc_stack.ss_sp = <span class="literal">NULL</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
 <h3 id="包装入口函数"><a href="#包装入口函数" class="headerlink" title="包装入口函数"></a>包装入口函数</h3><p><code>async_start_func</code>中执行job的工作函数，返回之后再切换回dispatcher，</p>
@@ -5762,9 +5768,9 @@
 <h3 id="协程切换核心函数"><a href="#协程切换核心函数" class="headerlink" title="协程切换核心函数"></a>协程切换核心函数</h3><p><code>async_fibre_swapcontext</code>是切换的核心函数，其实现如下：</p>
 <figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="comment">// crypto/async/arch/async_posix.h</span></span><br><span class="line"><span class="function"><span class="keyword">static</span> ossl_inline <span class="keyword">int</span> <span class="title">async_fibre_swapcontext</span><span class="params">(async_fibre *o, async_fibre *n, <span class="keyword">int</span> r)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    o-&gt;env_init = <span class="number">1</span>;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (!r || !_setjmp(o-&gt;env)) &#123;</span><br><span class="line">        <span class="keyword">if</span> (n-&gt;env_init)</span><br><span class="line">            _longjmp(n-&gt;env, <span class="number">1</span>);</span><br><span class="line">        <span class="keyword">else</span></span><br><span class="line">            setcontext(&amp;n-&gt;fibre);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
-<p>其中<code>env_init</code>用于表示对应的协程上下文是否已经开始运行，如果还没有则调用<code>setcontext</code>开始，否则直接调用<code>_longjmp</code>进跳转，这里主要是为了性能考虑。</p>
+<p>其中<code>env_init</code>用于表示对应的协程上下文是否已经开始运行，如果还没有则调用<code>setcontext</code>开始，否则直接调用<code>_longjmp</code>进行跳转，这里主要是为了性能考虑。</p>
 <p>接下来的讲解将围绕这个切换函数和ASYNC_start_job。</p>
-<h3 id="开始job-dispatcher-gt-job"><a href="#开始job-dispatcher-gt-job" class="headerlink" title="开始job: dispatcher-&gt;job"></a>开始job: dispatcher-&gt;job</h3><p>前面说了，刚创建的job是ASYNC_JOB_RUNNING状态，<strong>第一次</strong>调用上下文切换函数<code>async_fibre_swapcontext</code>，从dispatcher切到job。</p>
+<h3 id="开始job-dispatcher-gt-job"><a href="#开始job-dispatcher-gt-job" class="headerlink" title="开始job: dispatcher-&gt;job"></a>开始job: dispatcher-&gt;job</h3><p>前面提到了，刚创建的job是ASYNC_JOB_RUNNING状态，<strong>第一次</strong>调用上下文切换函数<code>async_fibre_swapcontext</code>，从dispatcher切到job。</p>
 <p>首先将dispatcher的<code>env_init</code>置1，<code>setjmp</code>保存环境到dispatcher的env中，由于此时<code>n-&gt;env_init</code>为0，所以调用<code>setcontext</code>开始执行<code>async_start_func</code>，在其中执行job的工作函数。</p>
 <h3 id="暂停job-job-gt-dispatcher"><a href="#暂停job-job-gt-dispatcher" class="headerlink" title="暂停job: job-&gt;dispatcher"></a>暂停job: job-&gt;dispatcher</h3><p>如果在job处理过程中发生阻塞，会调用<code>ASYNC_pause_job</code>切换回dispatcher，此时job状态变成<strong>ASYCNC_JOB_PAUSING</strong>。</p>
 <figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">ASYNC_pause_job</span><span class="params">(<span class="keyword">void</span>)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    ASYNC_JOB *job;</span><br><span class="line">    async_ctx *ctx = async_get_ctx();</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (ctx == <span class="literal">NULL</span></span><br><span class="line">            || ctx-&gt;currjob == <span class="literal">NULL</span></span><br><span class="line">            || ctx-&gt;blocked) &#123;</span><br><span class="line">        <span class="comment">/*</span></span><br><span class="line"><span class="comment">         * Could be we&#x27;ve deliberately not been started within a job so this is</span></span><br><span class="line"><span class="comment">         * counted as success.</span></span><br><span class="line"><span class="comment">         */</span></span><br><span class="line">        <span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    job = ctx-&gt;currjob;</span><br><span class="line">    job-&gt;status = ASYNC_JOB_PAUSING;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (!async_fibre_swapcontext(&amp;job-&gt;fibrectx,</span><br><span class="line">                                 &amp;ctx-&gt;dispatcher, <span class="number">1</span>)) &#123;</span><br><span class="line">        ASYNCerr(ASYNC_F_ASYNC_PAUSE_JOB, ASYNC_R_FAILED_TO_SWAP_CONTEXT);</span><br><span class="line">        <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">/* Reset counts of added and deleted fds */</span></span><br><span class="line">    async_wait_ctx_reset_counts(job-&gt;waitctx);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
@@ -5823,6 +5829,501 @@
         <tag>OpenSSL</tag>
         <tag>协程</tag>
         <tag>async异步框架</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>记录一个IPsec VPN检测时ESP包解密失败问题的定位过程</title>
+    <url>/posts/4921760e/</url>
+    <content><![CDATA[<div class="note primary">
+            <p>本文记录一次IPsec VPN检测时ESP解密失败问题的定位过程。涉及到IPsec VPN协议、加密算法、内核xfrm框架等知识。</p>
+          </div>
+
+<span id="more"></span>
+
+
+
+<h1 id="问题背景描述"><a href="#问题背景描述" class="headerlink" title="问题背景描述"></a>问题背景描述</h1><p>先交代下问题背景，公司新开发的IPsec VPN产品去过检测。在协议检测时，出现检测平台发送过来的ESP包在解密失败的问题，检测算法是SM4-SM3。</p>
+<p>我并没有参与IPsec产品的开发，之前对于IPsec也是丝毫不了解。我在这样的情况下协助进行问题定位。这个问题的排查的难点在于对方是黑盒，你只能根据己方这边的信息进行分析定位。</p>
+<p>以下分别为检测平台的ESP抓包和我们的ipsec程序自己跟自己互通时的ESP抓包。可以看到检测平台的ESP包长度要短4个字节。</p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/%E6%A3%80%E6%B5%8B%E5%B9%B3%E5%8F%B0ESP%E6%8A%93%E5%8C%85.jpg" alt="检测平台ESP抓包" loading="lazy"></p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/%E8%87%AA%E5%B7%B1%E4%BA%92%E9%80%9AESP%E6%8A%93%E5%8C%85.jpg" alt="自己互通ESP抓包" loading="lazy"></p>
+<h1 id="ESP规范"><a href="#ESP规范" class="headerlink" title="ESP规范"></a>ESP规范</h1><p>首先想到的肯定是ESP包的格式问题，是不是某些字段的理解跟协议有出入。于是查阅相关规范。</p>
+<p>国密规范中ESP的描述如下：</p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/ESP%E8%A7%84%E8%8C%831.jpg" alt="ESP规范1" loading="lazy"></p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/ESP%E8%A7%84%E8%8C%832.jpg" alt="ESP规范2" loading="lazy"></p>
+<p><img src="%E6%96%87%E6%A1%A3/%E5%8A%A0%E5%AF%86%E6%96%87%E4%BB%B6%E5%A4%B9%E7%A7%BB%E5%87%BA/%E5%87%BA%E5%B7%AE%E6%8A%A5%E5%91%8A/IPsec%E5%9B%BD%E5%AF%86%E6%A3%80%E6%B5%8B/ESP%E8%A7%84%E8%8C%833.jpg" alt="ESP规范3" loading="lazy"></p>
+<p>国密规范有些地方讲的不清楚，更精确的描述参看<a href="https://tools.ietf.org/html/rfc2406">rfc2406-esp</a>。</p>
+<h1 id="ESP包格式分析"><a href="#ESP包格式分析" class="headerlink" title="ESP包格式分析"></a>ESP包格式分析</h1><p>结合规范及实际的抓包分析，ESP包的格式应如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">|ESP头(SPI+Index)|IV|原IP头|原协议头|载荷数据|padding|ESP尾(填充长度+下一个头)|ESP认证数据|</span><br><span class="line">				    |&lt;----------------------加密范围--------------------&gt;|</span><br><span class="line">|&lt;---------------------------------认证范围-----------------------------&gt;|</span><br></pre></td></tr></table></figure>
+
+
+
+<p>其中padding的长度，要保证加密范围的长度是块加密算法块长度(SM4为16)的整数倍，即加上ESP尾之后的长度是block长度的整数倍。</p>
+<p><img src="%E6%96%87%E6%A1%A3/%E5%8A%A0%E5%AF%86%E6%96%87%E4%BB%B6%E5%A4%B9%E7%A7%BB%E5%87%BA/%E5%87%BA%E5%B7%AE%E6%8A%A5%E5%91%8A/IPsec%E5%9B%BD%E5%AF%86%E6%A3%80%E6%B5%8B/ESP%E6%A0%BC%E5%BC%8F1.jpg" alt="ESP格式1" loading="lazy"></p>
+<p>密文数据跟认证数据的长度尚无法判断。</p>
+<h1 id="原因分析"><a href="#原因分析" class="headerlink" title="原因分析"></a>原因分析</h1><p>ESP包的长度不对，可能的原因有：</p>
+<ol>
+<li>ESP包的格式跟我们理解的不一样，可能还有其他字段</li>
+<li>实际使用的算法并非SM4-SM3</li>
+<li>包长度因主动或被动的原因被截短了（因为IP包头中的长度是正确的，所以应该是主动截断）</li>
+</ol>
+<p>第1种可能的原因，再三的确认了规范，确认对ESP包格式的理解是没有问题的</p>
+<p>第2种可能的原因，因为SM1和SM4算法长度是一样的，只可能是摘要算法用的不对，而规范里只支持SM3和SHA1算法。取最后32字节为ESP认证数据，对前面的认证范围数据手动进行HMAC(SM3)计算，计算结果跟最后32字节不一致。取最后20字节为ESP认证数据，对前面的认证范围数据手动进行HMAC(SHA1)计算，计算结果跟最后20字节不一致。</p>
+<p>第3种可能的原因，因为检测平台的包比我们程序自己互通时正常的包短了4个字节。取最后28字节为ESP认证数据，对前面的认证范围数据手动进行HMAC(SM3)计算，计算结果跟最后28字节不一致。</p>
+<h1 id="问题确认"><a href="#问题确认" class="headerlink" title="问题确认"></a>问题确认</h1><h2 id="HMAC认证"><a href="#HMAC认证" class="headerlink" title="HMAC认证"></a>HMAC认证</h2><p>问题陷入了僵局，看来只能从代码本身入手进行分析了。正在对这个长度问题困扰的时候，一个偶然的机会用最后12字节作为认证数据可以验证通过。</p>
+<p>验证过程如下，协商出的密钥信息如下：</p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/%E5%AE%8C%E6%95%B4%E6%80%A7%E9%AA%8C%E8%AF%81-key.png" alt="完整性验证-key" loading="lazy"></p>
+<p>接收到的ESP包原始数据如下：</p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/%E5%AE%8C%E6%95%B4%E6%80%A7%E9%AA%8C%E8%AF%81-esp.png" alt="完整性验证-esp" loading="lazy"></p>
+<p>手动验证HMAC通过：</p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/%E5%AE%8C%E6%95%B4%E6%80%A7%E9%AA%8C%E8%AF%81-hmac.png" alt="完整性验证-hmac" loading="lazy"></p>
+<p>自此确认了ESP包长度不对的原因，是因为ESP认证数据截短到了12字节。之所以抓包比对ESP包长度只相差了4字节，是因为我们的代码中有bug，完整性的长度icv_size设置成了16，而实际应该是32字节。</p>
+<p>也是因为这个原因，导致我们一开始误以为认证长度是截短为28字节。</p>
+<p>接下来就是修改内核代码了，将SM3算法的认证长度截短到12字节，出现ESP包接收之后死机的现象，怀疑可能是解密出的包格式不对。</p>
+<h2 id="SM4解密"><a href="#SM4解密" class="headerlink" title="SM4解密"></a>SM4解密</h2><p>确认了认证数据长度之后，密文范围也就确定了。手动解密得到原文数据如下：</p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/SM4%E8%A7%A3%E5%AF%86-1.png" alt="SM4解密-1" loading="lazy"></p>
+<p>又尝试了其他几个ESP包密文数据，解出来的原文也是这种格式</p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/SM4%E8%A7%A3%E5%AF%86-2.png" alt="SM4解密-2" loading="lazy"></p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/SM4%E8%A7%A3%E5%AF%86-3.png" alt="SM4解密-3" loading="lazy"></p>
+<p>对比正常的ping的抓包：</p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/%E6%99%AE%E9%80%9Aping%E6%8A%93%E5%8C%85.jpg" alt="普通ping抓包" loading="lazy"></p>
+<p>ping包原文的格式应该是没有问题的，具体的ping包格式如下：</p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/ping%E5%8C%85%E6%A0%BC%E5%BC%8F.jpg" alt="ping包格式" loading="lazy"> </p>
+<p>所以解密的包格式应该是没有问题的，问题应该是其他地方引入的。经过一番折腾，后来发现系统死机是因为之前的残留的修改没有删除所致。重新拿一个干净的内核源码修改后正常。</p>
+<h1 id="内核代码修改"><a href="#内核代码修改" class="headerlink" title="内核代码修改"></a>内核代码修改</h1><p>在<code>xfrm_algo.c</code>中修改算法描述，将<code>icv_truncbits</code>改成96</p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/SM3%E8%AE%A4%E8%AF%81%E6%88%AA%E6%96%AD96.jpg" alt="SM3认证截断96" loading="lazy"></p>
+<p>然后<code>xfrm_user.c</code>中构造<code>xfrm_state</code>的时候，将<code>xfrm_algo_desc</code>中的值赋给<code>xfrm_algo_auth</code>结构体。</p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/%E6%88%AA%E6%96%AD%E9%95%BF%E5%BA%A6%E8%B5%8B%E5%80%BC.jpeg" alt="截断长度赋值" loading="lazy"></p>
+<p><code>esp.c</code>中<code>esp_init_authenc</code>在初始化的时候，设置认证的长度到<code>crypto_aead</code>结构体中。</p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/%E5%88%9D%E5%A7%8B%E5%8C%96%E6%97%B6%E8%AE%BE%E7%BD%AE%E8%AE%A4%E8%AF%81%E9%95%BF%E5%BA%A6.jpeg" alt="初始化时设置认证长度" loading="lazy"></p>
+<p>然后在后续ESP包认证解密的时候，使用<code>crypto_aead_authsize</code>获取认证长度。</p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/%E8%8E%B7%E5%8F%96%E8%AE%A4%E8%AF%81%E9%95%BF%E5%BA%A6.jpg" alt="获取认证长度" loading="lazy"></p>
+<h1 id="代码的定位过程"><a href="#代码的定位过程" class="headerlink" title="代码的定位过程"></a>代码的定位过程</h1><p>内核中加密相关函数调用，都是通过回调的方式，通过其中的成员配合<code>container_of</code>宏获取到实际的算法结构体指针。以<code>crypto_aead</code>为例。其中的base是一个算法转换实例</p>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line">  <span class="number">154</span> <span class="class"><span class="keyword">struct</span> <span class="title">crypto_aead</span> &#123;</span></span><br><span class="line">  <span class="number">155</span>     <span class="keyword">unsigned</span> <span class="keyword">int</span> authsize;</span><br><span class="line">  <span class="number">156</span>     <span class="keyword">unsigned</span> <span class="keyword">int</span> reqsize;</span><br><span class="line">  <span class="number">157</span></span><br><span class="line">✗ <span class="number">158</span>     <span class="class"><span class="keyword">struct</span> <span class="title">crypto_tfm</span> <span class="title">base</span>;</span></span><br><span class="line">  <span class="number">159</span> &#125;;</span><br></pre></td></tr></table></figure>
+
+<p>再看<code>crypto_tfm</code>的结构，其中的<code>__crt_alg</code>是实际的算法实现结构体的指针</p>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="number">572</span> <span class="class"><span class="keyword">struct</span> <span class="title">crypto_tfm</span> &#123;</span></span><br><span class="line"><span class="number">573</span></span><br><span class="line"><span class="number">574</span>     u32 crt_flags;</span><br><span class="line"><span class="number">575</span></span><br><span class="line"><span class="number">576</span>     <span class="class"><span class="keyword">union</span> &#123;</span></span><br><span class="line"><span class="number">577</span>         <span class="class"><span class="keyword">struct</span> <span class="title">ablkcipher_tfm</span> <span class="title">ablkcipher</span>;</span></span><br><span class="line"><span class="number">578</span>         <span class="class"><span class="keyword">struct</span> <span class="title">blkcipher_tfm</span> <span class="title">blkcipher</span>;</span></span><br><span class="line"><span class="number">579</span>         <span class="class"><span class="keyword">struct</span> <span class="title">cipher_tfm</span> <span class="title">cipher</span>;</span></span><br><span class="line"><span class="number">580</span>         <span class="class"><span class="keyword">struct</span> <span class="title">compress_tfm</span> <span class="title">compress</span>;</span></span><br><span class="line"><span class="number">581</span>     &#125; crt_u;</span><br><span class="line"><span class="number">582</span></span><br><span class="line"><span class="number">583</span>     <span class="keyword">void</span> (*<span class="built_in">exit</span>)(struct crypto_tfm *tfm);</span><br><span class="line"><span class="number">584</span></span><br><span class="line"><span class="number">585</span>     <span class="class"><span class="keyword">struct</span> <span class="title">crypto_alg</span> *__<span class="title">crt_alg</span>;</span></span><br><span class="line"><span class="number">586</span></span><br><span class="line"><span class="number">587</span>     <span class="keyword">void</span> *__crt_ctx[] CRYPTO_MINALIGN_ATTR;</span><br><span class="line"><span class="number">588</span> &#125;;  </span><br></pre></td></tr></table></figure>
+
+<p>然后通过<code>container_of</code>宏，可以获取到该指针对应的上层算法<code>aead_alg</code>结构体的指针</p>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line">  <span class="number">196</span> <span class="function"><span class="keyword">static</span> <span class="keyword">inline</span> struct aead_alg *<span class="title">crypto_aead_alg</span><span class="params">(struct crypto_aead *tfm)</span></span></span><br><span class="line"><span class="function">  197 </span>&#123;</span><br><span class="line">✗ <span class="number">198</span>     <span class="keyword">return</span> container_of(crypto_aead_tfm(tfm)-&gt;__crt_alg,</span><br><span class="line">✗ <span class="number">199</span>                 struct aead_alg, base);</span><br><span class="line">  <span class="number">200</span> &#125;</span><br></pre></td></tr></table></figure>
+
+<p>即通过<code>aead_alg</code>中base成员的地址，获取<code>aead_alg</code>结构体本身的地址。</p>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line">  <span class="number">136</span> <span class="class"><span class="keyword">struct</span> <span class="title">aead_alg</span> &#123;</span></span><br><span class="line">✗ <span class="number">137</span>     <span class="keyword">int</span> (*setkey)(struct crypto_aead *tfm, <span class="keyword">const</span> u8 *key,</span><br><span class="line">  <span class="number">138</span>                   <span class="keyword">unsigned</span> <span class="keyword">int</span> keylen);</span><br><span class="line">  <span class="number">139</span>     <span class="keyword">int</span> (*setauthsize)(struct crypto_aead *tfm, <span class="keyword">unsigned</span> <span class="keyword">int</span> authsize);</span><br><span class="line">  <span class="number">140</span>     <span class="keyword">int</span> (*encrypt)(struct aead_request *req);</span><br><span class="line">  <span class="number">141</span>     <span class="keyword">int</span> (*decrypt)(struct aead_request *req);</span><br><span class="line">  <span class="number">142</span>     <span class="keyword">int</span> (*init)(struct crypto_aead *tfm);</span><br><span class="line">  <span class="number">143</span>     <span class="keyword">void</span> (*<span class="built_in">exit</span>)(struct crypto_aead *tfm);</span><br><span class="line">  <span class="number">144</span></span><br><span class="line">  <span class="number">145</span>     <span class="keyword">const</span> <span class="keyword">char</span> *geniv;</span><br><span class="line">  <span class="number">146</span></span><br><span class="line">  <span class="number">147</span>     <span class="keyword">unsigned</span> <span class="keyword">int</span> ivsize;</span><br><span class="line">  <span class="number">148</span>     <span class="keyword">unsigned</span> <span class="keyword">int</span> maxauthsize;</span><br><span class="line">  <span class="number">149</span>     <span class="keyword">unsigned</span> <span class="keyword">int</span> chunksize;</span><br><span class="line">  <span class="number">150</span></span><br><span class="line">✗ <span class="number">151</span>     <span class="class"><span class="keyword">struct</span> <span class="title">crypto_alg</span> <span class="title">base</span>;</span></span><br><span class="line">  <span class="number">152</span> &#125;;</span><br></pre></td></tr></table></figure>
+
+<p>所以如下的解密操作，最终会调用到<code>crypto_authenc_decrypt</code>中（因为使用的是加密和认证独立的算法）</p>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="number">355</span> <span class="function"><span class="keyword">static</span> <span class="keyword">inline</span> <span class="keyword">int</span> <span class="title">crypto_aead_decrypt</span><span class="params">(struct aead_request *req)</span></span></span><br><span class="line"><span class="function">356 </span>&#123;</span><br><span class="line"><span class="number">357</span>     <span class="class"><span class="keyword">struct</span> <span class="title">crypto_aead</span> *<span class="title">aead</span> =</span> crypto_aead_reqtfm(req);</span><br><span class="line"><span class="number">358</span></span><br><span class="line"><span class="number">359</span>     <span class="keyword">if</span> (req-&gt;cryptlen &lt; crypto_aead_authsize(aead))</span><br><span class="line"><span class="number">360</span>         <span class="keyword">return</span> -EINVAL;</span><br><span class="line"><span class="number">361</span></span><br><span class="line"><span class="number">362</span>     <span class="keyword">return</span> crypto_aead_alg(aead)-&gt;decrypt(req);</span><br><span class="line"><span class="number">363</span> &#125;</span><br></pre></td></tr></table></figure>
+
+<p>对于其他的结构体也是类似。例如通过<code>ahash_request</code>中base获取到<code>crypto_tfm</code>的指针，然后通过<code>container_of</code>宏获取到<code>crypto_ahash</code>的指针。</p>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line">   <span class="number">54</span> <span class="class"><span class="keyword">struct</span> <span class="title">ahash_request</span> &#123;</span></span><br><span class="line">✗  <span class="number">55</span>     <span class="class"><span class="keyword">struct</span> <span class="title">crypto_async_request</span> <span class="title">base</span>;</span></span><br><span class="line">   <span class="number">56</span></span><br><span class="line">   <span class="number">57</span>     <span class="keyword">unsigned</span> <span class="keyword">int</span> nbytes;</span><br><span class="line">   <span class="number">58</span>     <span class="class"><span class="keyword">struct</span> <span class="title">scatterlist</span> *<span class="title">src</span>;</span></span><br><span class="line">✗  <span class="number">59</span>     u8 *result;</span><br><span class="line">   <span class="number">60</span></span><br><span class="line">   <span class="number">61</span>     <span class="comment">/* This field may only be used by the ahash API code. */</span></span><br><span class="line">   <span class="number">62</span>     <span class="keyword">void</span> *priv;</span><br><span class="line">   <span class="number">63</span></span><br><span class="line">✗  <span class="number">64</span>     <span class="keyword">void</span> *__ctx[] CRYPTO_MINALIGN_ATTR;</span><br><span class="line">   <span class="number">65</span> &#125;;</span><br><span class="line">   </span><br><span class="line">   <span class="number">158</span> <span class="class"><span class="keyword">struct</span> <span class="title">crypto_async_request</span> &#123;</span></span><br><span class="line">✗  <span class="number">159</span>     <span class="class"><span class="keyword">struct</span> <span class="title">list_head</span> <span class="title">list</span>;</span></span><br><span class="line">   <span class="number">160</span>     <span class="keyword">crypto_completion_t</span> complete;</span><br><span class="line">   <span class="number">161</span>     <span class="keyword">void</span> *data;</span><br><span class="line">   <span class="number">162</span>     <span class="class"><span class="keyword">struct</span> <span class="title">crypto_tfm</span> *<span class="title">tfm</span>;</span></span><br><span class="line">   <span class="number">163</span></span><br><span class="line">✗  <span class="number">164</span>     u32 flags;</span><br><span class="line">   <span class="number">165</span> &#125;;</span><br><span class="line">   </span><br><span class="line">     <span class="number">201</span> <span class="class"><span class="keyword">struct</span> <span class="title">crypto_ahash</span> &#123;</span></span><br><span class="line">  <span class="number">202</span>     <span class="keyword">int</span> (*init)(struct ahash_request *req);</span><br><span class="line">  <span class="number">203</span>     <span class="keyword">int</span> (*update)(struct ahash_request *req);</span><br><span class="line">  <span class="number">204</span>     <span class="keyword">int</span> (*<span class="keyword">final</span>)(struct ahash_request *req);</span><br><span class="line">  <span class="number">205</span>     <span class="keyword">int</span> (*finup)(struct ahash_request *req);</span><br><span class="line">  <span class="number">206</span>     <span class="keyword">int</span> (*digest)(struct ahash_request *req);</span><br><span class="line">  <span class="number">207</span>     <span class="keyword">int</span> (*<span class="keyword">export</span>)(struct ahash_request *req, <span class="keyword">void</span> *out);</span><br><span class="line">  <span class="number">208</span>     <span class="keyword">int</span> (*<span class="keyword">import</span>)(struct ahash_request *req, <span class="keyword">const</span> <span class="keyword">void</span> *in);</span><br><span class="line">  <span class="number">209</span>     <span class="keyword">int</span> (*setkey)(struct crypto_ahash *tfm, <span class="keyword">const</span> u8 *key,</span><br><span class="line">  <span class="number">210</span>               <span class="keyword">unsigned</span> <span class="keyword">int</span> keylen);</span><br><span class="line">  <span class="number">211</span></span><br><span class="line">  <span class="number">212</span>     <span class="keyword">unsigned</span> <span class="keyword">int</span> reqsize;</span><br><span class="line">  <span class="number">213</span>     <span class="keyword">bool</span> has_setkey;</span><br><span class="line">  <span class="number">214</span>     <span class="class"><span class="keyword">struct</span> <span class="title">crypto_tfm</span> <span class="title">base</span>;</span></span><br><span class="line">  <span class="number">215</span> &#125;;</span><br></pre></td></tr></table></figure>
+
+]]></content>
+      <categories>
+        <category>排错与性能</category>
+      </categories>
+      <tags>
+        <tag>IPSec</tag>
+        <tag>ESP</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>systemtap与bpftrace使用评估及对比</title>
+    <url>/posts/46dd3f4b/</url>
+    <content><![CDATA[<div class="note primary">
+            <p>eBPF和systemtap这两个非常强大的工具，它们弥补了静态调试工具的不足，可以完成很多静态调试工具无法完成的事情。例如很多跟时序相关的问题、概率性偶发的问题、压力测试下才能出现的问题、以及像云上这种不方便调试的环境，可能只能通过<strong>动态调试</strong>的手段来定位分析问题。</p><p>它们将进程本身当作是一个数据库，从中获取所关心的信息进行活体分析。当然前提是你得对这个数据库本身有足够的了解，知道去哪里获取信息，以及获取什么信息。对于内核态就是对内核本身的理解，在用户态则是对用户程序的理解。</p><p>本文只是浅浅地试用评估了一下两者，并做了简单对比。要想熟练使用，功夫在诗外！</p>
+          </div>
+
+<span id="more"></span>
+
+
+
+<blockquote>
+<p>篇幅原因这里省去了安装步骤的介绍。</p>
+</blockquote>
+<h1 id="Systemtap"><a href="#Systemtap" class="headerlink" title="Systemtap"></a>Systemtap</h1><h2 id="环境依赖"><a href="#环境依赖" class="headerlink" title="环境依赖"></a>环境依赖</h2><p>依赖如下条件</p>
+<ul>
+<li>linux kernel</li>
+<li>kernel module build environment (kernel-devel rpm) and&#x2F;or dyninst</li>
+<li>optionally, debugging information for kernel&#x2F;user-space being instrumented</li>
+<li>C compiler (same as what kernel was compiled with), to build kernel modules</li>
+<li>C++11 compiler such as gcc 4.8+, to build systemtap itself</li>
+<li>elfutils 0.151+ with libdwfl for debugging information parsing</li>
+<li>root privileges</li>
+</ul>
+<p>用户进程动态追踪在Linux3.5引入，所以内核至少在该版本以上。</p>
+<h2 id="动态追踪工具原理"><a href="#动态追踪工具原理" class="headerlink" title="动态追踪工具原理"></a>动态追踪工具原理</h2><p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/dynamic-tracing-tool-principle.jpeg" alt="dynamic-tracing-tool-principle" loading="lazy"></p>
+<p>动态追踪工具在逻辑上非常简单。你用类C语言创建一个脚本，通过编译器翻译成探测代码。探测代码通过一个内核地址模块加载到内核地址空间，然后pateh到当前内核的二进制代码中。探针将收集的数据写到中间缓冲(intermediate buffers)，这些buffers往往是lock-free的。所以他们对内核性能有较少影响，且不需要切换上下文到追踪程序。另一个独立的实体消费者读取这些buffers，然后输出数据。</p>
+<h2 id="systemtap工作原理"><a href="#systemtap工作原理" class="headerlink" title="systemtap工作原理"></a>systemtap工作原理</h2><p>SystemTap不是内核的一部分，所以必须适配内核的改动。有时runtime和代码生成器需要适配新的kernel releases。而且，大部分发布版本都stripped了，所以在DWARF格式或者符号表中的调试信息被移除了。很多发行版的调试信息有单独的包，rpm系列是<code>-debuginfo</code>后缀，deb系列是<code>-dbg</code>后缀。<code>stap-prep</code>工具可以自动安装对应版本的内核调试信息。</p>
+<p>普通内核，需要配置<code>CONFIG_DEBUG_INFO</code>选项，将调试信息链接到内核。设置<code>CONFIG_KPROBES</code>以允许Systemtap打补丁到内核代码，<code>CONFIG_RELAY</code>和<code>CONFIG_DEBUG_FS</code>允许buffers和consumer之间传输信息，<code>CONFIG_MODULES</code>和<code>CONFIG_MODULE_UNLOAD</code>提供模块设施。还需要解压vmlinuz文件和位于<code>/lib/modules/$(uname -r)/build/</code>内核源码。</p>
+<p>SystemTap没有在内核中的VM（不像DTrace和KTap），它生成C语言写的内核模块源码然后编译，所以需要编译工具链(make, gcc, ld)</p>
+<h3 id="编译步骤"><a href="#编译步骤" class="headerlink" title="编译步骤"></a>编译步骤</h3><p>编译过程的5个阶段：解析、精加工(tapsets和调试信息链接到脚本)、翻译（生成C语言）、编译、运行</p>
+<h2 id=""><a href="#" class="headerlink" title=""></a><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/systemtap-compile-flow.jpeg" alt="systemtap-compile-flow" loading="lazy"></h2><p>SystemTap在编译时使用两个集合的库来提供内核版本独立的API。<code>Tapsets</code>是用SystemTap语言写的助手(部分用C写的)，在<code>elaborate</code>阶段嵌入。<code>Runtime</code>是用C写的，在编译阶段使用。因为准备源码和编译的高复杂性，SystemTap比DTrace慢。为了减轻这个问题，它可以缓存已编译的模块，或者使用编译服务器。</p>
+<h2 id="接口稳定性"><a href="#接口稳定性" class="headerlink" title="接口稳定性"></a>接口稳定性</h2><p>为了实现最高脚本可移植性，应该尽可能选用最高稳定性的选项。除非它提供的信息不够，再下降到稳定性较低的方法。避免直接使用内核中接口，而是隐藏在抽象中。</p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/dtrace-systemtap-stability-comparison-data-access.jpeg" alt="dtrace-systemtap-stability-comparison-data-access" loading="lazy"></p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/dtrace-systemtap-stability-comparison-tracepoints.jpeg" alt="dtrace-systemtap-stability-comparison-tracepoints" loading="lazy"></p>
+<h2 id="使用方式"><a href="#使用方式" class="headerlink" title="使用方式"></a>使用方式</h2><h3 id="前端工具stap-x2F-staprun"><a href="#前端工具stap-x2F-staprun" class="headerlink" title="前端工具stap&#x2F;staprun"></a>前端工具stap&#x2F;staprun</h3><p>SystemTap有几个前端工具，具有不同功能。</p>
+<ul>
+<li>stapio 是一个消费者，运行模块，从它的buffer打印信息到文件或stdout。它永远不会被独立使用，而是由stap或staprun调用。</li>
+<li>stap 包含所有5个阶段，可以在任意阶段停止。-k和-p 4选项可以创建一个预编译的.ko内核模块。注意Systemtap对内核版本非常严格。</li>
+<li>staprun 允许重用预编译的模块。</li>
+</ul>
+<h3 id="一些stap选项"><a href="#一些stap选项" class="headerlink" title="一些stap选项"></a>一些stap选项</h3><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">-l PROBESPEC 使用同通配符，打印所有匹配的探针名字。-L还打印探针参数和类型。示例：# stap -l &#x27;scsi.*&#x27;</span><br><span class="line">-v 打印详细信息，v越多越多信息</span><br><span class="line">-p STAGE 在处理STAGE之后结束</span><br><span class="line">-k 不删除编译过程生成的临时文件(源码和内核模块在/tmp/stapXXXX目录)</span><br><span class="line">-g 允许Guru模式，允许在脚本中绑定到黑名单中探针，允许在脚本中使用嵌入的C写内核存储。简单来说，就是允许危险操作。</span><br><span class="line">-c COMMAND and -x PID 绑定SystemTap到特定进程</span><br><span class="line">-o FILE 重定向输出到文件，已经存在会重写</span><br><span class="line">-m NAME 编译模块的时候，给它一个有意义的名字，而不是stap_</span><br><span class="line">当SystemTap需要把地址解析成符号的时候，它不会查找库或内核模块。下面是一些有用的选项来启用他们的符号解析</span><br><span class="line"></span><br><span class="line">-d MODULEPATH 为一些指定的库或内核模块打开符号解析。</span><br><span class="line">--ldd 追踪进程的时候，用ldd来添加所有链接的库用来解析</span><br><span class="line">--all-modules 打开所有内核模块的解析</span><br></pre></td></tr></table></figure>
+
+<h3 id="语法"><a href="#语法" class="headerlink" title="语法"></a>语法</h3><p>probe的用法如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">probe probepoint [, probepoint] &#123; statement &#125;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">kernel.function(PATTERN)</span><br><span class="line">kernel.function(PATTERN).call</span><br><span class="line">kernel.function(PATTERN).return</span><br><span class="line">kernel.function(PATTERN).return.maxactive(VALUE)</span><br><span class="line">kernel.function(PATTERN).inline</span><br><span class="line">kernel.function(PATTERN).label(LPATTERN)</span><br><span class="line">module(MPATTERN).function(PATTERN)</span><br><span class="line">module(MPATTERN).function(PATTERN).call</span><br><span class="line">module(MPATTERN).function(PATTERN).return.maxactive(VALUE)</span><br><span class="line">module(MPATTERN).function(PATTERN).inline</span><br><span class="line">kernel.statement(PATTERN)</span><br><span class="line">kernel.statement(ADDRESS).absolute</span><br><span class="line">module(MPATTERN).statement(PATTERN)</span><br><span class="line">process(PROCESSPATH).function(PATTERN)</span><br><span class="line">process(PROCESSPATH).function(PATTERN).call</span><br><span class="line">process(PROCESSPATH).function(PATTERN).return</span><br><span class="line">process(PROCESSPATH).function(PATTERN).inline</span><br><span class="line">process(PROCESSPATH).statement(PATTERN)</span><br></pre></td></tr></table></figure>
+
+<p>其中PATTERN的语法如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">func[@file]</span><br><span class="line">func@file:linenumber</span><br></pre></td></tr></table></figure>
+
+<p>可以使用通配符，例如：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">kernel.function(&quot;*init*&quot;)</span><br><span class="line">module(&quot;ext3&quot;).function(&quot;*&quot;)</span><br><span class="line">kernel.statement(&quot;*@kernel/time.c:296&quot;)</span><br><span class="line">process(&quot;/opt/openresty/nginx/nginx/sbin/nginx&quot;).function(&quot;ngx_epoll_process_events&quot;)</span><br></pre></td></tr></table></figure>
+
+<p>inline函数不能探测return。</p>
+<h2 id="脚本示例及关键语法"><a href="#脚本示例及关键语法" class="headerlink" title="脚本示例及关键语法"></a>脚本示例及关键语法</h2><p>下面通过两个具体脚本，来学习下systemtap语法：</p>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line">global EPOLLIN        = <span class="number">0x001</span></span><br><span class="line">global active</span><br><span class="line"></span><br><span class="line">probe begin &#123;</span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">&quot;Tracing start...\n\n&quot;</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function">probe <span class="title">process</span><span class="params">(<span class="string">&quot;/opt/openresty/nginx/nginx/sbin/nginx&quot;</span>)</span>.<span class="title">statement</span><span class="params">(<span class="string">&quot;ngx_epoll_process_events@src/event/modules/ngx_epoll_module.c:804&quot;</span>)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">if</span> (pid() != <span class="number">28987</span>) next;</span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">&quot;----------------------------------------------------------------------------------------------------------------------------------\n&quot;</span>);</span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">&quot;[%d] epoll_wait return %d\n&quot;</span>, pid(), $events);</span><br><span class="line">        <span class="keyword">for</span>(i = <span class="number">0</span>; i &lt; $events; i++) &#123;</span><br><span class="line">                c = @cast(@var(<span class="string">&quot;event_list&quot;</span>), <span class="string">&quot;struct epoll_event&quot;</span>)[i]-&gt;data-&gt;ptr;</span><br><span class="line">                c = c &amp; (~<span class="number">1</span>);</span><br><span class="line">                fd = @cast(c, <span class="string">&quot;ngx_connection_t&quot;</span>)-&gt;fd;</span><br><span class="line">                revents = @cast(@var(<span class="string">&quot;event_list&quot;</span>), <span class="string">&quot;struct epoll_event&quot;</span>)[i]-&gt;events;</span><br><span class="line">                events = <span class="string">&quot;&quot;</span>;</span><br><span class="line">                handlers = <span class="string">&quot;&quot;</span>;</span><br><span class="line">                <span class="keyword">if</span>(revents &amp; EPOLLIN) &#123;</span><br><span class="line">                        events .= <span class="string">&quot;EPOLLIN,&quot;</span>;</span><br><span class="line">                        handlers .= <span class="string">&quot; rev-&gt;hander: &quot;</span> . usymname(@cast(c, <span class="string">&quot;ngx_connection_t&quot;</span>)-&gt;read-&gt;handler);</span><br><span class="line">                &#125;</span><br><span class="line">                <span class="built_in">printf</span>(<span class="string">&quot;fd: %d(%s) %s\n&quot;</span>, fd, events, handlers);</span><br><span class="line">        &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>global</code>关键字定义探针处理函数的全局变量。</p>
+<p><code>probe begin/end</code>在探测开始前和结束后执行。</p>
+<p><code>probe process().statement()</code>探测函数中的某个位置。</p>
+<p><code>pid()</code>是内置函数，表示当前进程pid</p>
+<p><code>next</code>关键字跳过本probe执行</p>
+<p><code>printf</code>语法类似C</p>
+<p><code>$events</code>表示应用程序中的局部变量</p>
+<p><code>@cast(@var(&quot;event_list&quot;), &quot;struct epoll_event&quot;)</code>将全局变量转换成具体结构体，注意systemtap中不区分结构体和结构体指针，都用<code>-&gt;</code>进行访问。</p>
+<p><code>@var(&quot;event_list&quot;)</code>获取应用程序中全局变量</p>
+<p><code>c</code>和<code>fd</code>这些都是探针处理函数的局部变量</p>
+<p>字符串拼接可以直接用<code>.</code>操作符</p>
+<p><code>usymname()</code>将用户层地址转换成符号</p>
+<p>上面的脚本没有涉及<strong>关联数组</strong>和<strong>聚集</strong>等关键概念，再来看一个示例</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">#! /usr/bin/env stap</span><br><span class="line"></span><br><span class="line">global wstat;</span><br><span class="line">probe syscall.write &#123;</span><br><span class="line">        wstat[pid(), execname(), $fd] &lt;&lt;&lt; $count</span><br><span class="line">&#125;</span><br><span class="line">probe timer.sec(1) &#123;</span><br><span class="line">        printf(&quot;%5s\t%12s\t%5s\t%5s\t%8s\n&quot;, &quot;PID&quot;, &quot;EXECNAME&quot;, &quot;FD&quot;, &quot;OPS&quot;, &quot;KB&quot;);</span><br><span class="line">        foreach([pid+, name, fd] in wstat) &#123;</span><br><span class="line">                printf(&quot;%5d\t%12s\t%5d\t%5d\t%8d\n&quot;, pid, name, fd, @count(wstat[pid, name, fd]), @sum(wstat[pid, name, fd]) / 1024);</span><br><span class="line">        &#125;</span><br><span class="line">        delete wstat;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>关联数组类似其他语言中的hash表、map等，可以设置一个或多个key。聚集用于数据的统计</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">probe syscall.write` 探测系统调用`write</span><br></pre></td></tr></table></figure>
+
+<p><code>wstat[pid(), execname(), $fd]</code>就是一个关联数组，设置了3个key，分别是进程pid，程序名和系统调用写操作的fd。</p>
+<p><code>wstat[pid(), execname(), $fd] &lt;&lt;&lt; $count</code>将<code>$count</code>即写的字节数记录到关联数组中。</p>
+<p><code>probe timer.sec(1)</code>类似定时器，每隔1s执行</p>
+<p><code>foreach([pid+, name, fd] in wstat)</code>遍历关联数组，<code>pid</code>,<code>name</code>,<code>fd</code>分别表示该项的各key，<code>pid+</code>中的<code>+</code>表示根据pid进行升序排列</p>
+<p><code>@count(wstat[pid, name, fd])</code>统计关联数组中这个key组合的值的个数，即该进程调用write系统调用的次数</p>
+<p><code>@sum(wstat[pid, name, fd])</code>统计关联数组中这个key组合的值的和，即该进程调用write系统调用的写的总字节数</p>
+<p><code>delete wstat;</code> 表示清空该关联数组</p>
+<p>上面的脚本执行效果如下：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">root@NASG:~<span class="comment"># stap ./wstat.stp</span></span><br><span class="line">  PID       EXECNAME       FD     OPS         KB</span><br><span class="line">13910         stapio        1       4          1</span><br><span class="line">15896           sshd        3       4          1</span><br><span class="line">27514       postgres        6      12          1</span><br><span class="line">27514       postgres        3       8         64</span><br><span class="line">27514       postgres        4       4         32</span><br><span class="line">27516       postgres        9       4          0</span><br></pre></td></tr></table></figure>
+
+
+
+<h1 id="bpftrace"><a href="#bpftrace" class="headerlink" title="bpftrace"></a>bpftrace</h1><h2 id="环境依赖-1"><a href="#环境依赖-1" class="headerlink" title="环境依赖"></a>环境依赖</h2><table>
+<thead>
+<tr>
+<th>年份</th>
+<th>技术</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>2004</td>
+<td>kprobes&#x2F;kretprobes</td>
+</tr>
+<tr>
+<td>2008</td>
+<td>ftrace</td>
+</tr>
+<tr>
+<td>2005</td>
+<td>systemtap</td>
+</tr>
+<tr>
+<td>2009</td>
+<td>perf_events</td>
+</tr>
+<tr>
+<td>2009</td>
+<td>tracepoints</td>
+</tr>
+<tr>
+<td>2012</td>
+<td>uprobes</td>
+</tr>
+<tr>
+<td>2015 ~ 至今</td>
+<td>eBPF (Linux 4.1+)</td>
+</tr>
+</tbody></table>
+<p>eBPF常用的前端工具有两个，<a href="https://github.com/iovisor/bcc">BCC</a>和<a href="https://github.com/iovisor/bpftrace">bpftrace</a>。</p>
+<p><code>bpftrace</code>适合强大的单行命令和自定义的短脚本，<code>BCC</code>适合使用了其他库的复杂脚本、守护进程。普通用户使用较多的是<code>bpftrace</code>。</p>
+<p>推荐使用<strong>Linux 4.9</strong>以上内核。BCC&#x2F;bpftrace工具使用的大部分内核BPF组件在4.1到4.9之间增加，后续版本有改进，所以内核越新越好。</p>
+<ul>
+<li>主要BPF特性开始支持的内核版本</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>内核版本</th>
+<th>支持特性</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>4.1</td>
+<td>kprobes</td>
+</tr>
+<tr>
+<td>4.3</td>
+<td>uprobes</td>
+</tr>
+<tr>
+<td>4.6</td>
+<td>stack traces, count and hist builtins (use PERCPU maps for accuracy and efficiency)</td>
+</tr>
+<tr>
+<td>4.7</td>
+<td>tracepoints</td>
+</tr>
+<tr>
+<td>4.9</td>
+<td>timers&#x2F;profiling</td>
+</tr>
+</tbody></table>
+<p>需要打开以下内核配置，CONFIG_BPF&#x3D;y, CONFIG_BPF_SYSCALL&#x3D;y, CONFIG_BPF_EVENTS&#x3D;y, CONFIG_BPF_JIT&#x3D;y, CONFIG_HAVE_EBPF_JIT&#x3D;y。很多发行版都是默认打开的，无需做调整。</p>
+<h2 id="实用示例"><a href="#实用示例" class="headerlink" title="实用示例"></a>实用示例</h2><p>详细使用方法见 <a href="https://github.com/iovisor/bpftrace/blob/master/docs/reference_guide.md">bpftrace docs</a></p>
+<h3 id="单行命令示例"><a href="#单行命令示例" class="headerlink" title="单行命令示例"></a>单行命令示例</h3><ul>
+<li>执行新程序</li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">bpftrace -e &#x27;tracepoint:syscalls:sys_enter_execve &#123; printf(&quot;%s -&gt; %s\n&quot;, comm, str(args-&gt;filename)); &#125;&#x27;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>新进程及其参数</li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">bpftrace -e &#x27;tracepoint:syscalls:sys_enter_execve &#123; join(args-&gt;argv); &#125;&#x27;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>使用openat打开的文件</li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">bpftrace -e &#x27;tracepoint:syscalls:sys_enter_openat &#123; printf(&quot;%s %s\n&quot;, comm, str(args-&gt;filename)); &#125;&#x27;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>统计程序系统调用次数</li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">bpftrace -e &#x27;tracepoint:raw_syscalls:sys_enter &#123; @[comm] = count(); &#125;&#x27;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>统计不同系统调用的次数</li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">bpftrace -e &#x27;tracepoint:syscalls:sys_enter_* &#123; @[probe] = count(); &#125;&#x27;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>基于pid统计系统调用次数</li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">bpftrace -e &#x27;tracepoint:raw_syscalls:sys_enter &#123; @[pid, comm] = count(); &#125;&#x27;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>统计进程读取字节数</li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">bpftrace -e &#x27;tracepoint:syscalls:sys_exit_read /args-&gt;ret/ &#123; @[comm] = sum(args-&gt;ret); &#125;&#x27;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>进程读取字节数的分布</li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">bpftrace -e &#x27;tracepoint:syscalls:sys_exit_read &#123; @[comm] = hist(args-&gt;ret); &#125;&#x27;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>追踪进程磁盘IO大小</li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">bpftrace -e &#x27;tracepoint:block:block_rq_issue &#123; printf(&quot;%d %s %d\n&quot;, pid, comm, args-&gt;bytes); &#125;&#x27;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>统计进程major-fault的次数</li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">bpftrace -e &#x27;software:major-faults:1 &#123; @[comm] = count(); &#125;&#x27;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>统计进程页错误</li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">bpftrace -e &#x27;software:faults:1 &#123; @[comm] = count(); &#125;&#x27;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>以49Hz采样用户层栈</li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">bpftrace -e &#x27;profile:hz:49 /pid == 189/ &#123; @[ustack] = count(); &#125;&#x27;</span><br></pre></td></tr></table></figure>
+
+<h3 id="统计耗时的示例"><a href="#统计耗时的示例" class="headerlink" title="统计耗时的示例"></a>统计耗时的示例</h3><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">#!/usr/local/bin/bpftrace </span><br><span class="line"></span><br><span class="line">// this program times vfs_read()  </span><br><span class="line">kprobe:vfs_read &#123; </span><br><span class="line">       @start[tid] = nsecs; </span><br><span class="line">&#125;  </span><br><span class="line">kretprobe:vfs_read /@start[tid]/ </span><br><span class="line">&#123; </span><br><span class="line">       $duration_us = (nsecs - @start[tid]) / 1000;        </span><br><span class="line">       @us = hist($duration_us);        </span><br><span class="line">       delete(@start[tid]); </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="用户层动态探测示例"><a href="#用户层动态探测示例" class="headerlink" title="用户层动态探测示例"></a>用户层动态探测示例</h2><p>bpftrace语言特性上没有systemtap丰富，不太能进行复杂的探测操作，具体见下一小节比较</p>
+<p>当前版本已经支持将探针附在函数一定偏移处，但是不是很方便。如下所示，需要先找到函数的起始地址</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">root@NASG:~/stap-script# objdump -tT /opt/openresty/nginx/nginx/sbin/nginx |grep ngx_epoll_process_events</span><br><span class="line">000000000044b060 l     F .text  0000000000000417              ngx_epoll_process_events</span><br></pre></td></tr></table></figure>
+
+<p>然后查看函数的汇编指令，找到目标探测点的地址偏移值。</p>
+<p>我们这里选择<code>44b0a3: 41 83 fc ff cmp $0xffffffff,%r12</code>，计算偏移值<code>0x44b0a3 - 0x44b060 = 0x43 = 67</code> 。</p>
+<p>然后在探测的时候指定偏移值如下： <code>uprobe:/opt/openresty/nginx/nginx/sbin/nginx:ngx_epoll_process_events+67</code></p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">root@NASG:~/stap-script# objdump -d /opt/openresty/nginx/nginx/sbin/nginx | grep -A 30 000000000044b060</span><br><span class="line">000000000044b060 &lt;ngx_epoll_process_events&gt;:</span><br><span class="line">  44b060:   41 57                   push   %r15</span><br><span class="line">  44b062:   41 56                   push   %r14</span><br><span class="line">  44b064:   49 89 d6                mov    %rdx,%r14</span><br><span class="line">  44b067:   41 55                   push   %r13</span><br><span class="line">  44b069:   41 54                   push   %r12</span><br><span class="line">  44b06b:   49 89 fd                mov    %rdi,%r13</span><br><span class="line">  44b06e:   55                      push   %rbp</span><br><span class="line">  44b06f:   53                      push   %rbx</span><br><span class="line">  44b070:   48 89 f3                mov    %rsi,%rbx</span><br><span class="line">  44b073:   48 83 ec 18             sub    $0x18,%rsp</span><br><span class="line">  44b077:   48 8b 77 10             mov    0x10(%rdi),%rsi</span><br><span class="line">  44b07b:   f6 06 80                testb  $0x80,(%rsi)</span><br><span class="line">  44b07e:   0f 85 fc 02 00 00       jne    44b380 &lt;ngx_epoll_process_events+0x320&gt;</span><br><span class="line">  44b084:   8b 15 16 5e 38 00       mov    0x385e16(%rip),%edx        # 7d0ea0 &lt;nevents&gt;</span><br><span class="line">  44b08a:   48 8b 35 17 5e 38 00    mov    0x385e17(%rip),%rsi        # 7d0ea8 &lt;event_list&gt;</span><br><span class="line">  44b091:   89 d9                   mov    %ebx,%ecx</span><br><span class="line">  44b093:   8b 3d 2b 87 35 00       mov    0x35872b(%rip),%edi        # 7a37c4 &lt;ep&gt;</span><br><span class="line">  44b099:   31 ed                   xor    %ebp,%ebp</span><br><span class="line">  44b09b:   e8 20 1e fd ff          callq  41cec0 &lt;epoll_wait@plt&gt;</span><br><span class="line">  44b0a0:   4c 63 e0                movslq %eax,%r12</span><br><span class="line">  44b0a3:   41 83 fc ff             cmp    $0xffffffff,%r12d</span><br><span class="line">  44b0a7:   0f 84 f3 02 00 00       je     44b3a0 &lt;ngx_epoll_process_events+0x340&gt;</span><br><span class="line">  44b0ad:   41 f6 c6 01             test   $0x1,%r14b</span><br><span class="line">  44b0b1:   75 45                   jne    44b0f8 &lt;ngx_epoll_process_events+0x98&gt;</span><br><span class="line">  44b0b3:   8b 35 5f a5 38 00       mov    0x38a55f(%rip),%esi        # 7d5618 &lt;ngx_event_timer_alarm&gt;</span><br><span class="line">  44b0b9:   85 f6                   test   %esi,%esi</span><br><span class="line">  44b0bb:   75 3b                   jne    44b0f8 &lt;ngx_epoll_process_events+0x98&gt;</span><br><span class="line">  44b0bd:   85 ed                   test   %ebp,%ebp</span><br><span class="line">  44b0bf:   74 40                   je     44b101 &lt;ngx_epoll_process_events+0xa1&gt;</span><br><span class="line">  44b0c1:   83 fd 04                cmp    $0x4,%ebp</span><br></pre></td></tr></table></figure>
+
+<p>应用程序中的局部变量没有方便的获取方法，可以查看汇编代码，通过寄存器获取，如下所示：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">$events = (uint64)reg(&quot;r12&quot;);</span><br></pre></td></tr></table></figure>
+
+<p>完整示例：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">#!/usr/bin/env bpftrace</span><br><span class="line">//#include &lt;ngx_connection.h&gt;</span><br><span class="line"></span><br><span class="line">// from openresty-1.13.6.2/bundle/nginx-1.13.6/src/event/modules/ngx_epoll_module.c</span><br><span class="line">union epoll_data_t &#123;</span><br><span class="line">    void         *ptr;</span><br><span class="line">    int           fd;</span><br><span class="line">    uint32_t      u32;</span><br><span class="line">    uint64_t      u64;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line">struct epoll_event &#123;</span><br><span class="line">    uint32_t      events;</span><br><span class="line">    union epoll_data_t  data;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">BEGIN &#123;</span><br><span class="line">        printf(&quot;Tracing start...\n\n&quot;);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">uprobe:/opt/openresty/nginx/nginx/sbin/nginx:ngx_epoll_process_events+67 &#123;</span><br><span class="line">        if (pid != 28987)  &#123;</span><br><span class="line">                return;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        $EPOLLIN        = 1;</span><br><span class="line">        $EPOLLOUT       = 4;</span><br><span class="line">        $EPOLLERR       = 8;</span><br><span class="line">        $EPOLLHUP       = 16;</span><br><span class="line">        $EPOLLRDHUP     = 8192;</span><br><span class="line"></span><br><span class="line">        printf(&quot;--------\n&quot;);</span><br><span class="line">        $events = (uint64)reg(&quot;r12&quot;);</span><br><span class="line">        printf(&quot;[%d] epoll_wait return %d\n&quot;, pid, $events);</span><br><span class="line">        $i = (uint64)0;</span><br><span class="line">// 不支持循环</span><br><span class="line">        if($i &lt; $events) &#123;</span><br><span class="line">                $c = ((struct epoll_event *)(uaddr(&quot;event_list&quot;) + $i * 8))-&gt;data.ptr;</span><br><span class="line">                $c = $c &amp; (~1);</span><br><span class="line">// 下一行我已经没法继续下去了，涉及的头文件太多了。。。</span><br><span class="line">//              $fd = ((struct ngx_connection_s *)$c)-&gt;fd;</span><br><span class="line">        &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<h1 id="性能分析"><a href="#性能分析" class="headerlink" title="性能分析"></a>性能分析</h1><p>影响性能消耗的主要有3个因素，即探测事件的频率、探针执行的动作、CPU数。可以用如下公式来表示：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">Overhead = (frequency × action performed) / CPUs</span><br></pre></td></tr></table></figure>
+
+<h2 id="典型事件的频率"><a href="#典型事件的频率" class="headerlink" title="典型事件的频率"></a>典型事件的频率</h2><p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/typical-events-frequency.png" alt="typical-events-frequency" loading="lazy"></p>
+<ul>
+<li>Negligible: &lt;0.1%</li>
+<li>Measurable: ~1%</li>
+<li>Significant: &gt;5%</li>
+<li>Expensive: &gt;30%</li>
+<li>Extreme: &gt;300%</li>
+</ul>
+<h2 id="uprobes事件不同频率下性能损耗"><a href="#uprobes事件不同频率下性能损耗" class="headerlink" title="uprobes事件不同频率下性能损耗"></a>uprobes事件不同频率下性能损耗</h2><p>根据事件频率进行定量测试，可以看到测试结果跟上表基本吻合。bpftrace和systemtap性能损耗基本一样。</p>
+<table>
+<thead>
+<tr>
+<th>事件频率</th>
+<th>bpftrace探测</th>
+<th>bpftrace性能损耗</th>
+<th>systemtap探测</th>
+<th>systemtap性能损耗</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>100.36 (102)</td>
+<td>100.25</td>
+<td>0.11%</td>
+<td>100.28</td>
+<td>0.08%</td>
+</tr>
+<tr>
+<td>1003.66 (103)</td>
+<td>996.71</td>
+<td>0.69%</td>
+<td>997.13</td>
+<td>0.65%</td>
+</tr>
+<tr>
+<td>10035.60 (104)</td>
+<td>9433.30</td>
+<td>6.00%</td>
+<td>9464.07</td>
+<td>5.70%</td>
+</tr>
+<tr>
+<td>100216.86 (105)</td>
+<td>61629.70</td>
+<td>38.50%</td>
+<td>62897.49</td>
+<td>37.24%</td>
+</tr>
+<tr>
+<td>1004615.82 (106)</td>
+<td>138057.96</td>
+<td>86.26%</td>
+<td>143209.28</td>
+<td>85.74%</td>
+</tr>
+<tr>
+<td>10149658.72 (107)</td>
+<td>157846.80</td>
+<td>98.44%</td>
+<td>166574.78</td>
+<td>98.36%</td>
+</tr>
+</tbody></table>
+<p>测试环境为Linux 4.15.0-64-generic, Intel(R) Celeron(R) CPU J1900 @ 1.99GHz 单CPU测试。</p>
+<p>工作负载程序和测试脚本见后面附录</p>
+<h2 id="不同探针操作的性能评估"><a href="#不同探针操作的性能评估" class="headerlink" title="不同探针操作的性能评估"></a>不同探针操作的性能评估</h2><p>测试工作负载为 <code>dd if=/dev/zero of=/dev/null bs=1 count=10000k</code></p>
+<p>修改bpftrace单行命令进行测试 <code>bpftrace -e &#39;kprobe:vfs_read &#123; @ = count(); &#125;&#39;</code></p>
+<p>从下表测试结果可以看到，kretprobes比kprobes慢，uprobes&#x2F;uretprobes比kprobes&#x2F;kretprobes要慢得多。</p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/bpftrace-per-event-cost.png" alt="bpftrace-per-event-cost" loading="lazy"></p>
+<p>测试环境：Linux 4.15，i7-8650U CPU @ 1.90GHz，使用taskset绑到一个CPU上。</p>
+<h1 id="优缺点比较"><a href="#优缺点比较" class="headerlink" title="优缺点比较"></a>优缺点比较</h1><h3 id="bpftrace优缺点："><a href="#bpftrace优缺点：" class="headerlink" title="bpftrace优缺点："></a>bpftrace优缺点：</h3><h4 id="BPF限制"><a href="#BPF限制" class="headerlink" title="BPF限制"></a>BPF限制</h4><ul>
+<li>不能调用任意的内核函数：只能调用BPF helper。</li>
+<li>BPF程序不能做循环，因为必须在规定时间内结束。后续(Linux 5.3)会支持受限的循环。（随着即将添加的循环，您可能会开始怀疑BPF是否将成为图灵完整的。 BPF指令集本身允许创建图灵完备的自动机，但是由于验证器引入的安全性限制，BPF程序不是图灵完整的。）</li>
+<li>BPF栈大小限制为<code>MAX_BPF_STACK</code>，设置为512，多用几个字符串就用完了。解决方法是使用BPF映射存储替代</li>
+<li>指令数限制为4096。Linux5.2大幅增加了这个限制。</li>
+</ul>
+<h4 id="bpftrace其他缺点"><a href="#bpftrace其他缺点" class="headerlink" title="bpftrace其他缺点"></a>bpftrace其他缺点</h4><ul>
+<li>探针附到函数一定偏移处不是很方法</li>
+<li>无法直接获取被探测应用程序中函数局部变量值</li>
+<li>结构体的访问非常麻烦，需要将所有依赖的头文件及其路径都包含进来</li>
+<li>内核版本要求较高，且在较旧的发行版上安装体验不佳</li>
+</ul>
+<h4 id="bpftrace优点"><a href="#bpftrace优点" class="headerlink" title="bpftrace优点"></a>bpftrace优点</h4><ul>
+<li>bpftrace基于内置Linux技术，不用追赶内核版本改动，稳定性更高</li>
+<li>脚本执行速度比systemtap快（使用llvm编译成BPF）</li>
+</ul>
+<h3 id="systemtap优缺点"><a href="#systemtap优缺点" class="headerlink" title="systemtap优缺点"></a>systemtap优缺点</h3><h4 id="缺点"><a href="#缺点" class="headerlink" title="缺点"></a>缺点</h4><ul>
+<li>基于内核模块技术，在RHEL以外的系统上都不可靠</li>
+<li>不是内置于内核，需要追赶内核版本改动，稳定性不如bpftrace</li>
+<li>脚本执行速度比systemtap慢，且在生产环境需要gcc编译工具链、内核头文件</li>
+<li>依赖dwarf，需要安装内核符号，用户层程序则在编译时需要-g</li>
+</ul>
+<h4 id="优点"><a href="#优点" class="headerlink" title="优点"></a>优点</h4><ul>
+<li>脚本语言支持的特性更全，如函数偏移、循环、函数局部变量、结构体引用</li>
+<li>具有成熟的用户态符号自动加载，可以写比较复杂的探针处理程序</li>
+<li>systemtap中有大量帮助程序(tapset)，可用于检测不同的目标</li>
+<li>systemtap普通模式只读，guru模式可以写，如修改程序中某个变量值</li>
+<li>systemtap内核版本要求较低，在4.x以前内核上也能使用。</li>
+</ul>
+<h1 id="附录"><a href="#附录" class="headerlink" title="附录"></a>附录</h1><ul>
+<li>uprobes性能测试-应用程序代码</li>
+</ul>
+<div><div class="fold_hider"><div class="close hider_title">点击展开overhead.c</div></div><div class="fold">
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;signal.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;unistd.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdlib.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="keyword">size_t</span> count = <span class="number">0</span>;</span><br><span class="line"><span class="keyword">size_t</span> last_count = <span class="number">0</span>;</span><br><span class="line"><span class="keyword">size_t</span> diff = <span class="number">0</span>;</span><br><span class="line"><span class="keyword">size_t</span> times = <span class="number">0</span>;</span><br><span class="line"><span class="keyword">size_t</span> period = <span class="number">1</span>;</span><br><span class="line"><span class="keyword">size_t</span> loop = <span class="number">1000000</span>;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">handle_signal</span><span class="params">(<span class="keyword">int</span> sigNum)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (sigNum == SIGALRM)</span><br><span class="line">    &#123;</span><br><span class="line">        diff = count - last_count;</span><br><span class="line">        last_count = count;</span><br><span class="line">        ++times;</span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">&quot;TPS in the last %3zu seconds: %lf\n&quot;</span>, period, (<span class="keyword">double</span>)diff / period);</span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">&quot;TPS in the past %3zu seconds: %lf\n&quot;</span>, times * period, (<span class="keyword">double</span>)last_count / times / period);</span><br><span class="line">        alarm(period);      <span class="comment">// 重置定时时间</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">foo</span><span class="params">(<span class="keyword">size_t</span> n)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">size_t</span> i = <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">while</span>(i &lt; n) &#123;</span><br><span class="line">        ++i;</span><br><span class="line">    &#125;</span><br><span class="line">    ++count;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">(<span class="keyword">int</span> argc, <span class="keyword">char</span>* argv[])</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">if</span>(argc &gt; <span class="number">1</span>) &#123;</span><br><span class="line">        loop = strtoull(argv[<span class="number">1</span>], <span class="literal">NULL</span>, <span class="number">0</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span>(argc &gt; <span class="number">2</span>) &#123;</span><br><span class="line">        period = strtoull(argv[<span class="number">2</span>], <span class="literal">NULL</span>, <span class="number">0</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    signal(SIGALRM, handle_signal);</span><br><span class="line">    alarm(period);</span><br><span class="line">    <span class="keyword">while</span>(<span class="number">1</span>) &#123;</span><br><span class="line">        foo(loop);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+</div></div>
+
+<ul>
+<li>uprobes性能测试-bpftrace脚本</li>
+</ul>
+<div><div class="fold_hider"><div class="close hider_title">点击展开test.bt</div></div><div class="fold">
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">#!/usr/bin/env bpftrace</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">uprobe:/root/stap-script/perf-test/overhead:foo </span><br><span class="line">&#123; </span><br><span class="line">    @n++;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">END &#123;</span><br><span class="line">    printf(&quot;n: %d\n&quot;, @n);</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+</div></div>
+
+<ul>
+<li>uprobes性能测试-stap脚本</li>
+</ul>
+<div><div class="fold_hider"><div class="close hider_title">点击展开test.stp</div></div><div class="fold">
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">#!/usr/bin/env stap</span><br><span class="line"></span><br><span class="line">global n = 0;</span><br><span class="line"></span><br><span class="line">probe process(&quot;/root/stap-script/perf-test/overhead&quot;).function(&quot;foo&quot;)</span><br><span class="line">&#123; </span><br><span class="line">    n++;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">probe end &#123;</span><br><span class="line">    printf(&quot;n: %d\n&quot;, n);</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+</div></div>
+
+<ul>
+<li>uprobes性能测试-辅助命令</li>
+</ul>
+<div><div class="fold_hider"><div class="close hider_title">点击展开</div></div><div class="fold">
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="meta">#!/bin/bash</span></span><br><span class="line">gcc -g -o overhead overhead.c</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="meta">#!/bin/bash</span></span><br><span class="line">./overhead <span class="variable">$1</span> <span class="variable">$2</span></span><br></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="meta">#!/bin/bash</span></span><br><span class="line">bpftrace test.bt -c <span class="string">&quot;./overhead <span class="variable">$1</span> <span class="variable">$2</span>&quot;</span></span><br></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="meta">#!/bin/bash</span></span><br><span class="line">stap -v test.stp -c <span class="string">&quot;./overhead <span class="variable">$1</span> <span class="variable">$2</span>&quot;</span></span><br></pre></td></tr></table></figure>
+
+</div></div>
+
+<h1 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h1><ul>
+<li><a href="https://sourceware.org/systemtap/SystemTap_Beginners_Guide/">systemtap新手指南</a></li>
+<li><a href="https://sourceware.org/systemtap/langref/">systemtap语言参考手册</a></li>
+<li><a href="https://sourceware.org/systemtap/tapsets/">systemtap tapset参考手册</a></li>
+<li><a href="http://myaut.github.io/dtrace-stap-book/">dtrace-stap-book</a></li>
+<li><a href="https://github.com/iovisor/bcc">bcc repo</a></li>
+<li><a href="https://github.com/iovisor/bpftrace">bpftrace repo</a></li>
+<li><a href="https://github.com/iovisor/bpftrace/blob/master/docs/reference_guide.md">bpftrace docs</a></li>
+<li>BPF-Performance-Tools-by-Brendan-Gregg</li>
+</ul>
+]]></content>
+      <categories>
+        <category>性能</category>
+      </categories>
+      <tags>
+        <tag>systemtap</tag>
+        <tag>eBPF</tag>
+        <tag>bpftrace</tag>
+        <tag>动态追踪</tag>
       </tags>
   </entry>
 </search>
