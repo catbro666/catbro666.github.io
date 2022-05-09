@@ -6,7 +6,7 @@
   <link href="https://catbro666.github.io/atom.xml" rel="self"/>
   
   <link href="https://catbro666.github.io/"/>
-  <updated>2022-05-09T15:48:42.250Z</updated>
+  <updated>2022-05-09T15:57:29.512Z</updated>
   <id>https://catbro666.github.io/</id>
   
   <author>
@@ -21,7 +21,7 @@
     <link href="https://catbro666.github.io/posts/4921760e/"/>
     <id>https://catbro666.github.io/posts/4921760e/</id>
     <published>2022-05-09T14:35:51.000Z</published>
-    <updated>2022-05-09T15:48:42.250Z</updated>
+    <updated>2022-05-09T15:57:29.512Z</updated>
     
     
     <summary type="html">&lt;div class=&quot;note primary&quot;&gt;
@@ -44,7 +44,7 @@
     <link href="https://catbro666.github.io/posts/46dd3f4b/"/>
     <id>https://catbro666.github.io/posts/46dd3f4b/</id>
     <published>2022-05-09T12:57:29.000Z</published>
-    <updated>2022-05-09T14:26:56.601Z</updated>
+    <updated>2022-05-09T16:00:51.848Z</updated>
     
     
     <summary type="html">&lt;div class=&quot;note primary&quot;&gt;
@@ -53,7 +53,7 @@
     
     
     
-    <category term="性能" scheme="https://catbro666.github.io/categories/%E6%80%A7%E8%83%BD/"/>
+    <category term="排错与性能" scheme="https://catbro666.github.io/categories/%E6%8E%92%E9%94%99%E4%B8%8E%E6%80%A7%E8%83%BD/"/>
     
     
     <category term="systemtap" scheme="https://catbro666.github.io/tags/systemtap/"/>

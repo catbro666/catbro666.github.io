@@ -2,6 +2,20 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   
   <url>
+    <loc>https://catbro666.github.io/posts/46dd3f4b/</loc>
+    
+    <lastmod>2022-05-09</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>https://catbro666.github.io/posts/4921760e/</loc>
+    
+    <lastmod>2022-05-09</lastmod>
+    
+  </url>
+  
+  <url>
     <loc>https://catbro666.github.io/posts/e92ef4b4/</loc>
     
     <lastmod>2022-05-09</lastmod>
@@ -16,21 +30,7 @@
   </url>
   
   <url>
-    <loc>https://catbro666.github.io/posts/4921760e/</loc>
-    
-    <lastmod>2022-05-09</lastmod>
-    
-  </url>
-  
-  <url>
     <loc>https://catbro666.github.io/posts/83951100/</loc>
-    
-    <lastmod>2022-05-09</lastmod>
-    
-  </url>
-  
-  <url>
-    <loc>https://catbro666.github.io/posts/46dd3f4b/</loc>
     
     <lastmod>2022-05-09</lastmod>
     
@@ -714,13 +714,6 @@
   
   <url>
     <loc>https://catbro666.github.io/categories/%E7%BC%96%E7%A8%8B%E5%BC%80%E5%8F%91/Nginx-OpenResty/</loc>
-    <lastmod>2022-05-09</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.6</priority>
-  </url>
-  
-  <url>
-    <loc>https://catbro666.github.io/categories/%E6%80%A7%E8%83%BD/</loc>
     <lastmod>2022-05-09</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>

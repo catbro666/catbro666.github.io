@@ -5845,12 +5845,12 @@
 <h1 id="问题背景描述"><a href="#问题背景描述" class="headerlink" title="问题背景描述"></a>问题背景描述</h1><p>先交代下问题背景，公司新开发的IPsec VPN产品去过检测。在协议检测时，出现检测平台发送过来的ESP包在解密失败的问题，检测算法是SM4-SM3。</p>
 <p>我并没有参与IPsec产品的开发，之前对于IPsec也是丝毫不了解。我在这样的情况下协助进行问题定位。这个问题的排查的难点在于对方是黑盒，你只能根据己方这边的信息进行分析定位。</p>
 <p>以下分别为检测平台的ESP抓包和我们的ipsec程序自己跟自己互通时的ESP抓包。可以看到检测平台的ESP包长度要短4个字节。</p>
-<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/%E6%A3%80%E6%B5%8B%E5%B9%B3%E5%8F%B0ESP%E6%8A%93%E5%8C%85.jpg" alt="检测平台ESP抓包" loading="lazy"></p>
-<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/%E8%87%AA%E5%B7%B1%E4%BA%92%E9%80%9AESP%E6%8A%93%E5%8C%85.jpg" alt="自己互通ESP抓包" loading="lazy"></p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/4921760e/%E6%A3%80%E6%B5%8B%E5%B9%B3%E5%8F%B0ESP%E6%8A%93%E5%8C%85.jpg" alt="检测平台ESP抓包" loading="lazy"></p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/4921760e/%E8%87%AA%E5%B7%B1%E4%BA%92%E9%80%9AESP%E6%8A%93%E5%8C%85.jpg" alt="自己互通ESP抓包" loading="lazy"></p>
 <h1 id="ESP规范"><a href="#ESP规范" class="headerlink" title="ESP规范"></a>ESP规范</h1><p>首先想到的肯定是ESP包的格式问题，是不是某些字段的理解跟协议有出入。于是查阅相关规范。</p>
 <p>国密规范中ESP的描述如下：</p>
-<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/ESP%E8%A7%84%E8%8C%831.jpg" alt="ESP规范1" loading="lazy"></p>
-<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/ESP%E8%A7%84%E8%8C%832.jpg" alt="ESP规范2" loading="lazy"></p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/4921760e/ESP%E8%A7%84%E8%8C%831.jpg" alt="ESP规范1" loading="lazy"></p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/4921760e/ESP%E8%A7%84%E8%8C%832.jpg" alt="ESP规范2" loading="lazy"></p>
 <p><img src="%E6%96%87%E6%A1%A3/%E5%8A%A0%E5%AF%86%E6%96%87%E4%BB%B6%E5%A4%B9%E7%A7%BB%E5%87%BA/%E5%87%BA%E5%B7%AE%E6%8A%A5%E5%91%8A/IPsec%E5%9B%BD%E5%AF%86%E6%A3%80%E6%B5%8B/ESP%E8%A7%84%E8%8C%833.jpg" alt="ESP规范3" loading="lazy"></p>
 <p>国密规范有些地方讲的不清楚，更精确的描述参看<a href="https://tools.ietf.org/html/rfc2406">rfc2406-esp</a>。</p>
 <h1 id="ESP包格式分析"><a href="#ESP包格式分析" class="headerlink" title="ESP包格式分析"></a>ESP包格式分析</h1><p>结合规范及实际的抓包分析，ESP包的格式应如下：</p>
@@ -5872,32 +5872,32 @@
 <p>第3种可能的原因，因为检测平台的包比我们程序自己互通时正常的包短了4个字节。取最后28字节为ESP认证数据，对前面的认证范围数据手动进行HMAC(SM3)计算，计算结果跟最后28字节不一致。</p>
 <h1 id="问题确认"><a href="#问题确认" class="headerlink" title="问题确认"></a>问题确认</h1><h2 id="HMAC认证"><a href="#HMAC认证" class="headerlink" title="HMAC认证"></a>HMAC认证</h2><p>问题陷入了僵局，看来只能从代码本身入手进行分析了。正在对这个长度问题困扰的时候，一个偶然的机会用最后12字节作为认证数据可以验证通过。</p>
 <p>验证过程如下，协商出的密钥信息如下：</p>
-<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/%E5%AE%8C%E6%95%B4%E6%80%A7%E9%AA%8C%E8%AF%81-key.png" alt="完整性验证-key" loading="lazy"></p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/4921760e/%E5%AE%8C%E6%95%B4%E6%80%A7%E9%AA%8C%E8%AF%81-key.png" alt="完整性验证-key" loading="lazy"></p>
 <p>接收到的ESP包原始数据如下：</p>
-<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/%E5%AE%8C%E6%95%B4%E6%80%A7%E9%AA%8C%E8%AF%81-esp.png" alt="完整性验证-esp" loading="lazy"></p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/4921760e/%E5%AE%8C%E6%95%B4%E6%80%A7%E9%AA%8C%E8%AF%81-esp.png" alt="完整性验证-esp" loading="lazy"></p>
 <p>手动验证HMAC通过：</p>
-<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/%E5%AE%8C%E6%95%B4%E6%80%A7%E9%AA%8C%E8%AF%81-hmac.png" alt="完整性验证-hmac" loading="lazy"></p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/4921760e/%E5%AE%8C%E6%95%B4%E6%80%A7%E9%AA%8C%E8%AF%81-hmac.png" alt="完整性验证-hmac" loading="lazy"></p>
 <p>自此确认了ESP包长度不对的原因，是因为ESP认证数据截短到了12字节。之所以抓包比对ESP包长度只相差了4字节，是因为我们的代码中有bug，完整性的长度icv_size设置成了16，而实际应该是32字节。</p>
 <p>也是因为这个原因，导致我们一开始误以为认证长度是截短为28字节。</p>
 <p>接下来就是修改内核代码了，将SM3算法的认证长度截短到12字节，出现ESP包接收之后死机的现象，怀疑可能是解密出的包格式不对。</p>
 <h2 id="SM4解密"><a href="#SM4解密" class="headerlink" title="SM4解密"></a>SM4解密</h2><p>确认了认证数据长度之后，密文范围也就确定了。手动解密得到原文数据如下：</p>
-<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/SM4%E8%A7%A3%E5%AF%86-1.png" alt="SM4解密-1" loading="lazy"></p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/4921760e/SM4%E8%A7%A3%E5%AF%86-1.png" alt="SM4解密-1" loading="lazy"></p>
 <p>又尝试了其他几个ESP包密文数据，解出来的原文也是这种格式</p>
-<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/SM4%E8%A7%A3%E5%AF%86-2.png" alt="SM4解密-2" loading="lazy"></p>
-<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/SM4%E8%A7%A3%E5%AF%86-3.png" alt="SM4解密-3" loading="lazy"></p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/4921760e/SM4%E8%A7%A3%E5%AF%86-2.png" alt="SM4解密-2" loading="lazy"></p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/4921760e/SM4%E8%A7%A3%E5%AF%86-3.png" alt="SM4解密-3" loading="lazy"></p>
 <p>对比正常的ping的抓包：</p>
-<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/%E6%99%AE%E9%80%9Aping%E6%8A%93%E5%8C%85.jpg" alt="普通ping抓包" loading="lazy"></p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/4921760e/%E6%99%AE%E9%80%9Aping%E6%8A%93%E5%8C%85.jpg" alt="普通ping抓包" loading="lazy"></p>
 <p>ping包原文的格式应该是没有问题的，具体的ping包格式如下：</p>
-<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/ping%E5%8C%85%E6%A0%BC%E5%BC%8F.jpg" alt="ping包格式" loading="lazy"> </p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/4921760e/ping%E5%8C%85%E6%A0%BC%E5%BC%8F.jpg" alt="ping包格式" loading="lazy"> </p>
 <p>所以解密的包格式应该是没有问题的，问题应该是其他地方引入的。经过一番折腾，后来发现系统死机是因为之前的残留的修改没有删除所致。重新拿一个干净的内核源码修改后正常。</p>
 <h1 id="内核代码修改"><a href="#内核代码修改" class="headerlink" title="内核代码修改"></a>内核代码修改</h1><p>在<code>xfrm_algo.c</code>中修改算法描述，将<code>icv_truncbits</code>改成96</p>
-<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/SM3%E8%AE%A4%E8%AF%81%E6%88%AA%E6%96%AD96.jpg" alt="SM3认证截断96" loading="lazy"></p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/4921760e/SM3%E8%AE%A4%E8%AF%81%E6%88%AA%E6%96%AD96.jpg" alt="SM3认证截断96" loading="lazy"></p>
 <p>然后<code>xfrm_user.c</code>中构造<code>xfrm_state</code>的时候，将<code>xfrm_algo_desc</code>中的值赋给<code>xfrm_algo_auth</code>结构体。</p>
-<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/%E6%88%AA%E6%96%AD%E9%95%BF%E5%BA%A6%E8%B5%8B%E5%80%BC.jpeg" alt="截断长度赋值" loading="lazy"></p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/4921760e/%E6%88%AA%E6%96%AD%E9%95%BF%E5%BA%A6%E8%B5%8B%E5%80%BC.jpeg" alt="截断长度赋值" loading="lazy"></p>
 <p><code>esp.c</code>中<code>esp_init_authenc</code>在初始化的时候，设置认证的长度到<code>crypto_aead</code>结构体中。</p>
-<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/%E5%88%9D%E5%A7%8B%E5%8C%96%E6%97%B6%E8%AE%BE%E7%BD%AE%E8%AE%A4%E8%AF%81%E9%95%BF%E5%BA%A6.jpeg" alt="初始化时设置认证长度" loading="lazy"></p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/4921760e/%E5%88%9D%E5%A7%8B%E5%8C%96%E6%97%B6%E8%AE%BE%E7%BD%AE%E8%AE%A4%E8%AF%81%E9%95%BF%E5%BA%A6.jpeg" alt="初始化时设置认证长度" loading="lazy"></p>
 <p>然后在后续ESP包认证解密的时候，使用<code>crypto_aead_authsize</code>获取认证长度。</p>
-<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/%E8%8E%B7%E5%8F%96%E8%AE%A4%E8%AF%81%E9%95%BF%E5%BA%A6.jpg" alt="获取认证长度" loading="lazy"></p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/4921760e/%E8%8E%B7%E5%8F%96%E8%AE%A4%E8%AF%81%E9%95%BF%E5%BA%A6.jpg" alt="获取认证长度" loading="lazy"></p>
 <h1 id="代码的定位过程"><a href="#代码的定位过程" class="headerlink" title="代码的定位过程"></a>代码的定位过程</h1><p>内核中加密相关函数调用，都是通过回调的方式，通过其中的成员配合<code>container_of</code>宏获取到实际的算法结构体指针。以<code>crypto_aead</code>为例。其中的base是一个算法转换实例</p>
 <figure class="highlight c"><table><tr><td class="code"><pre><span class="line">  <span class="number">154</span> <span class="class"><span class="keyword">struct</span> <span class="title">crypto_aead</span> &#123;</span></span><br><span class="line">  <span class="number">155</span>     <span class="keyword">unsigned</span> <span class="keyword">int</span> authsize;</span><br><span class="line">  <span class="number">156</span>     <span class="keyword">unsigned</span> <span class="keyword">int</span> reqsize;</span><br><span class="line">  <span class="number">157</span></span><br><span class="line">✗ <span class="number">158</span>     <span class="class"><span class="keyword">struct</span> <span class="title">crypto_tfm</span> <span class="title">base</span>;</span></span><br><span class="line">  <span class="number">159</span> &#125;;</span><br></pre></td></tr></table></figure>
 
@@ -5950,16 +5950,16 @@
 <li>root privileges</li>
 </ul>
 <p>用户进程动态追踪在Linux3.5引入，所以内核至少在该版本以上。</p>
-<h2 id="动态追踪工具原理"><a href="#动态追踪工具原理" class="headerlink" title="动态追踪工具原理"></a>动态追踪工具原理</h2><p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/dynamic-tracing-tool-principle.jpeg" alt="dynamic-tracing-tool-principle" loading="lazy"></p>
+<h2 id="动态追踪工具原理"><a href="#动态追踪工具原理" class="headerlink" title="动态追踪工具原理"></a>动态追踪工具原理</h2><p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/46dd3f4b/dynamic-tracing-tool-principle.jpeg" alt="dynamic-tracing-tool-principle" loading="lazy"></p>
 <p>动态追踪工具在逻辑上非常简单。你用类C语言创建一个脚本，通过编译器翻译成探测代码。探测代码通过一个内核地址模块加载到内核地址空间，然后pateh到当前内核的二进制代码中。探针将收集的数据写到中间缓冲(intermediate buffers)，这些buffers往往是lock-free的。所以他们对内核性能有较少影响，且不需要切换上下文到追踪程序。另一个独立的实体消费者读取这些buffers，然后输出数据。</p>
 <h2 id="systemtap工作原理"><a href="#systemtap工作原理" class="headerlink" title="systemtap工作原理"></a>systemtap工作原理</h2><p>SystemTap不是内核的一部分，所以必须适配内核的改动。有时runtime和代码生成器需要适配新的kernel releases。而且，大部分发布版本都stripped了，所以在DWARF格式或者符号表中的调试信息被移除了。很多发行版的调试信息有单独的包，rpm系列是<code>-debuginfo</code>后缀，deb系列是<code>-dbg</code>后缀。<code>stap-prep</code>工具可以自动安装对应版本的内核调试信息。</p>
 <p>普通内核，需要配置<code>CONFIG_DEBUG_INFO</code>选项，将调试信息链接到内核。设置<code>CONFIG_KPROBES</code>以允许Systemtap打补丁到内核代码，<code>CONFIG_RELAY</code>和<code>CONFIG_DEBUG_FS</code>允许buffers和consumer之间传输信息，<code>CONFIG_MODULES</code>和<code>CONFIG_MODULE_UNLOAD</code>提供模块设施。还需要解压vmlinuz文件和位于<code>/lib/modules/$(uname -r)/build/</code>内核源码。</p>
 <p>SystemTap没有在内核中的VM（不像DTrace和KTap），它生成C语言写的内核模块源码然后编译，所以需要编译工具链(make, gcc, ld)</p>
 <h3 id="编译步骤"><a href="#编译步骤" class="headerlink" title="编译步骤"></a>编译步骤</h3><p>编译过程的5个阶段：解析、精加工(tapsets和调试信息链接到脚本)、翻译（生成C语言）、编译、运行</p>
-<h2 id=""><a href="#" class="headerlink" title=""></a><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/systemtap-compile-flow.jpeg" alt="systemtap-compile-flow" loading="lazy"></h2><p>SystemTap在编译时使用两个集合的库来提供内核版本独立的API。<code>Tapsets</code>是用SystemTap语言写的助手(部分用C写的)，在<code>elaborate</code>阶段嵌入。<code>Runtime</code>是用C写的，在编译阶段使用。因为准备源码和编译的高复杂性，SystemTap比DTrace慢。为了减轻这个问题，它可以缓存已编译的模块，或者使用编译服务器。</p>
+<h2 id=""><a href="#" class="headerlink" title=""></a><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/46dd3f4b/systemtap-compile-flow.jpeg" alt="systemtap-compile-flow" loading="lazy"></h2><p>SystemTap在编译时使用两个集合的库来提供内核版本独立的API。<code>Tapsets</code>是用SystemTap语言写的助手(部分用C写的)，在<code>elaborate</code>阶段嵌入。<code>Runtime</code>是用C写的，在编译阶段使用。因为准备源码和编译的高复杂性，SystemTap比DTrace慢。为了减轻这个问题，它可以缓存已编译的模块，或者使用编译服务器。</p>
 <h2 id="接口稳定性"><a href="#接口稳定性" class="headerlink" title="接口稳定性"></a>接口稳定性</h2><p>为了实现最高脚本可移植性，应该尽可能选用最高稳定性的选项。除非它提供的信息不够，再下降到稳定性较低的方法。避免直接使用内核中接口，而是隐藏在抽象中。</p>
-<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/dtrace-systemtap-stability-comparison-data-access.jpeg" alt="dtrace-systemtap-stability-comparison-data-access" loading="lazy"></p>
-<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/dtrace-systemtap-stability-comparison-tracepoints.jpeg" alt="dtrace-systemtap-stability-comparison-tracepoints" loading="lazy"></p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/46dd3f4b/dtrace-systemtap-stability-comparison-data-access.jpeg" alt="dtrace-systemtap-stability-comparison-data-access" loading="lazy"></p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/46dd3f4b/dtrace-systemtap-stability-comparison-tracepoints.jpeg" alt="dtrace-systemtap-stability-comparison-tracepoints" loading="lazy"></p>
 <h2 id="使用方式"><a href="#使用方式" class="headerlink" title="使用方式"></a>使用方式</h2><h3 id="前端工具stap-x2F-staprun"><a href="#前端工具stap-x2F-staprun" class="headerlink" title="前端工具stap&#x2F;staprun"></a>前端工具stap&#x2F;staprun</h3><p>SystemTap有几个前端工具，具有不同功能。</p>
 <ul>
 <li>stapio 是一个消费者，运行模块，从它的buffer打印信息到文件或stdout。它永远不会被独立使用，而是由stap或staprun调用。</li>
@@ -6167,7 +6167,7 @@
 <h1 id="性能分析"><a href="#性能分析" class="headerlink" title="性能分析"></a>性能分析</h1><p>影响性能消耗的主要有3个因素，即探测事件的频率、探针执行的动作、CPU数。可以用如下公式来表示：</p>
 <figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">Overhead = (frequency × action performed) / CPUs</span><br></pre></td></tr></table></figure>
 
-<h2 id="典型事件的频率"><a href="#典型事件的频率" class="headerlink" title="典型事件的频率"></a>典型事件的频率</h2><p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/typical-events-frequency.png" alt="typical-events-frequency" loading="lazy"></p>
+<h2 id="典型事件的频率"><a href="#典型事件的频率" class="headerlink" title="典型事件的频率"></a>典型事件的频率</h2><p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/46dd3f4b/typical-events-frequency.png" alt="typical-events-frequency" loading="lazy"></p>
 <ul>
 <li>Negligible: &lt;0.1%</li>
 <li>Measurable: ~1%</li>
@@ -6234,7 +6234,7 @@
 <h2 id="不同探针操作的性能评估"><a href="#不同探针操作的性能评估" class="headerlink" title="不同探针操作的性能评估"></a>不同探针操作的性能评估</h2><p>测试工作负载为 <code>dd if=/dev/zero of=/dev/null bs=1 count=10000k</code></p>
 <p>修改bpftrace单行命令进行测试 <code>bpftrace -e &#39;kprobe:vfs_read &#123; @ = count(); &#125;&#39;</code></p>
 <p>从下表测试结果可以看到，kretprobes比kprobes慢，uprobes&#x2F;uretprobes比kprobes&#x2F;kretprobes要慢得多。</p>
-<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/undefined/bpftrace-per-event-cost.png" alt="bpftrace-per-event-cost" loading="lazy"></p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/46dd3f4b/bpftrace-per-event-cost.png" alt="bpftrace-per-event-cost" loading="lazy"></p>
 <p>测试环境：Linux 4.15，i7-8650U CPU @ 1.90GHz，使用taskset绑到一个CPU上。</p>
 <h1 id="优缺点比较"><a href="#优缺点比较" class="headerlink" title="优缺点比较"></a>优缺点比较</h1><h3 id="bpftrace优缺点："><a href="#bpftrace优缺点：" class="headerlink" title="bpftrace优缺点："></a>bpftrace优缺点：</h3><h4 id="BPF限制"><a href="#BPF限制" class="headerlink" title="BPF限制"></a>BPF限制</h4><ul>
 <li>不能调用任意的内核函数：只能调用BPF helper。</li>
@@ -6317,7 +6317,7 @@
 </ul>
 ]]></content>
       <categories>
-        <category>性能</category>
+        <category>排错与性能</category>
       </categories>
       <tags>
         <tag>systemtap</tag>
