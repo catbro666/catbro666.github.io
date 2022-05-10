@@ -5851,10 +5851,10 @@
 <p>国密规范中ESP的描述如下：</p>
 <p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/4921760e/ESP%E8%A7%84%E8%8C%831.jpg" alt="ESP规范1" loading="lazy"></p>
 <p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/4921760e/ESP%E8%A7%84%E8%8C%832.jpg" alt="ESP规范2" loading="lazy"></p>
-<p><img src="%E6%96%87%E6%A1%A3/%E5%8A%A0%E5%AF%86%E6%96%87%E4%BB%B6%E5%A4%B9%E7%A7%BB%E5%87%BA/%E5%87%BA%E5%B7%AE%E6%8A%A5%E5%91%8A/IPsec%E5%9B%BD%E5%AF%86%E6%A3%80%E6%B5%8B/ESP%E8%A7%84%E8%8C%833.jpg" alt="ESP规范3" loading="lazy"></p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/4921760e/ESP%E8%A7%84%E8%8C%833.jpg" alt="ESP规范3" loading="lazy"></p>
 <p>国密规范有些地方讲的不清楚，更精确的描述参看<a href="https://tools.ietf.org/html/rfc2406">rfc2406-esp</a>。</p>
 <h1 id="ESP包格式分析"><a href="#ESP包格式分析" class="headerlink" title="ESP包格式分析"></a>ESP包格式分析</h1><p>结合规范及实际的抓包分析，ESP包的格式应如下：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">|ESP头(SPI+Index)|IV|原IP头|原协议头|载荷数据|padding|ESP尾(填充长度+下一个头)|ESP认证数据|</span><br><span class="line">				    |&lt;----------------------加密范围--------------------&gt;|</span><br><span class="line">|&lt;---------------------------------认证范围-----------------------------&gt;|</span><br></pre></td></tr></table></figure>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">|ESP头(SPI+Index)|IV|原IP头|原协议头|载荷数据|padding|ESP尾(填充长度+下一个头)|ESP认证数据|</span><br><span class="line">                    |&lt;----------------------加密范围--------------------&gt;|</span><br><span class="line">|&lt;---------------------------------认证范围-----------------------------&gt;|</span><br></pre></td></tr></table></figure>
 
 
 
@@ -5956,7 +5956,8 @@
 <p>普通内核，需要配置<code>CONFIG_DEBUG_INFO</code>选项，将调试信息链接到内核。设置<code>CONFIG_KPROBES</code>以允许Systemtap打补丁到内核代码，<code>CONFIG_RELAY</code>和<code>CONFIG_DEBUG_FS</code>允许buffers和consumer之间传输信息，<code>CONFIG_MODULES</code>和<code>CONFIG_MODULE_UNLOAD</code>提供模块设施。还需要解压vmlinuz文件和位于<code>/lib/modules/$(uname -r)/build/</code>内核源码。</p>
 <p>SystemTap没有在内核中的VM（不像DTrace和KTap），它生成C语言写的内核模块源码然后编译，所以需要编译工具链(make, gcc, ld)</p>
 <h3 id="编译步骤"><a href="#编译步骤" class="headerlink" title="编译步骤"></a>编译步骤</h3><p>编译过程的5个阶段：解析、精加工(tapsets和调试信息链接到脚本)、翻译（生成C语言）、编译、运行</p>
-<h2 id=""><a href="#" class="headerlink" title=""></a><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/46dd3f4b/systemtap-compile-flow.jpeg" alt="systemtap-compile-flow" loading="lazy"></h2><p>SystemTap在编译时使用两个集合的库来提供内核版本独立的API。<code>Tapsets</code>是用SystemTap语言写的助手(部分用C写的)，在<code>elaborate</code>阶段嵌入。<code>Runtime</code>是用C写的，在编译阶段使用。因为准备源码和编译的高复杂性，SystemTap比DTrace慢。为了减轻这个问题，它可以缓存已编译的模块，或者使用编译服务器。</p>
+<p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/46dd3f4b/systemtap-compile-flow.jpeg" alt="systemtap-compile-flow" loading="lazy"></p>
+<p>SystemTap在编译时使用两个集合的库来提供内核版本独立的API。<code>Tapsets</code>是用SystemTap语言写的助手(部分用C写的)，在<code>elaborate</code>阶段嵌入。<code>Runtime</code>是用C写的，在编译阶段使用。因为准备源码和编译的高复杂性，SystemTap比DTrace慢。为了减轻这个问题，它可以缓存已编译的模块，或者使用编译服务器。</p>
 <h2 id="接口稳定性"><a href="#接口稳定性" class="headerlink" title="接口稳定性"></a>接口稳定性</h2><p>为了实现最高脚本可移植性，应该尽可能选用最高稳定性的选项。除非它提供的信息不够，再下降到稳定性较低的方法。避免直接使用内核中接口，而是隐藏在抽象中。</p>
 <p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/46dd3f4b/dtrace-systemtap-stability-comparison-data-access.jpeg" alt="dtrace-systemtap-stability-comparison-data-access" loading="lazy"></p>
 <p><img src="https://cdn.jsdelivr.net/gh/catbro666/catbro666.github.io/posts/46dd3f4b/dtrace-systemtap-stability-comparison-tracepoints.jpeg" alt="dtrace-systemtap-stability-comparison-tracepoints" loading="lazy"></p>
